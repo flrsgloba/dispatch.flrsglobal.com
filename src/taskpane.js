@@ -3486,3 +3486,452 @@ function preview() {
   );
 
 }
+
+/* =========================================================
+   NEWSLETTER HTML BUILDER
+========================================================= */
+
+function buildNewsletterHtml() {
+
+  const edition = value("edition");
+  const date = value("date");
+  const title = value("title");
+  const subtitle = value("subtitle");
+
+  const reflection = value("reflection");
+  const workText = value("workText");
+  const studioText = value("studioText");
+
+  const hero1 = value("hero1Url");
+  const hero2 = value("hero2Url");
+
+  const hero1Caption = value("hero1Caption");
+  const hero2Caption = value("hero2Caption");
+
+  const inviteTitle = value("inviteTitle");
+  const inviteText = value("inviteText");
+
+  const ctaLabel = value("ctaLabel") || "INQUIRE";
+  const ctaUrl = value("ctaUrl");
+
+  const question = value("question");
+
+  const notes = collectPleasureNotes();
+  const imageBlocks = collectImageBlocks();
+
+
+  /* -------------------------------------------------------
+     HERO 01
+  ------------------------------------------------------- */
+
+  let hero1Html = "";
+
+  if (hero1) {
+
+    hero1Html =
+      '<img src="' +
+      escapeAttribute(hero1) +
+      '" alt="" style="' +
+      "display:block;" +
+      "width:100%;" +
+      "height:auto;" +
+      "border:0;" +
+      "margin:0 0 10px;" +
+      '">' +
+
+      (
+        hero1Caption
+          ? '<div style="' +
+            "font:12px/1.45 Arial,Helvetica,sans-serif;" +
+            "color:#777;" +
+            "margin:0 0 32px;" +
+            '">' +
+            escapeHtml(hero1Caption) +
+            "</div>"
+          : ""
+      );
+
+  }
+
+
+  /* -------------------------------------------------------
+     HERO 02
+  ------------------------------------------------------- */
+
+  let hero2Html = "";
+
+  if (hero2) {
+
+    hero2Html =
+      '<img src="' +
+      escapeAttribute(hero2) +
+      '" alt="" style="' +
+      "display:block;" +
+      "width:100%;" +
+      "height:auto;" +
+      "border:0;" +
+      "margin:0 0 10px;" +
+      '">' +
+
+      (
+        hero2Caption
+          ? '<div style="' +
+            "font:12px/1.45 Arial,Helvetica,sans-serif;" +
+            "color:#777;" +
+            "margin:0 0 32px;" +
+            '">' +
+            escapeHtml(hero2Caption) +
+            "</div>"
+          : ""
+      );
+
+  }
+
+
+  /* -------------------------------------------------------
+     INVITATION
+  ------------------------------------------------------- */
+
+  let invitationHtml = "";
+
+  if (
+    inviteTitle ||
+    inviteText ||
+    ctaUrl
+  ) {
+
+    invitationHtml =
+
+      '<div style="' +
+        "font:10px Arial,Helvetica,sans-serif;" +
+        "letter-spacing:1.5px;" +
+        "color:#777;" +
+        "margin:40px 0 11px;" +
+      '">' +
+        "05 — AN INVITATION" +
+      "</div>" +
+
+      (
+        inviteTitle
+          ? '<div style="' +
+              "font:27px/1.15 Garamond,Georgia,Times New Roman,serif;" +
+              "margin:0 0 10px;" +
+            '">' +
+            escapeHtml(inviteTitle) +
+            "</div>"
+          : ""
+      ) +
+
+      paragraph(inviteText) +
+
+      (
+        ctaUrl
+          ? '<div style="padding:0 0 25px;">' +
+
+              '<a href="' +
+              escapeAttribute(ctaUrl) +
+              '" style="' +
+                "display:inline-block;" +
+                "background:#151515;" +
+                "color:#fff;" +
+                "text-decoration:none;" +
+                "padding:12px 18px;" +
+                "font:10px Arial,Helvetica,sans-serif;" +
+                "letter-spacing:1.2px;" +
+              '">' +
+
+                escapeHtml(ctaLabel) +
+
+              "</a>" +
+
+            "</div>"
+          : ""
+      );
+
+  }
+
+
+  /* -------------------------------------------------------
+     DATE / EDITION LINE
+  ------------------------------------------------------- */
+
+  const dateLine =
+    [
+      edition,
+      date,
+      title
+    ]
+      .filter(Boolean)
+      .map(function (item) {
+        return escapeHtml(item);
+      })
+      .join(" · ");
+
+
+  /* -------------------------------------------------------
+     MODULAR IMAGES
+  ------------------------------------------------------- */
+
+  let modulesHtml = "";
+
+  imageBlocks.forEach(function (block) {
+
+    modulesHtml +=
+      buildImageModuleHtml(block);
+
+  });
+
+
+  /* -------------------------------------------------------
+     COMPLETE EMAIL
+  ------------------------------------------------------- */
+
+  return (
+
+    '<div style="' +
+      "margin:0;" +
+      "padding:0;" +
+      "background:#f4f0e8;" +
+      "color:#151515;" +
+    '">' +
+
+      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
+        "border-collapse:collapse;" +
+        "background:#f4f0e8;" +
+      '">' +
+
+        "<tr>" +
+
+          '<td align="center" style="padding:28px 12px;">' +
+
+            '<table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="' +
+              "border-collapse:collapse;" +
+              "width:100%;" +
+              "max-width:680px;" +
+              "background:#fffdf8;" +
+            '">' +
+
+
+              /* HEADER */
+
+              "<tr>" +
+
+                '<td style="padding:42px 42px 20px;">' +
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:2px;" +
+                  '">' +
+                    "FLRS GLOBAL" +
+                  "</div>" +
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.4px;" +
+                    "color:#777;" +
+                    "margin-top:8px;" +
+                  '">' +
+                    "FROM THE STUDIO OF FREDDIE L. RANKIN II" +
+                  "</div>" +
+
+                  '<h1 style="' +
+                    "font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;" +
+                    "margin:20px 0 10px;" +
+                  '">' +
+                    "The Pleasure Dispatch" +
+                  "</h1>" +
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.3px;" +
+                    "color:#777;" +
+                    "border-bottom:1px solid #151515;" +
+                    "padding-bottom:20px;" +
+                  '">' +
+                    dateLine +
+                  "</div>" +
+
+                  (
+                    subtitle
+                      ? '<div style="' +
+                          "font:18px/1.45 Garamond,Georgia,Times New Roman,serif;" +
+                          "margin-top:20px;" +
+                        '">' +
+                        escapeHtml(subtitle) +
+                        "</div>"
+                      : ""
+                  ) +
+
+                "</td>" +
+
+              "</tr>" +
+
+
+              /* BODY */
+
+              "<tr>" +
+
+                '<td style="padding:0 42px;">' +
+
+
+                  /* PLEASURE MOTIF */
+
+                  '<div style="' +
+                    "text-align:center;" +
+                    "font:27px Garamond,Georgia,serif;" +
+                    "margin:0 0 20px;" +
+                  '">' +
+                    "◒" +
+                  "</div>" +
+
+
+                  /* HERO 01 */
+
+                  hero1Html +
+
+
+                  /* REFLECTION */
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:#777;" +
+                    "margin:30px 0 11px;" +
+                  '">' +
+                    "01 — A REFLECTION" +
+                  "</div>" +
+
+                  paragraph(reflection) +
+
+
+                  /* THE WORK */
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:#777;" +
+                    "margin:38px 0 11px;" +
+                  '">' +
+                    "02 — THE WORK" +
+                  "</div>" +
+
+                  paragraph(workText) +
+
+
+                  /* MODULAR IMAGES */
+
+                  modulesHtml +
+
+
+                  /* STUDIO NOTES */
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:#777;" +
+                    "margin:38px 0 11px;" +
+                  '">' +
+                    "03 — STUDIO NOTES" +
+                  "</div>" +
+
+                  paragraph(studioText) +
+
+
+                  /* HERO 02 */
+
+                  hero2Html +
+
+
+                  /* PLEASURE NOTES */
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:#777;" +
+                    "margin:38px 0 11px;" +
+                  '">' +
+                    "04 — PLEASURE NOTES" +
+                  "</div>" +
+
+                  '<div style="' +
+                    "font:19px/1.4 Garamond,Georgia,Times New Roman,serif;" +
+                    "margin:0 0 8px;" +
+                  '">' +
+                    "An offering of what has held my attention." +
+                  "</div>" +
+
+                  buildPleasureNotesHtml(notes) +
+
+
+                  /* INVITATION */
+
+                  invitationHtml +
+
+
+                  /* QUESTION */
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:#777;" +
+                    "margin:38px 0 11px;" +
+                  '">' +
+                    "06 — A QUESTION" +
+                  "</div>" +
+
+                  '<div style="' +
+                    "font:25px/1.35 Garamond,Georgia,Times New Roman,serif;" +
+                    "margin:0 0 36px;" +
+                  '">' +
+                    escapeHtml(question) +
+                  "</div>" +
+
+
+                  /* CLOSING MOTIF */
+
+                  '<div style="' +
+                    "text-align:center;" +
+                    "font:27px Garamond,Georgia,serif;" +
+                    "margin:20px 0 32px;" +
+                  '">' +
+                    "◒" +
+                  "</div>" +
+
+                "</td>" +
+
+              "</tr>" +
+
+
+              /* FOOTER */
+
+              "<tr>" +
+
+                '<td style="' +
+                  "padding:18px 42px 34px;" +
+                  "border-top:1px solid #151515;" +
+                '">' +
+
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.1px;" +
+                    "color:#777;" +
+                  '">' +
+                    "THE PLEASURE DISPATCH · BY FLRS GLOBAL" +
+                  "</div>" +
+
+                "</td>" +
+
+              "</tr>" +
+
+
+            "</table>" +
+
+          "</td>" +
+
+        "</tr>" +
+
+      "</table>" +
+
+    "</div>"
+  );
+}
