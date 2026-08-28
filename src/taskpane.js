@@ -3989,3 +3989,25 @@ function preview() {
   );
 
 }
+/* =========================================================
+   GET IMAGE MODULES
+========================================================= */
+
+function getImageBlocks() {
+
+  const container =
+    document.getElementById(
+      "imageBlocks"
+    );
+
+  if (!container) {
+    return [];
+  }
+
+  return Array.from(
+    container.querySelectorAll(
+      ":scope > .image-block"
+    )
+  );
+
+}
