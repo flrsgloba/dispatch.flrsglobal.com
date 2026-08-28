@@ -1,16 +1,87 @@
 /* =========================================================
    THE PLEASURE DISPATCH
-   Complete taskpane.js
+   taskpane.js
+   Consolidated Build
+
+   Current architecture:
+
+   Desktop Upload
+      ↓
+   Resize / Compress
+      ↓
+   Google Apps Script
+      ↓
+   Google Drive
+      ↓
+   Drive Thumbnail URL
+      ↓
+   Composer Preview
+      ↓
+   Build in Outlook
+
+   Includes:
+   • Hero Image 01
+   • Hero Image 02
+   • Modular image blocks
+   • Full Width
+   • Two Up
+   • Three Up
+   • Four Up
+   • Four Up = one horizontal row
+   • Desktop image upload
+   • Drive hosting
+   • Clickable images
+   • Pleasure Notes
+   • Move Up
+   • Move Down
+   • Duplicate
+   • Remove
+   • Preview
+   • Build in Outlook
+   • Build progress counter
+   • Build timeout
+========================================================= */
+
+
+/* =========================================================
+   CONFIGURATION
 ========================================================= */
 
 const DRIVE_API_URL =
   "https://script.google.com/macros/s/AKfycbyTLvYbe1O_BbzsH09UMSZdbY9_XZXga-TbSPkR3UclT3Qhlaj7gy5yhXPA_UpE6Fu7tw/exec";
 
+
+/*
+ * Image optimization.
+ */
 const IMAGE_MAX_WIDTH = 1800;
 const IMAGE_MAX_HEIGHT = 1800;
 const IMAGE_QUALITY = 0.82;
+
+
+/*
+ * Maximum source file size.
+ */
 const MAX_SOURCE_IMAGE_MB = 40;
+
+
+/*
+ * Drive image display width.
+ */
 const DRIVE_IMAGE_WIDTH = 1800;
+
+
+/*
+ * Maximum amount of time Outlook is allowed
+ * to remain in the build stage before we report
+ * a timeout to the user.
+ */
+const BUILD_TIMEOUT_MS = 15000;
+
+
+/* =========================================================
+   GLOBAL STATE
+========================================================= */
 
 let blockCounter = 0;
 let pleasureCounter = 0;
@@ -18,11 +89,13 @@ let initialized = false;
 
 
 /* =========================================================
-   OFFICE
+   OFFICE INITIALIZATION
 ========================================================= */
 
 Office.onReady(function () {
+
   initializeDispatch();
+
 });
 
 
@@ -32,7 +105,9 @@ function initializeDispatch() {
     return;
   }
 
+
   initialized = true;
+
 
   bindStaticControls();
   bindDelegatedControls();
@@ -40,31 +115,63 @@ function initializeDispatch() {
   setupHero("hero1");
   setupHero("hero2");
 
+
+  /*
+   * Add default Pleasure Notes only when empty.
+   */
   const pleasureRows =
-    document.getElementById("pleasureRows");
+    document.getElementById(
+      "pleasureRows"
+    );
+
 
   if (
     pleasureRows &&
     pleasureRows.children.length === 0
   ) {
-    addPleasureRow("Coffee", "");
-    addPleasureRow("Art", "");
-    addPleasureRow("Object", "");
+
+    addPleasureRow(
+      "Coffee",
+      ""
+    );
+
+    addPleasureRow(
+      "Art",
+      ""
+    );
+
+    addPleasureRow(
+      "Object",
+      ""
+
+    );
+
   }
 
+
+  /*
+   * Add one image module only when empty.
+   */
   const imageBlocks =
-    document.getElementById("imageBlocks");
+    document.getElementById(
+      "imageBlocks"
+    );
+
 
   if (
     imageBlocks &&
     imageBlocks.children.length === 0
   ) {
+
     addImageBlock();
+
   }
+
 
   setStatus(
     "The Pleasure Dispatch is ready."
   );
+
 }
 
 
@@ -75,20 +182,32 @@ function initializeDispatch() {
 function bindStaticControls() {
 
   const previewButton =
-    document.getElementById("previewBtn");
+    document.getElementById(
+      "previewBtn"
+    );
+
 
   const buildButton =
-    document.getElementById("insertBtn");
+    document.getElementById(
+      "insertBtn"
+    );
+
 
   const addPleasureButton =
-    document.getElementById("addPleasure");
+    document.getElementById(
+      "addPleasure"
+    );
+
 
   let addImageButton =
-    document.getElementById("addImageBlock");
+    document.getElementById(
+      "addImageBlock"
+    );
 
 
-  /* Preview */
-
+  /*
+   * Preview.
+   */
   if (previewButton) {
 
     previewButton.onclick =
@@ -104,8 +223,9 @@ function bindStaticControls() {
   }
 
 
-  /* Build */
-
+  /*
+   * Build.
+   */
   if (buildButton) {
 
     buildButton.onclick =
@@ -121,8 +241,9 @@ function bindStaticControls() {
   }
 
 
-  /* Add Pleasure Note */
-
+  /*
+   * Pleasure Note.
+   */
   if (addPleasureButton) {
 
     addPleasureButton.onclick =
@@ -131,7 +252,10 @@ function bindStaticControls() {
         event.preventDefault();
         event.stopPropagation();
 
-        addPleasureRow("", "");
+        addPleasureRow(
+          "",
+          ""
+        );
 
         setStatus(
           "Pleasure Note added."
@@ -143,16 +267,10 @@ function bindStaticControls() {
 
 
   /*
-   * Add Image Block
+   * Add Image Block.
    *
-   * Supports:
-   * #addImageBlock
-   *
-   * and, as a fallback, finds a button
-   * whose visible text contains
-   * "Add Image Block".
+   * First look for the expected ID.
    */
-
   if (!addImageButton) {
 
     const candidates =
@@ -194,6 +312,9 @@ function bindStaticControls() {
   }
 
 
+  /*
+   * Bind Add Image Block directly.
+   */
   if (addImageButton) {
 
     addImageButton.onclick =
@@ -208,13 +329,13 @@ function bindStaticControls() {
 
 
     console.log(
-      "Add Image Block control bound."
+      "The Pleasure Dispatch: Add Image Block bound."
     );
 
   } else {
 
     console.error(
-      "Add Image Block control not found."
+      "The Pleasure Dispatch: Add Image Block control not found."
     );
 
   }
@@ -228,6 +349,9 @@ function bindStaticControls() {
 
 function bindDelegatedControls() {
 
+  /*
+   * BUTTONS
+   */
   document.addEventListener(
     "click",
     function (event) {
@@ -244,7 +368,7 @@ function bindDelegatedControls() {
 
 
       /*
-       * Static controls already handled.
+       * Static controls are already handled.
        */
       if (
         button.id === "previewBtn" ||
@@ -252,14 +376,15 @@ function bindDelegatedControls() {
         button.id === "addImageBlock" ||
         button.id === "addPleasure"
       ) {
+
         return;
+
       }
 
 
       /*
        * MOVE UP
        */
-
       if (
         button.classList.contains(
           "move-up"
@@ -268,6 +393,7 @@ function bindDelegatedControls() {
 
         event.preventDefault();
 
+
         const block =
           button.closest(
             ".image-block"
@@ -275,11 +401,14 @@ function bindDelegatedControls() {
 
 
         if (block) {
+
           moveImageBlock(
             block,
             -1
           );
+
         }
+
 
         return;
 
@@ -289,7 +418,6 @@ function bindDelegatedControls() {
       /*
        * MOVE DOWN
        */
-
       if (
         button.classList.contains(
           "move-down"
@@ -298,6 +426,7 @@ function bindDelegatedControls() {
 
         event.preventDefault();
 
+
         const block =
           button.closest(
             ".image-block"
@@ -305,11 +434,14 @@ function bindDelegatedControls() {
 
 
         if (block) {
+
           moveImageBlock(
             block,
             1
           );
+
         }
+
 
         return;
 
@@ -319,7 +451,6 @@ function bindDelegatedControls() {
       /*
        * DUPLICATE
        */
-
       if (
         button.classList.contains(
           "duplicate"
@@ -328,6 +459,7 @@ function bindDelegatedControls() {
 
         event.preventDefault();
 
+
         const block =
           button.closest(
             ".image-block"
@@ -335,10 +467,13 @@ function bindDelegatedControls() {
 
 
         if (block) {
+
           duplicateBlock(
             block
           );
+
         }
+
 
         return;
 
@@ -348,7 +483,6 @@ function bindDelegatedControls() {
       /*
        * REMOVE MODULE
        */
-
       if (
         button.classList.contains(
           "remove"
@@ -356,6 +490,7 @@ function bindDelegatedControls() {
       ) {
 
         event.preventDefault();
+
 
         const block =
           button.closest(
@@ -375,6 +510,7 @@ function bindDelegatedControls() {
 
         }
 
+
         return;
 
       }
@@ -383,7 +519,6 @@ function bindDelegatedControls() {
       /*
        * REMOVE IMAGE
        */
-
       if (
         button.classList.contains(
           "remove-image"
@@ -392,11 +527,13 @@ function bindDelegatedControls() {
 
         event.preventDefault();
 
+
         removeImageItem(
           button.closest(
             ".image-item"
           )
         );
+
 
         return;
 
@@ -404,9 +541,8 @@ function bindDelegatedControls() {
 
 
       /*
-       * FOCUS URL INPUT
+       * URL BUTTON
        */
-
       if (
         button.classList.contains(
           "url-item"
@@ -414,6 +550,7 @@ function bindDelegatedControls() {
       ) {
 
         event.preventDefault();
+
 
         const item =
           button.closest(
@@ -433,6 +570,7 @@ function bindDelegatedControls() {
 
             input.focus();
 
+
             setStatus(
               "Paste a direct HTTPS image URL."
             );
@@ -441,6 +579,9 @@ function bindDelegatedControls() {
 
         }
 
+
+        return;
+
       }
 
     }
@@ -448,9 +589,8 @@ function bindDelegatedControls() {
 
 
   /*
-   * LAYOUT + FILE INPUTS
+   * LAYOUTS
    */
-
   document.addEventListener(
     "change",
     function (event) {
@@ -498,9 +638,8 @@ function bindDelegatedControls() {
 
 
       /*
-       * Modular file upload.
+       * MODULAR FILE UPLOAD
        */
-
       if (
         event.target.matches(
           ".module-file-input"
@@ -530,6 +669,9 @@ function bindDelegatedControls() {
 
         }
 
+
+        return;
+
       }
 
     }
@@ -537,13 +679,15 @@ function bindDelegatedControls() {
 
 
   /*
-   * URL inputs
+   * MODULAR URL INPUTS
    */
-
   document.addEventListener(
     "input",
     function (event) {
 
+      /*
+       * Hero 01.
+       */
       if (
         event.target.id ===
         "hero1Url"
@@ -554,11 +698,15 @@ function bindDelegatedControls() {
           event.target.value.trim()
         );
 
+
         return;
 
       }
 
 
+      /*
+       * Hero 02.
+       */
       if (
         event.target.id ===
         "hero2Url"
@@ -569,11 +717,15 @@ function bindDelegatedControls() {
           event.target.value.trim()
         );
 
+
         return;
 
       }
 
 
+      /*
+       * Modular image.
+       */
       if (
         event.target.classList.contains(
           "module-url"
@@ -609,7 +761,7 @@ function bindDelegatedControls() {
 
 
 /* =========================================================
-   GENERAL HELPERS
+   BASIC HELPERS
 ========================================================= */
 
 function value(id) {
@@ -620,9 +772,12 @@ function value(id) {
     );
 
 
-  return element
-    ? element.value.trim()
-    : "";
+  if (!element) {
+    return "";
+  }
+
+
+  return element.value.trim();
 
 }
 
@@ -636,11 +791,13 @@ function escapeHtml(text) {
     function (character) {
 
       return {
+
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
         "'": "&#039;"
+
       }[character];
 
     }
@@ -650,7 +807,11 @@ function escapeHtml(text) {
 
 
 function escapeAttribute(text) {
-  return escapeHtml(text);
+
+  return escapeHtml(
+    text
+  );
+
 }
 
 
@@ -662,22 +823,30 @@ function paragraph(text) {
 
 
   return (
+
     '<p style="' +
       "font:17px/1.7 Garamond,Georgia,Times New Roman,serif;" +
       "margin:0 0 24px;" +
       "color:#151515;" +
     '">' +
-      escapeHtml(text).replace(
+
+      escapeHtml(
+        text
+      ).replace(
         /\n/g,
         "<br>"
       ) +
+
     "</p>"
+
   );
 
 }
 
 
-function setStatus(message) {
+function setStatus(
+  message
+) {
 
   const status =
     document.getElementById(
@@ -686,15 +855,23 @@ function setStatus(message) {
 
 
   if (status) {
+
     status.textContent =
       message;
+
   }
+
+
+  console.log(
+    "[Pleasure Dispatch]",
+    message
+  );
 
 }
 
 
 /* =========================================================
-   DRIVE URLS
+   DRIVE URL HELPERS
 ========================================================= */
 
 function buildDriveImageUrl(
@@ -757,7 +934,8 @@ function compressImage(
 
 
   if (
-    sizeMB > MAX_SOURCE_IMAGE_MB
+    sizeMB >
+    MAX_SOURCE_IMAGE_MB
   ) {
 
     callback(
@@ -793,6 +971,13 @@ function compressImage(
   }
 
 
+  setStatus(
+    "Optimizing " +
+    file.name +
+    "…"
+  );
+
+
   const reader =
     new FileReader();
 
@@ -809,6 +994,7 @@ function compressImage(
 
           let width =
             image.naturalWidth;
+
 
           let height =
             image.naturalHeight;
@@ -846,6 +1032,7 @@ function compressImage(
 
           canvas.width =
             width;
+
 
           canvas.height =
             height;
@@ -957,7 +1144,7 @@ function compressImage(
       callback(
         null,
         new Error(
-          "The image could not be read."
+          "The selected image could not be read."
         )
       );
 
@@ -1008,13 +1195,18 @@ function blobToDataUrl(
 
 
 /* =========================================================
-   DRIVE UPLOAD
+   GOOGLE DRIVE UPLOAD
 ========================================================= */
 
 async function uploadToDrive(
   dataUrl,
   originalFileName
 ) {
+
+  setStatus(
+    "Saving image to Google Drive…"
+  );
+
 
   const payload = {
 
@@ -1079,9 +1271,7 @@ async function uploadToDrive(
   }
 
 
-  if (
-    !response.ok
-  ) {
+  if (!response.ok) {
 
     throw new Error(
       "Google Drive returned HTTP " +
@@ -1126,8 +1316,7 @@ async function uploadToDrive(
 
 
   /*
-   * Build the correct image endpoint
-   * from the Drive file ID.
+   * Construct image URL ourselves from the file ID.
    */
   result.imageUrl =
     buildDriveImageUrl(
@@ -1181,18 +1370,22 @@ function cleanFileName(
     name ||
     "image"
   )
+
   .replace(
     /[\/\\:*?"<>|#%{}[\]]/g,
     "_"
   )
+
   .replace(
     /\s+/g,
     "_"
   )
+
   .replace(
     /\.[^.]+$/,
     ""
   )
+
   .substring(
     0,
     80
@@ -1207,6 +1400,7 @@ function getEditionSafeName() {
     value("edition") ||
     "001"
   )
+
   .replace(
     /[^a-zA-Z0-9_-]/g,
     "_"
@@ -1320,7 +1514,7 @@ function handleHeroUpload(
 
 
       /*
-       * Local preview immediately.
+       * Local preview.
        */
       input.value =
         result.dataUrl;
@@ -1334,11 +1528,6 @@ function handleHeroUpload(
 
       try {
 
-        setStatus(
-          "Saving hero image to Google Drive…"
-        );
-
-
         const drive =
           await uploadToDrive(
             result.dataUrl,
@@ -1346,6 +1535,9 @@ function handleHeroUpload(
           );
 
 
+        /*
+         * Permanent image URL.
+         */
         input.value =
           drive.imageUrl;
 
@@ -1369,8 +1561,8 @@ function handleHeroUpload(
 
         setStatus(
           key === "hero1"
-            ? "Hero Image 01 saved to Drive."
-            : "Hero Image 02 saved to Drive."
+            ? "✓ Hero Image 01 saved to Drive."
+            : "✓ Hero Image 02 saved to Drive."
         );
 
 
@@ -1468,9 +1660,18 @@ function handleModuleUpload(
   file
 ) {
 
-  setStatus(
-    "Optimizing modular image…"
-  );
+  if (
+    !item ||
+    !file
+  ) {
+
+    setStatus(
+      "No modular image selected."
+    );
+
+    return;
+
+  }
 
 
   compressImage(
@@ -1509,7 +1710,7 @@ function handleModuleUpload(
 
 
       /*
-       * Show local image immediately.
+       * Local preview first.
        */
       urlInput.value =
         result.dataUrl;
@@ -1536,10 +1737,14 @@ function handleModuleUpload(
 
 
         /*
-         * Store Drive information.
+         * Store Drive data.
          */
         item.dataset.fileId =
           drive.fileId;
+
+
+        item.dataset.imageUrl =
+          drive.imageUrl;
 
 
         item.dataset.fullUrl =
@@ -1550,13 +1755,9 @@ function handleModuleUpload(
           drive.driveUrl;
 
 
-        item.dataset.imageUrl =
-          drive.imageUrl;
-
-
         /*
-         * Replace local image with
-         * Drive-hosted image.
+         * Replace temporary data URL
+         * with Drive-hosted URL.
          */
         urlInput.value =
           drive.imageUrl;
@@ -1575,12 +1776,17 @@ function handleModuleUpload(
 
       } catch (error) {
 
+        /*
+         * Keep local preview.
+         */
         setStatus(
           "Preview ready. Drive upload failed: " +
           error.message
         );
 
+
         console.error(
+          "Modular upload error:",
           error
         );
 
@@ -1593,7 +1799,7 @@ function handleModuleUpload(
 
 
 /* =========================================================
-   MODULAR PREVIEW
+   MODULAR IMAGE PREVIEW
 ========================================================= */
 
 function renderModulePreview(
@@ -1666,7 +1872,195 @@ function renderModulePreview(
 
 
 /* =========================================================
-   IMAGE MODULE MANAGEMENT
+   PLEASURE NOTES
+========================================================= */
+
+function addPleasureRow(
+  labelValue,
+  noteValue
+) {
+
+  const container =
+    document.getElementById(
+      "pleasureRows"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  pleasureCounter++;
+
+
+  const row =
+    document.createElement(
+      "div"
+    );
+
+
+  row.className =
+    "pleasure-row";
+
+
+  row.innerHTML =
+
+    '<input class="pleasure-label" value="' +
+      escapeAttribute(
+        labelValue ||
+        ""
+      ) +
+    '" placeholder="Category">' +
+
+    '<input class="pleasure-value" value="' +
+      escapeAttribute(
+        noteValue ||
+        ""
+      ) +
+    '" placeholder="What has held your attention?">' +
+
+    '<button type="button">×</button>';
+
+
+  const remove =
+    row.querySelector(
+      "button"
+    );
+
+
+  remove.addEventListener(
+    "click",
+    function () {
+
+      row.remove();
+
+      setStatus(
+        "Pleasure Note removed."
+      );
+
+    }
+  );
+
+
+  container.appendChild(
+    row
+  );
+
+}
+
+
+function collectPleasureNotes() {
+
+  return Array.from(
+    document.querySelectorAll(
+      ".pleasure-row"
+    )
+  )
+
+  .map(
+    function (row) {
+
+      const label =
+        row.querySelector(
+          ".pleasure-label"
+        );
+
+
+      const note =
+        row.querySelector(
+          ".pleasure-value"
+        );
+
+
+      return {
+
+        label:
+          label
+            ? label.value.trim()
+            : "",
+
+        value:
+          note
+            ? note.value.trim()
+            : ""
+
+      };
+
+    }
+  )
+
+  .filter(
+    function (item) {
+
+      return (
+        item.label ||
+        item.value
+      );
+
+    }
+  );
+
+}
+
+
+function buildPleasureNotesHtml(
+  notes
+) {
+
+  if (
+    !notes ||
+    !notes.length
+  ) {
+
+    return "";
+
+  }
+
+
+  return (
+
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;margin:4px 0 30px;">' +
+
+      notes.map(
+        function (note) {
+
+          return (
+
+            "<tr>" +
+
+              '<td style="width:120px;vertical-align:top;padding:5px 18px 5px 0;font:10px Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#777;">' +
+
+                escapeHtml(
+                  note.label
+                ) +
+
+              "</td>" +
+
+              '<td style="vertical-align:top;padding:5px 0;font:16px/1.5 Garamond,Georgia,Times New Roman,serif;color:#151515;">' +
+
+                escapeHtml(
+                  note.value
+                ) +
+
+              "</td>" +
+
+            "</tr>"
+
+          );
+
+        }
+      ).join("") +
+
+    "</table>"
+
+  );
+
+}
+
+
+/* =========================================================
+   IMAGE MODULE CREATION
 ========================================================= */
 
 function addImageBlock() {
@@ -1683,9 +2077,11 @@ function addImageBlock() {
       "Image module container not found."
     );
 
+
     console.error(
       "#imageBlocks was not found."
     );
+
 
     return;
 
@@ -1726,13 +2122,21 @@ function addImageBlock() {
 
       '<select class="layout-select" aria-label="Image layout">' +
 
-        '<option value="full">Full Width</option>' +
+        '<option value="full">' +
+          "Full Width" +
+        "</option>" +
 
-        '<option value="two">Two Up</option>' +
+        '<option value="two">' +
+          "Two Up" +
+        "</option>" +
 
-        '<option value="three">Three Up</option>' +
+        '<option value="three">' +
+          "Three Up" +
+        "</option>" +
 
-        '<option value="four">Four Up</option>' +
+        '<option value="four">' +
+          "Four Up" +
+        "</option>" +
 
       "</select>" +
 
@@ -1781,10 +2185,10 @@ function addImageBlock() {
 }
 
 
-/*
- * IMPORTANT:
- * This function was missing in the previous version.
- */
+/* =========================================================
+   GET IMAGE BLOCKS
+========================================================= */
+
 function getImageBlocks() {
 
   const container =
@@ -1799,13 +2203,24 @@ function getImageBlocks() {
 
 
   return Array.from(
-    container.querySelectorAll(
-      ":scope > .image-block"
-    )
+    container.children
+  )
+  .filter(
+    function (element) {
+
+      return element.classList.contains(
+        "image-block"
+      );
+
+    }
   );
 
 }
 
+
+/* =========================================================
+   RENUMBER MODULES
+========================================================= */
 
 function renumberImageBlocks() {
 
@@ -1819,15 +2234,15 @@ function renumberImageBlocks() {
       index
     ) {
 
-      const label =
+      const number =
         block.querySelector(
           ".block-number"
         );
 
 
-      if (label) {
+      if (number) {
 
-        label.textContent =
+        number.textContent =
           "Image Module " +
           (index + 1);
 
@@ -1844,6 +2259,10 @@ function renumberImageBlocks() {
 
 }
 
+
+/* =========================================================
+   MOVE MODULE
+========================================================= */
 
 function moveImageBlock(
   block,
@@ -1946,12 +2365,16 @@ function moveImageBlock(
 
   setStatus(
     direction < 0
-      ? "Image Module moved up."
-      : "Image Module moved down."
+      ? "✓ Image Module moved up."
+      : "✓ Image Module moved down."
   );
 
 }
 
+
+/* =========================================================
+   LAYOUT / IMAGE SLOTS
+========================================================= */
 
 function syncImageInputs(
   block
@@ -1970,7 +2393,9 @@ function syncImageInputs(
     layout ===
     "two"
   ) {
+
     count = 2;
+
   }
 
 
@@ -1978,7 +2403,9 @@ function syncImageInputs(
     layout ===
     "three"
   ) {
+
     count = 3;
+
   }
 
 
@@ -1986,7 +2413,9 @@ function syncImageInputs(
     layout ===
     "four"
   ) {
+
     count = 4;
+
   }
 
 
@@ -2011,6 +2440,9 @@ function syncImageInputs(
     );
 
 
+  /*
+   * Remove excess slots.
+   */
   while (
     wrap.children.length >
     count
@@ -2021,6 +2453,9 @@ function syncImageInputs(
   }
 
 
+  /*
+   * Add missing slots.
+   */
   while (
     wrap.children.length <
     count
@@ -2120,9 +2555,9 @@ function addImageItem(
 
 
   /*
-   * Preserve click target when duplicated.
+   * Preserve clickable destination
+   * when duplicating.
    */
-
   if (
     preset.clickUrl
   ) {
@@ -2153,7 +2588,8 @@ function renumberImageItems(
 
   Array.from(
     wrap.children
-  ).forEach(
+  )
+  .forEach(
     function (
       item,
       index
@@ -2180,24 +2616,19 @@ function renumberImageItems(
 
 
 /* =========================================================
-   DUPLICATE
+   DUPLICATE MODULE
 ========================================================= */
 
 function duplicateBlock(
   block
 ) {
 
-  if (!block) {
-    return;
-  }
-
-
   const layout =
     block.dataset.layout ||
     "full";
 
 
-  const items =
+  const sourceItems =
     Array.from(
       block.querySelectorAll(
         ".image-item"
@@ -2336,7 +2767,7 @@ function duplicateBlock(
     addImageItem(
       wrap,
       i + 1,
-      items[i] ||
+      sourceItems[i] ||
       {}
     );
 
@@ -2359,19 +2790,20 @@ function duplicateBlock(
 
 
   setStatus(
-    "Image Module duplicated."
+    "✓ Image Module duplicated."
   );
 
 }
 
 
 /* =========================================================
-   NEWSLETTER DATA
+   COLLECT IMAGE MODULES
 ========================================================= */
 
 function collectImageBlocks() {
 
   return getImageBlocks()
+
     .map(
       function (block) {
 
@@ -2387,6 +2819,7 @@ function collectImageBlocks() {
                 ".image-item"
               )
             )
+
             .map(
               function (item) {
 
@@ -2423,6 +2856,7 @@ function collectImageBlocks() {
 
               }
             )
+
             .filter(
               function (item) {
 
@@ -2438,6 +2872,7 @@ function collectImageBlocks() {
 
       }
     )
+
     .filter(
       function (block) {
 
@@ -2483,7 +2918,12 @@ function buildEmailImage(
         escapeAttribute(
           imageUrl
         ) +
-        '" alt="" style="display:block;width:100%;height:auto;border:0;">' +
+        '" alt="" style="' +
+          "display:block;" +
+          "width:100%;" +
+          "height:auto;" +
+          "border:0;" +
+        '">' +
 
     "</a>";
 
@@ -2509,7 +2949,7 @@ function buildEmailImage(
 
 
 /* =========================================================
-   IMAGE MODULE EMAIL
+   EMAIL IMAGE MODULES
 ========================================================= */
 
 function buildFullWidthImage(
@@ -2616,7 +3056,7 @@ function buildImageRow(
 
 
 /*
- * FOUR UP = one single horizontal row.
+ * Four-Up is always one horizontal row.
  */
 function buildFourImageRow(
   items
@@ -2740,7 +3180,7 @@ function buildImageModuleHtml(
 
 
 /* =========================================================
-   NEWSLETTER BUILDER
+   NEWSLETTER HTML
 ========================================================= */
 
 function buildNewsletterHtml() {
@@ -2802,7 +3242,7 @@ function buildNewsletterHtml() {
 
 
   /*
-   * Hero click URLs.
+   * Hero click destinations.
    */
   const hero1Preview =
     document.getElementById(
@@ -2831,7 +3271,7 @@ function buildNewsletterHtml() {
 
 
   /*
-   * Heroes.
+   * Hero HTML.
    */
   const hero1Html =
     hero1
@@ -2854,7 +3294,7 @@ function buildNewsletterHtml() {
 
 
   /*
-   * Modules.
+   * Module HTML.
    */
   let modulesHtml =
     "";
@@ -2888,15 +3328,19 @@ function buildNewsletterHtml() {
     invitationHtml =
 
       '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:40px 0 11px;">' +
+
         "05 — AN INVITATION" +
+
       "</div>" +
 
       (
         inviteTitle
           ? '<div style="font:27px/1.15 Garamond,Georgia,Times New Roman,serif;margin:0 0 10px;">' +
+
               escapeHtml(
                 inviteTitle
               ) +
+
             "</div>"
           : ""
       ) +
@@ -2913,7 +3357,16 @@ function buildNewsletterHtml() {
                 escapeAttribute(
                   ctaUrl
                 ) +
-                '" style="display:inline-block;background:#151515;color:#fff;text-decoration:none;padding:12px 18px;font:10px Arial,Helvetica,sans-serif;letter-spacing:1.2px;">' +
+
+                '" style="' +
+                  "display:inline-block;" +
+                  "background:#151515;" +
+                  "color:#fff;" +
+                  "text-decoration:none;" +
+                  "padding:12px 18px;" +
+                  "font:10px Arial,Helvetica,sans-serif;" +
+                  "letter-spacing:1.2px;" +
+                '">' +
 
                 escapeHtml(
                   ctaLabel
@@ -2934,15 +3387,25 @@ function buildNewsletterHtml() {
       date,
       title
     ]
+
     .filter(Boolean)
+
     .map(
       function (item) {
-        return escapeHtml(item);
+
+        return escapeHtml(
+          item
+        );
+
       }
     )
+
     .join(" · ");
 
 
+  /*
+   * Complete email.
+   */
   return (
 
     '<div style="margin:0;padding:0;background:#f4f0e8;color:#151515;">' +
@@ -2964,27 +3427,37 @@ function buildNewsletterHtml() {
                 '<td style="padding:42px 42px 20px;">' +
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:2px;">' +
+
                     "FLRS GLOBAL" +
+
                   "</div>" +
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.4px;color:#777;margin-top:8px;">' +
+
                     "FROM THE STUDIO OF FREDDIE L. RANKIN II" +
+
                   "</div>" +
 
                   '<h1 style="font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;margin:20px 0 10px;">' +
+
                     "The Pleasure Dispatch" +
+
                   "</h1>" +
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.3px;color:#777;border-bottom:1px solid #151515;padding-bottom:20px;">' +
+
                     dateLine +
+
                   "</div>" +
 
                   (
                     subtitle
                       ? '<div style="font:18px/1.45 Garamond,Georgia,Times New Roman,serif;margin-top:20px;">' +
+
                           escapeHtml(
                             subtitle
                           ) +
+
                         "</div>"
                       : ""
                   ) +
@@ -3011,14 +3484,22 @@ function buildNewsletterHtml() {
                    * Hero 01.
                    */
 
-                  hero1Html +
+                  (
+                    hero1Html
+                      ? '<div style="margin-bottom:4px;">' +
+                          hero1Html +
+                        "</div>"
+                      : ""
+                  ) +
 
                   /*
                    * Reflection.
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:30px 0 11px;">' +
+
                     "01 — A REFLECTION" +
+
                   "</div>" +
 
                   paragraph(
@@ -3026,11 +3507,13 @@ function buildNewsletterHtml() {
                   ) +
 
                   /*
-                   * The Work.
+                   * Work.
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
+
                     "02 — THE WORK" +
+
                   "</div>" +
 
                   paragraph(
@@ -3038,7 +3521,7 @@ function buildNewsletterHtml() {
                   ) +
 
                   /*
-                   * Modular image blocks.
+                   * Modular images.
                    */
 
                   modulesHtml +
@@ -3048,7 +3531,9 @@ function buildNewsletterHtml() {
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
+
                     "03 — STUDIO NOTES" +
+
                   "</div>" +
 
                   paragraph(
@@ -3059,18 +3544,28 @@ function buildNewsletterHtml() {
                    * Hero 02.
                    */
 
-                  hero2Html +
+                  (
+                    hero2Html
+                      ? '<div style="margin-bottom:4px;">' +
+                          hero2Html +
+                        "</div>"
+                      : ""
+                  ) +
 
                   /*
                    * Pleasure Notes.
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
+
                     "04 — PLEASURE NOTES" +
+
                   "</div>" +
 
                   '<div style="font:19px/1.4 Garamond,Georgia,Times New Roman,serif;margin:0 0 8px;">' +
+
                     "An offering of what has held my attention." +
+
                   "</div>" +
 
                   buildPleasureNotesHtml(
@@ -3088,13 +3583,17 @@ function buildNewsletterHtml() {
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
+
                     "06 — A QUESTION" +
+
                   "</div>" +
 
                   '<div style="font:25px/1.35 Garamond,Georgia,Times New Roman,serif;margin:0 0 36px;">' +
+
                     escapeHtml(
                       question
                     ) +
+
                   "</div>" +
 
                   /*
@@ -3108,7 +3607,7 @@ function buildNewsletterHtml() {
               "</tr>" +
 
               /*
-               * FOOTER
+               * Footer.
                */
 
               "<tr>" +
@@ -3141,72 +3640,38 @@ function buildNewsletterHtml() {
 
 
 /* =========================================================
-   PLEASURE NOTE HTML
+   BUILD PROGRESS
 ========================================================= */
 
-function buildPleasureNotesHtml(
-  notes
+function updateBuildProgress(
+  current,
+  label
 ) {
 
-  if (
-    !notes ||
-    !notes.length
-  ) {
-    return "";
-  }
-
-
-  return (
-
-    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;margin:4px 0 30px;">' +
-
-      notes.map(
-        function (note) {
-
-          return (
-
-            "<tr>" +
-
-              '<td style="width:120px;vertical-align:top;padding:5px 18px 5px 0;font:10px Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#777;">' +
-
-                escapeHtml(
-                  note.label
-                ) +
-
-              "</td>" +
-
-              '<td style="vertical-align:top;padding:5px 0;font:16px/1.5 Garamond,Georgia,Times New Roman,serif;color:#151515;">' +
-
-                escapeHtml(
-                  note.value
-                ) +
-
-              "</td>" +
-
-            "</tr>"
-
-          );
-
-        }
-      ).join("") +
-
-    "</table>"
-
+  setStatus(
+    current +
+    " / 4  " +
+    label
   );
 
 }
 
 
 /* =========================================================
-   OUTLOOK BUILD
+   BUILD IN OUTLOOK
 ========================================================= */
 
 function buildInOutlook() {
 
-  setStatus(
-    "Preparing The Pleasure Dispatch…"
+  updateBuildProgress(
+    0,
+    "Starting…"
   );
 
+
+  /*
+   * OFFICE CHECK
+   */
 
   if (
     typeof Office ===
@@ -3214,13 +3679,17 @@ function buildInOutlook() {
   ) {
 
     setStatus(
-      "Office.js is not available."
+      "Build failed — Office.js is unavailable."
     );
 
     return;
 
   }
 
+
+  /*
+   * OUTLOOK CHECK
+   */
 
   if (
     !Office.context ||
@@ -3229,7 +3698,7 @@ function buildInOutlook() {
   ) {
 
     setStatus(
-      "Open The Pleasure Dispatch from a new Outlook message."
+      "Build failed — open The Pleasure Dispatch from a new Outlook message."
     );
 
     return;
@@ -3241,6 +3710,10 @@ function buildInOutlook() {
     Office.context.mailbox.item;
 
 
+  /*
+   * BODY CHECK
+   */
+
   if (
     !item.body ||
     typeof item.body.setAsync !==
@@ -3248,12 +3721,22 @@ function buildInOutlook() {
   ) {
 
     setStatus(
-      "Outlook did not provide access to the message body."
+      "Build failed — Outlook body access is unavailable."
     );
 
     return;
 
   }
+
+
+  /* -------------------------------------------------------
+     STEP 1
+  ------------------------------------------------------- */
+
+  updateBuildProgress(
+    1,
+    "Generating newsletter…"
+  );
 
 
   let html;
@@ -3267,13 +3750,13 @@ function buildInOutlook() {
   } catch (error) {
 
     console.error(
-      "Newsletter build error:",
+      "Newsletter HTML error:",
       error
     );
 
 
     setStatus(
-      "Newsletter build error: " +
+      "Build failed — " +
       error.message
     );
 
@@ -3283,9 +3766,139 @@ function buildInOutlook() {
   }
 
 
+  /* -------------------------------------------------------
+     STEP 2
+  ------------------------------------------------------- */
+
+  updateBuildProgress(
+    2,
+    "Checking image sources…"
+  );
+
+
+  const modules =
+    collectImageBlocks();
+
+
+  let modularCount =
+    0;
+
+
+  modules.forEach(
+    function (block) {
+
+      modularCount +=
+        block.items.length;
+
+    }
+  );
+
+
+  let heroCount =
+    0;
+
+
+  if (
+    value("hero1Url")
+  ) {
+
+    heroCount++;
+
+  }
+
+
+  if (
+    value("hero2Url")
+  ) {
+
+    heroCount++;
+
+  }
+
+
+  const totalImages =
+    heroCount +
+    modularCount;
+
+
+  if (
+    totalImages
+  ) {
+
+    updateBuildProgress(
+      2,
+      totalImages +
+      " image" +
+      (
+        totalImages === 1
+          ? ""
+          : "s"
+      ) +
+      " ready…"
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     SUBJECT
+  ------------------------------------------------------- */
+
   const subject =
     buildSubject();
 
+
+  /* -------------------------------------------------------
+     STEP 3
+  ------------------------------------------------------- */
+
+  updateBuildProgress(
+    3,
+    "Writing newsletter to Outlook…"
+  );
+
+
+  let completed =
+    false;
+
+
+  /*
+   * Timeout safeguard.
+   */
+  const timeout =
+    setTimeout(
+      function () {
+
+        if (
+          completed
+        ) {
+
+          return;
+
+        }
+
+
+        completed =
+          true;
+
+
+        setStatus(
+          "Build timed out — Outlook did not finish writing the newsletter."
+        );
+
+
+        console.error(
+          "The Pleasure Dispatch: Outlook body.setAsync timed out."
+        );
+
+      },
+      BUILD_TIMEOUT_MS
+    );
+
+
+  /*
+   * SET SUBJECT
+   */
 
   item.subject.setAsync(
     subject,
@@ -3294,22 +3907,45 @@ function buildInOutlook() {
     ) {
 
       if (
-        subjectResult &&
-        subjectResult.status !==
-          Office.AsyncResultStatus.Succeeded
+        completed
       ) {
-
-        setStatus(
-          "Could not set subject: " +
-          getAsyncError(
-            subjectResult
-          )
-        );
 
         return;
 
       }
 
+
+      if (
+        subjectResult &&
+        subjectResult.status !==
+          Office.AsyncResultStatus.Succeeded
+      ) {
+
+        completed =
+          true;
+
+
+        clearTimeout(
+          timeout
+        );
+
+
+        setStatus(
+          "Build failed while writing subject: " +
+          getAsyncError(
+            subjectResult
+          )
+        );
+
+
+        return;
+
+      }
+
+
+      /*
+       * SET BODY
+       */
 
       item.body.setAsync(
         html,
@@ -3322,25 +3958,46 @@ function buildInOutlook() {
         ) {
 
           if (
+            completed
+          ) {
+
+            return;
+
+          }
+
+
+          completed =
+            true;
+
+
+          clearTimeout(
+            timeout
+          );
+
+
+          if (
             bodyResult &&
             bodyResult.status ===
               Office.AsyncResultStatus.Succeeded
           ) {
 
-            setStatus(
-              "✓ Dispatch built in Outlook. Review it before sending."
+            updateBuildProgress(
+              4,
+              "✓ Complete — Dispatch built in Outlook."
             );
 
-          } else {
 
-            setStatus(
-              "Could not insert the Dispatch: " +
-              getAsyncError(
-                bodyResult
-              )
-            );
+            return;
 
           }
+
+
+          setStatus(
+            "Build failed while writing newsletter: " +
+            getAsyncError(
+              bodyResult
+            )
+          );
 
         }
       );
@@ -3350,6 +4007,10 @@ function buildInOutlook() {
 
 }
 
+
+/* =========================================================
+   BUILD SUBJECT
+========================================================= */
 
 function buildSubject() {
 
@@ -3374,31 +4035,16 @@ function buildSubject() {
 }
 
 
-function getAsyncError(
-  result
-) {
-
-  if (
-    result &&
-    result.error &&
-    result.error.message
-  ) {
-
-    return result.error.message;
-
-  }
-
-
-  return "Unknown Outlook error.";
-
-}
-
-
 /* =========================================================
    PREVIEW
 ========================================================= */
 
 function previewNewsletter() {
+
+  setStatus(
+    "Opening Dispatch preview…"
+  );
+
 
   let html;
 
@@ -3414,6 +4060,7 @@ function previewNewsletter() {
       "Preview error: " +
       error.message
     );
+
 
     return;
 
@@ -3432,6 +4079,7 @@ function previewNewsletter() {
     setStatus(
       "Preview was blocked by the browser."
     );
+
 
     return;
 
