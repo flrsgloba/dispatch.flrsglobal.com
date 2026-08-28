@@ -1,3 +1,4 @@
+```javascript
 /* =========================================================
    THE PLEASURE DISPATCH
    taskpane.js
@@ -24,7 +25,15 @@ const IMAGE_MAX_HEIGHT = 1800;
 const IMAGE_QUALITY = 0.82;
 const MAX_SOURCE_IMAGE_MB = 40;
 const DRIVE_IMAGE_WIDTH = 1800;
-const BUILD_TIMEOUT_MS = 15000;
+
+/*
+ * Outlook can take longer than 15 seconds to write
+ * a large HTML newsletter containing several images.
+ *
+ * 60 seconds gives Outlook enough time while still
+ * protecting against a genuinely stalled operation.
+ */
+const BUILD_TIMEOUT_MS = 60000;
 
 let blockCounter = 0;
 let pleasureCounter = 0;
@@ -2937,71 +2946,54 @@ function buildNewsletterHtml() {
   const edition =
     value("edition");
 
-
   const date =
     value("date");
-
 
   const title =
     value("title");
 
-
   const subtitle =
     value("subtitle");
-
 
   const reflection =
     value("reflection");
 
-
   const workText =
     value("workText");
-
 
   const studioText =
     value("studioText");
 
-
   const hero1 =
     value("hero1Url");
-
 
   const hero2 =
     value("hero2Url");
 
-
   const hero1Caption =
     value("hero1Caption");
-
 
   const hero2Caption =
     value("hero2Caption");
 
-
   const inviteTitle =
     value("inviteTitle");
 
-
   const inviteText =
     value("inviteText");
-
 
   const ctaLabel =
     value("ctaLabel") ||
     "INQUIRE";
 
-
   const ctaUrl =
     value("ctaUrl");
-
 
   const question =
     value("question");
 
-
   const notes =
     collectPleasureNotes();
-
 
   const modules =
     collectImageBlocks();
@@ -3015,7 +3007,6 @@ function buildNewsletterHtml() {
     document.getElementById(
       "hero1Preview"
     );
-
 
   const hero2Preview =
     document.getElementById(
@@ -3203,7 +3194,6 @@ function buildNewsletterHtml() {
       ";" +
     '">' +
 
-
       '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
         "border-collapse:collapse;" +
         "background:" +
@@ -3211,12 +3201,9 @@ function buildNewsletterHtml() {
         ";" +
       '">' +
 
-
         "<tr>" +
 
-
           '<td align="center" style="padding:28px 12px;">' +
-
 
             '<table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="' +
               "border-collapse:collapse;" +
@@ -3226,7 +3213,6 @@ function buildNewsletterHtml() {
                 COLORS.background +
               ";" +
             '">' +
-
 
               /*
                * HEADER
@@ -3253,7 +3239,6 @@ function buildNewsletterHtml() {
 
                   "</div>" +
 
-
                   '<div style="' +
                     "font:10px Arial,Helvetica,sans-serif;" +
                     "letter-spacing:1.4px;" +
@@ -3267,7 +3252,6 @@ function buildNewsletterHtml() {
 
                   "</div>" +
 
-
                   '<h1 style="' +
                     "font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;" +
                     "color:" +
@@ -3279,7 +3263,6 @@ function buildNewsletterHtml() {
                     "The Pleasure Dispatch" +
 
                   "</h1>" +
-
 
                   '<div style="' +
                     "font:10px Arial,Helvetica,sans-serif;" +
@@ -3297,7 +3280,6 @@ function buildNewsletterHtml() {
 
               "</tr>" +
 
-
               /*
                * CONTENT
                */
@@ -3305,7 +3287,6 @@ function buildNewsletterHtml() {
               "<tr>" +
 
                 '<td style="padding:26px 42px 42px;">' +
-
 
                   /*
                    * THE LOOP
@@ -3323,7 +3304,6 @@ function buildNewsletterHtml() {
                       '">' +
 
                   "</div>" +
-
 
                   /*
                    * SUBTITLE
@@ -3347,7 +3327,6 @@ function buildNewsletterHtml() {
                       : ""
                   ) +
 
-
                   /*
                    * HERO 01
                    */
@@ -3359,7 +3338,6 @@ function buildNewsletterHtml() {
                         "</div>"
                       : ""
                   ) +
-
 
                   /*
                    * REFLECTION
@@ -3382,7 +3360,6 @@ function buildNewsletterHtml() {
                     reflection
                   ) +
 
-
                   /*
                    * WORK
                    */
@@ -3404,13 +3381,11 @@ function buildNewsletterHtml() {
                     workText
                   ) +
 
-
                   /*
                    * MODULAR IMAGE BLOCKS
                    */
 
                   modulesHtml +
-
 
                   /*
                    * STUDIO NOTES
@@ -3433,7 +3408,6 @@ function buildNewsletterHtml() {
                     studioText
                   ) +
 
-
                   /*
                    * HERO 02
                    */
@@ -3445,7 +3419,6 @@ function buildNewsletterHtml() {
                         "</div>"
                       : ""
                   ) +
-
 
                   /*
                    * PLEASURE NOTES
@@ -3464,7 +3437,6 @@ function buildNewsletterHtml() {
 
                   "</div>" +
 
-
                   '<div style="' +
                     "font:19px/1.4 Garamond,Georgia,Times New Roman,serif;" +
                     "color:" +
@@ -3477,18 +3449,15 @@ function buildNewsletterHtml() {
 
                   "</div>" +
 
-
                   buildPleasureNotesHtml(
                     notes
                   ) +
-
 
                   /*
                    * INVITATION
                    */
 
                   invitationHtml +
-
 
                   /*
                    * QUESTION
@@ -3507,7 +3476,6 @@ function buildNewsletterHtml() {
 
                   "</div>" +
 
-
                   '<div style="' +
                     "font:25px/1.35 Garamond,Georgia,Times New Roman,serif;" +
                     "color:" +
@@ -3521,7 +3489,6 @@ function buildNewsletterHtml() {
                     ) +
 
                   "</div>" +
-
 
                   /*
                    * CLOSING LOOP
@@ -3543,7 +3510,6 @@ function buildNewsletterHtml() {
 
                   "</div>" +
 
-
                   '<div style="' +
                     "text-align:center;" +
                     "font:15px/1.4 Garamond,Georgia,Times New Roman,serif;" +
@@ -3558,11 +3524,9 @@ function buildNewsletterHtml() {
 
                   "</div>" +
 
-
                 "</td>" +
 
               "</tr>" +
-
 
               /*
                * FOOTER
@@ -3593,7 +3557,6 @@ function buildNewsletterHtml() {
 
               "</tr>" +
 
-
             "</table>" +
 
           "</td>" +
@@ -3615,12 +3578,15 @@ function buildNewsletterHtml() {
 
 function updateBuildProgress(
   current,
+  total,
   label
 ) {
 
   setStatus(
     current +
-    " / 4  " +
+    " / " +
+    total +
+    "  " +
     label
   );
 
@@ -3655,6 +3621,50 @@ function buildSubject() {
 
 
 /* =========================================================
+   BUILD TIMER
+========================================================= */
+
+function startBuildTimer(
+  startTime
+) {
+
+  return setInterval(
+    function () {
+
+      const elapsed =
+        Math.floor(
+          (Date.now() -
+            startTime) /
+          1000
+        );
+
+
+      /*
+       * Once Outlook takes more than 10 seconds,
+       * give a live indication that the operation
+       * is still running.
+       */
+
+      if (
+        elapsed >= 10
+      ) {
+
+        setStatus(
+          "3 / 4  Writing newsletter to Outlook… " +
+          elapsed +
+          "s"
+        );
+
+      }
+
+    },
+    1000
+  );
+
+}
+
+
+/* =========================================================
    BUILD IN OUTLOOK
 ========================================================= */
 
@@ -3662,6 +3672,7 @@ function buildInOutlook() {
 
   updateBuildProgress(
     0,
+    4,
     "Starting…"
   );
 
@@ -3715,11 +3726,33 @@ function buildInOutlook() {
 
 
   /*
+   * Prevent accidental double-clicks while
+   * Outlook is already processing a build.
+   */
+
+  const buildButton =
+    document.getElementById(
+      "insertBtn"
+    );
+
+
+  if (
+    buildButton
+  ) {
+
+    buildButton.disabled =
+      true;
+
+  }
+
+
+  /*
    * STEP 1
    */
 
   updateBuildProgress(
     1,
+    4,
     "Generating newsletter…"
   );
 
@@ -3740,6 +3773,12 @@ function buildInOutlook() {
     );
 
 
+    if (buildButton) {
+      buildButton.disabled =
+        false;
+    }
+
+
     setStatus(
       "Build failed — " +
       error.message
@@ -3757,6 +3796,7 @@ function buildInOutlook() {
 
   updateBuildProgress(
     2,
+    4,
     "Checking image sources…"
   );
 
@@ -3812,6 +3852,7 @@ function buildInOutlook() {
 
     updateBuildProgress(
       2,
+      4,
       totalImages +
       " image" +
       (
@@ -3840,6 +3881,7 @@ function buildInOutlook() {
 
   updateBuildProgress(
     3,
+    4,
     "Writing newsletter to Outlook…"
   );
 
@@ -3847,6 +3889,20 @@ function buildInOutlook() {
   let completed =
     false;
 
+
+  const buildStarted =
+    Date.now();
+
+
+  const progressTimer =
+    startBuildTimer(
+      buildStarted
+    );
+
+
+  /*
+   * Give Outlook 60 seconds.
+   */
 
   const timeout =
     setTimeout(
@@ -3861,14 +3917,23 @@ function buildInOutlook() {
         }
 
 
-        completed =
-          true;
-
+        /*
+         * IMPORTANT:
+         *
+         * We do not immediately call this a failure.
+         * Outlook may still be processing the body.
+         */
 
         setStatus(
-          "Build timed out — Outlook did not finish writing the newsletter."
+          "3 / 4  Outlook is still writing the newsletter…"
         );
 
+
+        console.warn(
+          "[Pleasure Dispatch] Outlook body write exceeded " +
+          BUILD_TIMEOUT_MS +
+          "ms."
+        );
 
       },
       BUILD_TIMEOUT_MS
@@ -3908,6 +3973,16 @@ function buildInOutlook() {
           timeout
         );
 
+        clearInterval(
+          progressTimer
+        );
+
+
+        if (buildButton) {
+          buildButton.disabled =
+            false;
+        }
+
 
         setStatus(
           "Build failed while writing subject: " +
@@ -3925,6 +4000,11 @@ function buildInOutlook() {
       /*
        * BODY
        */
+
+      setStatus(
+        "3 / 4  Writing newsletter body to Outlook…"
+      );
+
 
       item.body.setAsync(
         html,
@@ -3953,6 +4033,16 @@ function buildInOutlook() {
             timeout
           );
 
+          clearInterval(
+            progressTimer
+          );
+
+
+          if (buildButton) {
+            buildButton.disabled =
+              false;
+          }
+
 
           if (
             bodyResult &&
@@ -3960,9 +4050,20 @@ function buildInOutlook() {
               Office.AsyncResultStatus.Succeeded
           ) {
 
+            const elapsed =
+              Math.floor(
+                (Date.now() -
+                  buildStarted) /
+                1000
+              );
+
+
             updateBuildProgress(
               4,
-              "✓ Complete — Dispatch built in Outlook."
+              4,
+              "✓ Complete — Dispatch built in Outlook (" +
+              elapsed +
+              "s)."
             );
 
 
@@ -4113,3 +4214,4 @@ function previewNewsletter() {
   );
 
 }
+```
