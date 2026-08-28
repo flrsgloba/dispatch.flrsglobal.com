@@ -1,7 +1,21 @@
 /* =========================================================
    THE PLEASURE DISPATCH
    taskpane.js
-   Consolidated Production Version
+   Consolidated Production Version — PATCHED
+   Patch notes (this revision):
+   - uploadToDrive() now retries once automatically before
+     giving up, to absorb transient network/Apps Script blips.
+   - handleHeroUpload() / handleModuleUpload() now CLEAR the
+     field on final failure instead of leaving a raw base64
+     data: URL sitting in the input. Previously a failed Drive
+     upload silently left multi-hundred-KB base64 strings in
+     hero1Url/hero2Url/.module-url, which would later blow up
+     the build with "HTML contains an embedded data image."
+   - buildInOutlook() now runs a precise pre-check that scans
+     every image source field for a stray data: URL BEFORE
+     generating the newsletter, and if found, stops with a
+     message naming exactly which image slot is the problem
+     (e.g. "Hero Image 02 still has an unsaved local image").
 ========================================================= */
 
 const DRIVE_API_URL =
@@ -25,6 +39,12 @@ const IMAGE_QUALITY = 0.82;
 const MAX_SOURCE_IMAGE_MB = 40;
 const DRIVE_IMAGE_WIDTH = 1800;
 const BUILD_TIMEOUT_MS = 60000;
+
+/*
+ * How many times to retry a failed Drive upload
+ * before giving up and clearing the field.
+ */
+const DRIVE_UPLOAD_MAX_ATTEMPTS = 2;
 
 let blockCounter = 0;
 let pleasureCounter = 0;
@@ -159,6 +179,22 @@ function setStatus(message) {
     "[Pleasure Dispatch]",
     message
   );
+}
+
+
+/*
+ * Returns true if a value looks like a raw base64
+ * data: URL rather than a real hosted HTTPS URL.
+ */
+function isDataUrl(text) {
+
+  return (
+    !!text &&
+    /^data:/i.test(
+      text.trim()
+    )
+  );
+
 }
 
 
@@ -525,6 +561,39 @@ function bindDelegatedControls() {
             );
 
           }
+
+        }
+
+        return;
+
+      }
+
+
+      /*
+       * Hero "Use Image URL" button.
+       * taskpane.html uses: <button class="secondary" data-url="hero1">
+       */
+
+      if (
+        button.dataset &&
+        button.dataset.url
+      ) {
+
+        event.preventDefault();
+
+        const targetInput =
+          document.getElementById(
+            button.dataset.url + "Url"
+          );
+
+
+        if (targetInput) {
+
+          targetInput.focus();
+
+          setStatus(
+            "Paste a direct HTTPS image URL."
+          );
 
         }
 
@@ -1063,18 +1132,16 @@ function blobToDataUrl(
 
 
 /* =========================================================
-   GOOGLE DRIVE UPLOAD
+   GOOGLE DRIVE UPLOAD (with retry)
 ========================================================= */
 
-async function uploadToDrive(
+/*
+ * Single attempt — unchanged network logic.
+ */
+async function uploadToDriveOnce(
   dataUrl,
   originalFileName
 ) {
-
-  setStatus(
-    "Saving image to Google Drive…"
-  );
-
 
   const payload = {
 
@@ -1200,6 +1267,90 @@ async function uploadToDrive(
 
 
   return result;
+
+}
+
+
+/*
+ * Wrapper: retries once (DRIVE_UPLOAD_MAX_ATTEMPTS) before
+ * surfacing the failure to the caller. Reports each attempt
+ * via setStatus so retries are visible, not silent.
+ */
+async function uploadToDrive(
+  dataUrl,
+  originalFileName
+) {
+
+  let lastError =
+    null;
+
+
+  for (
+    let attempt = 1;
+    attempt <=
+      DRIVE_UPLOAD_MAX_ATTEMPTS;
+    attempt++
+  ) {
+
+    if (
+      attempt === 1
+    ) {
+
+      setStatus(
+        "Saving image to Google Drive…"
+      );
+
+    } else {
+
+      setStatus(
+        "Drive upload failed — retrying (" +
+        attempt +
+        "/" +
+        DRIVE_UPLOAD_MAX_ATTEMPTS +
+        ")…"
+      );
+
+    }
+
+
+    try {
+
+      const result =
+        await uploadToDriveOnce(
+          dataUrl,
+          originalFileName
+        );
+
+
+      return result;
+
+
+    } catch (error) {
+
+      lastError =
+        error;
+
+
+      console.warn(
+        "[Pleasure Dispatch] Drive upload attempt " +
+        attempt +
+        " failed:",
+        error
+      );
+
+    }
+
+  }
+
+
+  throw (
+    lastError ||
+    new Error(
+      "Google Drive upload failed after " +
+      DRIVE_UPLOAD_MAX_ATTEMPTS +
+      " attempts."
+    )
+  );
 
 }
 
@@ -1360,6 +1511,12 @@ function handleHeroUpload(
   file
 ) {
 
+  const heroLabel =
+    key === "hero1"
+      ? "Hero Image 01"
+      : "Hero Image 02";
+
+
   compressImage(
     file,
     async function (
@@ -1393,7 +1550,11 @@ function handleHeroUpload(
 
 
       /*
-       * Immediate local preview.
+       * Immediate local preview — this is a temporary
+       * base64 preview only. It gets replaced by the
+       * real Drive URL below, or CLEARED if the upload
+       * ultimately fails, so it never survives into a
+       * build.
        */
       input.value =
         result.dataUrl;
@@ -1436,17 +1597,50 @@ function handleHeroUpload(
 
 
         setStatus(
-          key === "hero1"
-            ? "✓ Hero Image 01 saved to Drive."
-            : "✓ Hero Image 02 saved to Drive."
+          "✓ " +
+          heroLabel +
+          " saved to Drive."
         );
 
 
       } catch (error) {
 
+        /*
+         * Final failure after retries — clear the field
+         * rather than leaving a base64 data: URL behind.
+         */
+
+        input.value =
+          "";
+
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+          delete preview.dataset.fileId;
+
+        }
+
+
+        renderHeroPreview(
+          key,
+          ""
+        );
+
+
         setStatus(
-          "Preview ready. Drive upload failed: " +
-          error.message
+          heroLabel +
+          " failed to upload to Drive (" +
+          error.message +
+          "). The image was NOT saved — please try uploading it again."
+        );
+
+
+        console.error(
+          "[Pleasure Dispatch] " +
+          heroLabel +
+          " upload failed permanently:",
+          error
         );
 
       }
@@ -1586,7 +1780,9 @@ function handleModuleUpload(
 
 
       /*
-       * Immediate local preview.
+       * Immediate local preview — temporary, replaced
+       * by the real Drive URL below, or CLEARED if the
+       * upload ultimately fails.
        */
       urlInput.value =
         result.dataUrl;
@@ -1599,11 +1795,6 @@ function handleModuleUpload(
 
 
       try {
-
-        setStatus(
-          "Saving modular image to Google Drive…"
-        );
-
 
         const drive =
           await uploadToDrive(
@@ -1648,14 +1839,36 @@ function handleModuleUpload(
 
       } catch (error) {
 
+        /*
+         * Final failure after retries — clear the field
+         * rather than leaving a base64 data: URL behind.
+         */
+
+        urlInput.value =
+          "";
+
+
+        delete item.dataset.fileId;
+        delete item.dataset.imageUrl;
+        delete item.dataset.fullUrl;
+        delete item.dataset.driveUrl;
+
+
+        renderModulePreview(
+          item,
+          ""
+        );
+
+
         setStatus(
-          "Preview ready. Drive upload failed: " +
-          error.message
+          "Modular image failed to upload to Drive (" +
+          error.message +
+          "). The image was NOT saved — please try uploading it again."
         );
 
 
         console.error(
-          "Modular upload error:",
+          "[Pleasure Dispatch] Modular upload failed permanently:",
           error
         );
 
@@ -3803,6 +4016,103 @@ function getAsyncError(
 
 
 /* =========================================================
+   PRE-BUILD DATA-URL CHECK
+   Scans every image source field for a stray data: URL
+   and returns a human-readable description of the FIRST
+   offending field, or null if everything is clean.
+========================================================= */
+
+function findEmbeddedDataImage() {
+
+  if (
+    isDataUrl(
+      value("hero1Url")
+    )
+  ) {
+
+    return "Hero Image 01 still has an unsaved local image — please re-upload it.";
+
+  }
+
+
+  if (
+    isDataUrl(
+      value("hero2Url")
+    )
+  ) {
+
+    return "Hero Image 02 still has an unsaved local image — please re-upload it.";
+
+  }
+
+
+  const modules =
+    getImageBlocks();
+
+
+  for (
+    let b = 0;
+    b < modules.length;
+    b++
+  ) {
+
+    const block =
+      modules[b];
+
+
+    const items =
+      Array.from(
+        block.querySelectorAll(
+          ".image-item"
+        )
+      );
+
+
+    for (
+      let i = 0;
+      i < items.length;
+      i++
+    ) {
+
+      const urlInput =
+        items[i].querySelector(
+          ".module-url"
+        );
+
+
+      const url =
+        urlInput
+          ? urlInput.value.trim()
+          : "";
+
+
+      if (
+        isDataUrl(
+          url
+        )
+      ) {
+
+        return (
+          "Image Module " +
+          (b + 1) +
+          ", Image " +
+          (i + 1) +
+          " still has an unsaved local image — please re-upload it."
+        );
+
+      }
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+/* =========================================================
    BUILD IN OUTLOOK
 ========================================================= */
 
@@ -3877,6 +4187,37 @@ function buildInOutlook() {
 
 
   /* =======================================================
+     STEP 0 — PRE-BUILD DATA URL CHECK
+     Catch unsaved local images BEFORE generating HTML,
+     so the error names the exact field responsible.
+  ======================================================= */
+
+  const dataImageProblem =
+    findEmbeddedDataImage();
+
+
+  if (
+    dataImageProblem
+  ) {
+
+    setStatus(
+      "Build stopped — " +
+      dataImageProblem
+    );
+
+
+    console.error(
+      "[Pleasure Dispatch] Pre-build check found an embedded data image:",
+      dataImageProblem
+    );
+
+
+    return;
+
+  }
+
+
+  /* =======================================================
      STEP 1 — GENERATE HTML
   ======================================================= */
 
@@ -3921,6 +4262,35 @@ function buildInOutlook() {
     setStatus(
       "Build failed — newsletter HTML is empty."
     );
+
+    return;
+
+  }
+
+
+  /*
+   * Belt-and-suspenders: even though findEmbeddedDataImage()
+   * already checked the source fields, also verify the final
+   * generated HTML itself doesn't contain a data: image —
+   * catches any other path that might embed one.
+   */
+
+  if (
+    /src=["']data:/i.test(
+      html
+    )
+  ) {
+
+    setStatus(
+      "Build stopped — HTML contains an embedded data image. " +
+      "Please re-upload any image that failed to save to Drive."
+    );
+
+
+    console.error(
+      "[Pleasure Dispatch] Generated HTML unexpectedly contains a data: image source."
+    );
+
 
     return;
 
