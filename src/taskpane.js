@@ -1,23 +1,19 @@
-```javascript
 /* =========================================================
    THE PLEASURE DISPATCH
    taskpane.js
-   Production Version
-   Image Upload + Outlook Build Stabilized
-========================================================= */
-
-
-/* =========================================================
-   CONFIGURATION
+   Consolidated Production / Diagnostic Version
 ========================================================= */
 
 const DRIVE_API_URL =
   "https://script.google.com/macros/s/AKfycbyTLvYbe1O_BbzsH09UMSZdbY9_XZXga-TbSPkR3UclT3Qhlaj7gy5yhXPA_UpE6Fu7tw/exec";
 
-
 const LOOP_ASSET_URL =
   "https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/pleasure-loop.svg";
 
+
+/* =========================================================
+   DESIGN
+========================================================= */
 
 const COLORS = {
 
@@ -51,55 +47,16 @@ const MAX_SOURCE_IMAGE_MB = 40;
 const DRIVE_IMAGE_WIDTH = 1800;
 
 
-/*
- * Outlook safety timeout.
- */
+/* =========================================================
+   BUILD SETTINGS
+========================================================= */
+
 const BUILD_TIMEOUT_MS = 60000;
 
 
-/*
- * Upload state.
- *
- * IMPORTANT:
- *
- * Base64 images are NEVER allowed into the final
- * newsletter HTML.
- */
-const uploadState = {
-
-  hero1: {
-
-    status: "empty",
-
-    promise: null,
-
-    error: null
-
-  },
-
-
-  hero2: {
-
-    status: "empty",
-
-    promise: null,
-
-    error: null
-
-  }
-
-};
-
-
-/*
- * All Drive uploads are queued.
- *
- * This prevents Hero 01, Hero 02 and multiple
- * modular images from simultaneously sending
- * large payloads to Apps Script.
- */
-let driveUploadQueue = Promise.resolve();
-
+/* =========================================================
+   STATE
+========================================================= */
 
 let blockCounter = 0;
 
@@ -112,13 +69,11 @@ let initialized = false;
    OFFICE INITIALIZATION
 ========================================================= */
 
-Office.onReady(
-  function () {
+Office.onReady(function () {
 
-    initializeDispatch();
+  initializeDispatch();
 
-  }
-);
+});
 
 
 function initializeDispatch() {
@@ -202,9 +157,7 @@ function initializeDispatch() {
 function value(id) {
 
   const element =
-    document.getElementById(
-      id
-    );
+    document.getElementById(id);
 
 
   if (!element) {
@@ -249,9 +202,7 @@ function escapeHtml(text) {
 
 function escapeAttribute(text) {
 
-  return escapeHtml(
-    text
-  );
+  return escapeHtml(text);
 
 }
 
@@ -281,9 +232,7 @@ function paragraph(text) {
 
     '">' +
 
-      escapeHtml(
-        text
-      ).replace(
+      escapeHtml(text).replace(
         /\n/g,
         "<br>"
       ) +
@@ -390,7 +339,6 @@ function bindStaticControls() {
 
         event.stopPropagation();
 
-
         addPleasureRow(
           "",
           ""
@@ -407,10 +355,10 @@ function bindStaticControls() {
 
 
   /*
-   * Find Add Image Block by ID.
-   *
-   * If unavailable, locate it by visible text.
+   * Find Add Image Block if the expected ID
+   * is unavailable.
    */
+
   if (!addImageButton) {
 
     const candidates =
@@ -461,7 +409,6 @@ function bindStaticControls() {
 
         event.stopPropagation();
 
-
         addImageBlock();
 
       };
@@ -488,9 +435,6 @@ function bindStaticControls() {
 
 function bindDelegatedControls() {
 
-  /*
-   * BUTTONS
-   */
   document.addEventListener(
     "click",
     function (event) {
@@ -509,8 +453,9 @@ function bindDelegatedControls() {
 
 
       /*
-       * Static controls already have direct handlers.
+       * Static controls already have handlers.
        */
+
       if (
         button.id === "previewBtn" ||
         button.id === "insertBtn" ||
@@ -526,6 +471,7 @@ function bindDelegatedControls() {
       /*
        * MOVE UP
        */
+
       if (
         button.classList.contains(
           "move-up"
@@ -559,6 +505,7 @@ function bindDelegatedControls() {
       /*
        * MOVE DOWN
        */
+
       if (
         button.classList.contains(
           "move-down"
@@ -592,6 +539,7 @@ function bindDelegatedControls() {
       /*
        * DUPLICATE
        */
+
       if (
         button.classList.contains(
           "duplicate"
@@ -624,6 +572,7 @@ function bindDelegatedControls() {
       /*
        * REMOVE MODULE
        */
+
       if (
         button.classList.contains(
           "remove"
@@ -643,6 +592,7 @@ function bindDelegatedControls() {
 
           block.remove();
 
+
           renumberImageBlocks();
 
 
@@ -661,6 +611,7 @@ function bindDelegatedControls() {
       /*
        * REMOVE IMAGE
        */
+
       if (
         button.classList.contains(
           "remove-image"
@@ -685,6 +636,7 @@ function bindDelegatedControls() {
       /*
        * IMAGE URL BUTTON
        */
+
       if (
         button.classList.contains(
           "url-item"
@@ -733,6 +685,7 @@ function bindDelegatedControls() {
   /*
    * CHANGE
    */
+
   document.addEventListener(
     "change",
     function (event) {
@@ -740,6 +693,7 @@ function bindDelegatedControls() {
       /*
        * Layout selection.
        */
+
       const layout =
         event.target.closest(
           ".layout-select"
@@ -787,6 +741,7 @@ function bindDelegatedControls() {
       /*
        * Modular image upload.
        */
+
       if (
         event.target.matches(
           ".module-file-input"
@@ -828,6 +783,7 @@ function bindDelegatedControls() {
   /*
    * INPUT
    */
+
   document.addEventListener(
     "input",
     function (event) {
@@ -835,12 +791,28 @@ function bindDelegatedControls() {
       /*
        * Hero 01.
        */
+
       if (
         event.target.id ===
         "hero1Url"
       ) {
 
-        handleHeroUrlInput(
+        const preview =
+          document.getElementById(
+            "hero1Preview"
+          );
+
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+
+          delete preview.dataset.fileId;
+
+        }
+
+
+        renderHeroPreview(
           "hero1",
           event.target.value.trim()
         );
@@ -854,12 +826,28 @@ function bindDelegatedControls() {
       /*
        * Hero 02.
        */
+
       if (
         event.target.id ===
         "hero2Url"
       ) {
 
-        handleHeroUrlInput(
+        const preview =
+          document.getElementById(
+            "hero2Preview"
+          );
+
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+
+          delete preview.dataset.fileId;
+
+        }
+
+
+        renderHeroPreview(
           "hero2",
           event.target.value.trim()
         );
@@ -873,6 +861,7 @@ function bindDelegatedControls() {
       /*
        * Modular URL.
        */
+
       if (
         event.target.classList.contains(
           "module-url"
@@ -893,16 +882,6 @@ function bindDelegatedControls() {
 
           delete item.dataset.fileId;
 
-          delete item.dataset.imageUrl;
-
-          delete item.dataset.uploadError;
-
-
-          item.dataset.uploadStatus =
-            event.target.value.trim()
-              ? "manual"
-              : "empty";
-
 
           renderModulePreview(
             item,
@@ -920,57 +899,6 @@ function bindDelegatedControls() {
 
 
 /* =========================================================
-   HERO URL INPUT
-========================================================= */
-
-function handleHeroUrlInput(
-  key,
-  url
-) {
-
-  const preview =
-    document.getElementById(
-      key +
-      "Preview"
-    );
-
-
-  if (preview) {
-
-    delete preview.dataset.fullUrl;
-
-    delete preview.dataset.fileId;
-
-    delete preview.dataset.localUrl;
-
-  }
-
-
-  uploadState[key] = {
-
-    status:
-      url
-        ? "manual"
-        : "empty",
-
-    promise:
-      null,
-
-    error:
-      null
-
-  };
-
-
-  renderHeroPreview(
-    key,
-    url
-  );
-
-}
-
-
-/* =========================================================
    DRIVE URLS
 ========================================================= */
 
@@ -979,17 +907,12 @@ function buildDriveImageUrl(
 ) {
 
   return (
-
     "https://drive.google.com/thumbnail?id=" +
-
     encodeURIComponent(
       fileId
     ) +
-
     "&sz=w" +
-
     DRIVE_IMAGE_WIDTH
-
   );
 
 }
@@ -1000,15 +923,11 @@ function buildDriveClickUrl(
 ) {
 
   return (
-
     "https://drive.google.com/file/d/" +
-
     encodeURIComponent(
       fileId
     ) +
-
     "/view"
-
   );
 
 }
@@ -1153,9 +1072,26 @@ function compressImage(
             );
 
 
+          if (!context) {
+
+            callback(
+              null,
+              new Error(
+                "Could not create an image canvas."
+              )
+            );
+
+            return;
+
+          }
+
+
           /*
-           * JPEG background.
+           * White background prevents transparent
+           * PNG/WebP images from becoming black
+           * when converted to JPEG.
            */
+
           context.fillStyle =
             "#ffffff";
 
@@ -1196,16 +1132,14 @@ function compressImage(
 
               blobToDataUrl(
                 blob,
-                function (
-                  dataUrl
-                ) {
+                function (dataUrl) {
 
                   if (!dataUrl) {
 
                     callback(
                       null,
                       new Error(
-                        "The compressed image could not be prepared."
+                        "Could not convert compressed image."
                       )
                     );
 
@@ -1232,7 +1166,6 @@ function compressImage(
                     },
 
                     null
-
                   );
 
                 }
@@ -1333,83 +1266,9 @@ async function uploadToDrive(
   originalFileName
 ) {
 
-  if (!dataUrl) {
-
-    throw new Error(
-      "No image data available."
-    );
-
-  }
-
-
-  if (
-    !dataUrl.startsWith(
-      "data:image/"
-    )
-  ) {
-
-    throw new Error(
-      "Invalid image data. Expected a local image."
-    );
-
-  }
-
-
-  /*
-   * Queue upload.
-   */
-  const uploadJob =
-    driveUploadQueue.then(
-      function () {
-
-        return performDriveUpload(
-          dataUrl,
-          originalFileName
-        );
-
-      }
-    );
-
-
-  /*
-   * Keep queue alive after errors.
-   */
-  driveUploadQueue =
-    uploadJob.catch(
-      function () {}
-    );
-
-
-  return uploadJob;
-
-}
-
-
-async function performDriveUpload(
-  dataUrl,
-  originalFileName
-) {
-
   setStatus(
-    "Saving " +
-    originalFileName +
-    " to Google Drive…"
+    "Saving image to Google Drive…"
   );
-
-
-  const base64 =
-    stripDataUrlPrefix(
-      dataUrl
-    );
-
-
-  if (!base64) {
-
-    throw new Error(
-      "Image data could not be prepared for upload."
-    );
-
-  }
 
 
   const payload = {
@@ -1425,16 +1284,27 @@ async function performDriveUpload(
       "_" +
       cleanFileName(
         originalFileName
-      ) +
-      ".jpg",
+      ),
 
     mimeType:
       "image/jpeg",
 
     fileContent:
-      base64
+      stripDataUrlPrefix(
+        dataUrl
+      )
 
   };
+
+
+  console.log(
+    "Uploading image to Drive."
+  );
+
+  console.log(
+    "Compressed data URL length:",
+    dataUrl.length
+  );
 
 
   let response;
@@ -1504,11 +1374,16 @@ async function performDriveUpload(
   }
 
 
+  console.log(
+    "Drive upload result:",
+    result
+  );
+
+
   if (
     !result ||
     result.status !==
-      "created" ||
-    !result.fileId
+      "created"
   ) {
 
     throw new Error(
@@ -1522,8 +1397,9 @@ async function performDriveUpload(
 
 
   /*
-   * Normalize URLs.
+   * Normalize URLs from file ID.
    */
+
   result.imageUrl =
     buildDriveImageUrl(
       result.fileId
@@ -1576,22 +1452,18 @@ function cleanFileName(
     name ||
     "image"
   )
-
   .replace(
     /[\/\\:*?"<>|#%{}[\]]/g,
     "_"
   )
-
   .replace(
     /\s+/g,
     "_"
   )
-
   .replace(
     /\.[^.]+$/,
     ""
   )
-
   .substring(
     0,
     80
@@ -1603,13 +1475,9 @@ function cleanFileName(
 function getEditionSafeName() {
 
   return (
-
     value("edition") ||
-
     "001"
-
   )
-
   .replace(
     /[^a-zA-Z0-9_-]/g,
     "_"
@@ -1666,13 +1534,37 @@ function setupHero(
   }
 
 
-  /*
-   * We intentionally do not add another URL
-   * input listener here.
-   *
-   * The delegated input listener handles Hero 01
-   * and Hero 02.
-   */
+  if (urlInput) {
+
+    urlInput.addEventListener(
+      "input",
+      function () {
+
+        const preview =
+          document.getElementById(
+            key +
+            "Preview"
+          );
+
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+
+          delete preview.dataset.fileId;
+
+        }
+
+
+        renderHeroPreview(
+          key,
+          urlInput.value.trim()
+        );
+
+      }
+    );
+
+  }
 
 }
 
@@ -1681,27 +1573,6 @@ function handleHeroUpload(
   key,
   file
 ) {
-
-  if (!file) {
-
-    return;
-
-  }
-
-
-  uploadState[key] = {
-
-    status:
-      "compressing",
-
-    promise:
-      null,
-
-    error:
-      null
-
-  };
-
 
   compressImage(
     file,
@@ -1712,32 +1583,9 @@ function handleHeroUpload(
 
       if (error) {
 
-        uploadState[key] = {
-
-          status:
-            "failed",
-
-          promise:
-            null,
-
-          error:
-            error.message
-
-        };
-
-
         setStatus(
-
-          key === "hero1"
-
-            ? "Hero Image 01 failed: " +
-              error.message
-
-            : "Hero Image 02 failed: " +
-              error.message
-
+          error.message
         );
-
 
         return;
 
@@ -1759,17 +1607,11 @@ function handleHeroUpload(
 
 
       /*
-       * Local preview only.
-       *
-       * This data URL never enters the
-       * newsletter source field.
+       * Immediate local preview.
        */
-      if (preview) {
 
-        preview.dataset.localUrl =
-          result.dataUrl;
-
-      }
+      input.value =
+        result.dataUrl;
 
 
       renderHeroPreview(
@@ -1778,60 +1620,28 @@ function handleHeroUpload(
       );
 
 
-      uploadState[key].status =
-        "uploading";
-
-
-      const uploadPromise =
-        uploadToDrive(
-          result.dataUrl,
-          file.name
-        );
-
-
-      uploadState[key].promise =
-        uploadPromise;
-
-
       try {
 
         const drive =
-          await uploadPromise;
+          await uploadToDrive(
+            result.dataUrl,
+            file.name
+          );
 
 
-        /*
-         * ONLY the Drive URL enters
-         * the actual source input.
-         */
-        if (input) {
-
-          input.value =
-            drive.imageUrl;
-
-        }
+        input.value =
+          drive.imageUrl;
 
 
         if (preview) {
 
-          delete preview.dataset.localUrl;
-
-
           preview.dataset.fullUrl =
             drive.driveUrl;
-
 
           preview.dataset.fileId =
             drive.fileId;
 
         }
-
-
-        uploadState[key].status =
-          "complete";
-
-
-        uploadState[key].error =
-          null;
 
 
         renderHeroPreview(
@@ -1841,73 +1651,22 @@ function handleHeroUpload(
 
 
         setStatus(
-
           key === "hero1"
-
             ? "✓ Hero Image 01 saved to Drive."
-
             : "✓ Hero Image 02 saved to Drive."
-
         );
 
 
       } catch (error) {
 
-        /*
-         * CRITICAL:
-         *
-         * Never leave the base64 image
-         * in the source field.
-         */
-        if (input) {
-
-          input.value =
-            "";
-
-        }
-
-
-        if (preview) {
-
-          delete preview.dataset.localUrl;
-
-          delete preview.dataset.fullUrl;
-
-          delete preview.dataset.fileId;
-
-        }
-
-
-        uploadState[key].status =
-          "failed";
-
-
-        uploadState[key].error =
-          error.message;
-
-
-        renderHeroPreview(
-          key,
-          ""
-        );
-
-
         setStatus(
-
-          key === "hero1"
-
-            ? "Hero Image 01 upload failed: " +
-              error.message
-
-            : "Hero Image 02 upload failed: " +
-              error.message
-
+          "Preview ready. Drive upload failed: " +
+          error.message
         );
 
 
         console.error(
-          key +
-          " Drive upload error:",
+          "Hero upload error:",
           error
         );
 
@@ -2017,13 +1776,6 @@ function handleModuleUpload(
   }
 
 
-  item.dataset.uploadStatus =
-    "compressing";
-
-
-  delete item.dataset.uploadError;
-
-
   compressImage(
     file,
     async function (
@@ -2033,18 +1785,9 @@ function handleModuleUpload(
 
       if (error) {
 
-        item.dataset.uploadStatus =
-          "failed";
-
-
-        item.dataset.uploadError =
-          error.message;
-
-
         setStatus(
           error.message
         );
-
 
         return;
 
@@ -2059,18 +1802,9 @@ function handleModuleUpload(
 
       if (!urlInput) {
 
-        item.dataset.uploadStatus =
-          "failed";
-
-
-        item.dataset.uploadError =
-          "Could not find the modular image field.";
-
-
         setStatus(
           "Could not find the modular image field."
         );
-
 
         return;
 
@@ -2078,14 +1812,11 @@ function handleModuleUpload(
 
 
       /*
-       * Local preview only.
+       * Immediate local preview.
        */
-      item.dataset.localUrl =
+
+      urlInput.value =
         result.dataUrl;
-
-
-      item.dataset.uploadStatus =
-        "uploading";
 
 
       renderModulePreview(
@@ -2096,6 +1827,11 @@ function handleModuleUpload(
 
       try {
 
+        setStatus(
+          "Saving modular image to Google Drive…"
+        );
+
+
         const drive =
           await uploadToDrive(
             result.dataUrl,
@@ -2103,9 +1839,6 @@ function handleModuleUpload(
           );
 
 
-        /*
-         * Save Drive references.
-         */
         item.dataset.fileId =
           drive.fileId;
 
@@ -2122,19 +1855,6 @@ function handleModuleUpload(
           drive.driveUrl;
 
 
-        item.dataset.uploadStatus =
-          "complete";
-
-
-        delete item.dataset.localUrl;
-
-        delete item.dataset.uploadError;
-
-
-        /*
-         * ONLY Drive URL goes into
-         * the newsletter source field.
-         */
         urlInput.value =
           drive.imageUrl;
 
@@ -2152,40 +1872,8 @@ function handleModuleUpload(
 
       } catch (error) {
 
-        /*
-         * Remove all failed-upload data.
-         */
-        urlInput.value =
-          "";
-
-
-        delete item.dataset.fileId;
-
-        delete item.dataset.imageUrl;
-
-        delete item.dataset.fullUrl;
-
-        delete item.dataset.driveUrl;
-
-        delete item.dataset.localUrl;
-
-
-        item.dataset.uploadStatus =
-          "failed";
-
-
-        item.dataset.uploadError =
-          error.message;
-
-
-        renderModulePreview(
-          item,
-          ""
-        );
-
-
         setStatus(
-          "Modular image upload failed: " +
+          "Preview ready. Drive upload failed: " +
           error.message
         );
 
@@ -2371,71 +2059,46 @@ function addImageBlock() {
 
       "</span>" +
 
-
       '<select class="layout-select" aria-label="Image layout">' +
 
         '<option value="full">' +
-
           "Full Width" +
-
         "</option>" +
-
 
         '<option value="two">' +
-
           "Two Up" +
-
         "</option>" +
-
 
         '<option value="three">' +
-
           "Three Up" +
-
         "</option>" +
 
-
         '<option value="four">' +
-
           "Four Up" +
-
         "</option>" +
 
       "</select>" +
 
     "</div>" +
 
-
-    '<div class="image-items one"></div>" +
-
+    '<div class="image-items one"></div>' +
 
     '<div class="block-actions">' +
 
       '<button type="button" class="move-up">' +
-
         "↑ Move Up" +
-
       "</button>" +
-
 
       '<button type="button" class="move-down">' +
-
         "↓ Move Down" +
-
       "</button>" +
-
 
       '<button type="button" class="duplicate">' +
-
         "Duplicate" +
-
       "</button>" +
 
-
       '<button type="button" class="remove">' +
-
         "Remove" +
-
       "</button>" +
 
     "</div>";
@@ -2555,13 +2218,9 @@ function moveImageBlock(
   ) {
 
     setStatus(
-
       direction < 0
-
         ? "Already at the top."
-
         : "Already at the bottom."
-
     );
 
 
@@ -2597,13 +2256,9 @@ function moveImageBlock(
 
 
   setStatus(
-
     direction < 0
-
       ? "✓ Image Module moved up."
-
       : "✓ Image Module moved down."
-
   );
 
 }
@@ -2670,11 +2325,8 @@ function syncImageInputs(
     (
       layout ===
       "full"
-
         ? "one"
-
         : layout
-
     );
 
 
@@ -2733,11 +2385,8 @@ function addImageItem(
   item.innerHTML =
 
     '<label>Image ' +
-
       number +
-
     "</label>" +
-
 
     '<label class="upload-button">' +
 
@@ -2747,13 +2396,11 @@ function addImageItem(
 
     "</label>" +
 
-
     '<button type="button" class="secondary url-item">' +
 
       "Image URL" +
 
     "</button>" +
-
 
     '<input class="module-url source-url" value="' +
 
@@ -2764,13 +2411,11 @@ function addImageItem(
 
     '" placeholder="Paste direct image URL">' +
 
-
     '<div class="preview module-preview empty">' +
 
       "No image selected" +
 
     "</div>" +
-
 
     '<input class="module-caption" value="' +
 
@@ -2780,7 +2425,6 @@ function addImageItem(
       ) +
 
     '" placeholder="Caption">' +
-
 
     '<button type="button" class="remove-image">' +
 
@@ -2794,9 +2438,6 @@ function addImageItem(
   );
 
 
-  /*
-   * Preserve Drive click destination.
-   */
   if (
     preset.clickUrl
   ) {
@@ -2807,27 +2448,14 @@ function addImageItem(
   }
 
 
-  /*
-   * Existing URL is treated as a manually
-   * supplied URL rather than an active upload.
-   */
   if (
     preset.url
   ) {
-
-    item.dataset.uploadStatus =
-      "manual";
-
 
     renderModulePreview(
       item,
       preset.url
     );
-
-  } else {
-
-    item.dataset.uploadStatus =
-      "empty";
 
   }
 
@@ -2891,9 +2519,6 @@ function removeImageItem(
   }
 
 
-  /*
-   * Keep one blank slot.
-   */
   if (
     wrap.children.length ===
     1
@@ -2913,16 +2538,14 @@ function removeImageItem(
 
     if (url) {
 
-      url.value =
-        "";
+      url.value = "";
 
     }
 
 
     if (caption) {
 
-      caption.value =
-        "";
+      caption.value = "";
 
     }
 
@@ -2932,14 +2555,6 @@ function removeImageItem(
     delete item.dataset.driveUrl;
 
     delete item.dataset.fileId;
-
-    delete item.dataset.imageUrl;
-
-    delete item.dataset.uploadError;
-
-
-    item.dataset.uploadStatus =
-      "empty";
 
 
     renderModulePreview(
@@ -2974,7 +2589,7 @@ function removeImageItem(
 
 
 /* =========================================================
-   DUPLICATE
+   DUPLICATE IMAGE BLOCK
 ========================================================= */
 
 function duplicateBlock(
@@ -3021,12 +2636,10 @@ function duplicateBlock(
               ? url.value.trim()
               : "",
 
-
           caption:
             caption
               ? caption.value.trim()
               : "",
-
 
           clickUrl:
             item.dataset.fullUrl ||
@@ -3067,11 +2680,8 @@ function duplicateBlock(
     '<div class="block-top">' +
 
       '<span class="block-number">' +
-
         "Image Module" +
-
       "</span>" +
-
 
       '<select class="layout-select" aria-label="Image layout">' +
 
@@ -3087,9 +2697,7 @@ function duplicateBlock(
 
     "</div>" +
 
-
     '<div class="image-items"></div>' +
-
 
     '<div class="block-actions">' +
 
@@ -3121,19 +2729,12 @@ function duplicateBlock(
 
 
   const count =
-
     layout === "full"
-
       ? 1
-
       : layout === "two"
-
         ? 2
-
         : layout === "three"
-
           ? 3
-
           : 4;
 
 
@@ -3159,6 +2760,13 @@ function duplicateBlock(
     );
 
 
+  if (!container) {
+
+    return;
+
+  }
+
+
   container.insertBefore(
     clone,
     block.nextSibling
@@ -3176,7 +2784,7 @@ function duplicateBlock(
 
 
 /* =========================================================
-   COLLECT PLEASURE NOTES
+   PLEASURE NOTES
 ========================================================= */
 
 function collectPleasureNotes() {
@@ -3207,7 +2815,6 @@ function collectPleasureNotes() {
           label
             ? label.value.trim()
             : "",
-
 
         value:
           note
@@ -3274,7 +2881,6 @@ function addPleasureRow(
 
     '" placeholder="Category">' +
 
-
     '<input class="pleasure-value" value="' +
 
       escapeAttribute(
@@ -3283,7 +2889,6 @@ function addPleasureRow(
       ) +
 
     '" placeholder="What has held your attention?">' +
-
 
     '<button type="button">×</button>';
 
@@ -3338,14 +2943,12 @@ function buildPleasureNotesHtml(
 
     '">' +
 
-
       notes.map(
         function (note) {
 
           return (
 
             "<tr>" +
-
 
               '<td style="' +
 
@@ -3369,14 +2972,11 @@ function buildPleasureNotesHtml(
 
               '">' +
 
-
                 escapeHtml(
                   note.label
                 ) +
 
-
               "</td>" +
-
 
               '<td style="' +
 
@@ -3394,14 +2994,11 @@ function buildPleasureNotesHtml(
 
               '">' +
 
-
                 escapeHtml(
                   note.value
                 ) +
 
-
               "</td>" +
-
 
             "</tr>"
 
@@ -3409,7 +3006,6 @@ function buildPleasureNotesHtml(
 
         }
       ).join("") +
-
 
     "</table>"
 
@@ -3425,7 +3021,6 @@ function buildPleasureNotesHtml(
 function collectImageBlocks() {
 
   return getImageBlocks()
-
     .map(
       function (block) {
 
@@ -3435,15 +3030,12 @@ function collectImageBlocks() {
             block.dataset.layout ||
             "full",
 
-
           items:
-
             Array.from(
               block.querySelectorAll(
                 ".image-item"
               )
             )
-
             .map(
               function (item) {
 
@@ -3466,12 +3058,10 @@ function collectImageBlocks() {
                       ? url.value.trim()
                       : "",
 
-
                   clickUrl:
                     item.dataset.fullUrl ||
                     item.dataset.driveUrl ||
                     "",
-
 
                   caption:
                     caption
@@ -3482,22 +3072,12 @@ function collectImageBlocks() {
 
               }
             )
-
-
-            /*
-             * NEVER collect base64 images.
-             */
             .filter(
               function (item) {
 
                 return (
-
-                  item.url &&
-
-                  !item.url.startsWith(
-                    "data:image/"
-                  )
-
+                  item.url ||
+                  item.caption
                 );
 
               }
@@ -3507,8 +3087,6 @@ function collectImageBlocks() {
 
       }
     )
-
-
     .filter(
       function (block) {
 
@@ -3539,28 +3117,6 @@ function buildEmailImage(
   }
 
 
-  /*
-   * Absolute safety check.
-   *
-   * A base64 image is never permitted
-   * in the final newsletter.
-   */
-  if (
-    imageUrl.startsWith(
-      "data:image/"
-    )
-  ) {
-
-    console.error(
-      "Blocked base64 image from newsletter."
-    );
-
-
-    return "";
-
-  }
-
-
   const destination =
     clickUrl ||
     imageUrl;
@@ -3569,20 +3125,15 @@ function buildEmailImage(
   let html =
 
     '<a href="' +
-
       escapeAttribute(
         destination
       ) +
-
       '" target="_blank" style="text-decoration:none;">' +
 
-
       '<img src="' +
-
         escapeAttribute(
           imageUrl
         ) +
-
         '" alt="" style="' +
 
           "display:block;" +
@@ -3594,7 +3145,6 @@ function buildEmailImage(
           "border:0;" +
 
         '">' +
-
 
     "</a>";
 
@@ -3617,11 +3167,9 @@ function buildEmailImage(
 
       '">' +
 
-
         escapeHtml(
           caption
         ) +
-
 
       "</div>";
 
@@ -3667,12 +3215,9 @@ function buildFullWidthImage(
 
     '">' +
 
-
       "<tr>" +
 
-
         '<td style="padding:8px;">' +
-
 
           buildEmailImage(
             item.url,
@@ -3681,12 +3226,9 @@ function buildFullWidthImage(
             item.caption
           ) +
 
-
         "</td>" +
 
-
       "</tr>" +
-
 
     "</table>"
 
@@ -3721,15 +3263,11 @@ function buildImageRow(
         return (
 
           '<td width="' +
-
             width +
-
             '%" valign="top" style="' +
 
               "width:" +
-
               width +
-
               "%;" +
 
               "padding:3px;" +
@@ -3737,13 +3275,10 @@ function buildImageRow(
               "vertical-align:top;" +
 
               "background:" +
-
                 COLORS.surface +
-
               ";" +
 
             '">' +
-
 
             buildEmailImage(
               item.url,
@@ -3751,7 +3286,6 @@ function buildImageRow(
                 item.url,
               item.caption
             ) +
-
 
           "</td>"
 
@@ -3765,15 +3299,11 @@ function buildImageRow(
 
     '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;table-layout:fixed;margin:28px 0;">' +
 
-
       "<tr>" +
-
 
         cells +
 
-
       "</tr>" +
-
 
     "</table>"
 
@@ -3944,30 +3474,9 @@ function buildNewsletterHtml() {
 
 
   /*
-   * Safety:
-   *
-   * Do not build newsletter HTML if a Hero
-   * still contains a base64 image.
-   */
-  if (
-    hero1.startsWith(
-      "data:image/"
-    ) ||
-    hero2.startsWith(
-      "data:image/"
-    )
-  ) {
-
-    throw new Error(
-      "A hero image is still stored locally. Please wait for the Google Drive upload to finish."
-    );
-
-  }
-
-
-  /*
    * Hero click destinations.
    */
+
   const hero1Preview =
     document.getElementById(
       "hero1Preview"
@@ -3983,51 +3492,45 @@ function buildNewsletterHtml() {
   const hero1Click =
     hero1Preview &&
     hero1Preview.dataset.fullUrl
-
       ? hero1Preview.dataset.fullUrl
-
       : hero1;
 
 
   const hero2Click =
     hero2Preview &&
     hero2Preview.dataset.fullUrl
-
       ? hero2Preview.dataset.fullUrl
-
       : hero2;
 
 
   /*
    * Hero HTML.
    */
+
   const hero1Html =
     hero1
-
       ? buildEmailImage(
           hero1,
           hero1Click,
           hero1Caption
         )
-
       : "";
 
 
   const hero2Html =
     hero2
-
       ? buildEmailImage(
           hero2,
           hero2Click,
           hero2Caption
         )
-
       : "";
 
 
   /*
    * Modular image HTML.
    */
+
   let modulesHtml =
     "";
 
@@ -4047,6 +3550,7 @@ function buildNewsletterHtml() {
   /*
    * Invitation.
    */
+
   let invitationHtml =
     "";
 
@@ -4075,17 +3579,13 @@ function buildNewsletterHtml() {
 
       '">' +
 
-
         "05 — AN INVITATION" +
-
 
       "</div>" +
 
 
       (
-
         inviteTitle
-
           ? '<div style="' +
 
               "font:27px/1.15 Garamond,Georgia,Times New Roman,serif;" +
@@ -4100,14 +3600,11 @@ function buildNewsletterHtml() {
 
             '">' +
 
-
               escapeHtml(
                 inviteTitle
               ) +
 
-
             "</div>"
-
 
           : ""
 
@@ -4120,18 +3617,14 @@ function buildNewsletterHtml() {
 
 
       (
-
         ctaUrl
-
           ? '<div style="padding:0 0 25px;">' +
-
 
               '<a href="' +
 
                 escapeAttribute(
                   ctaUrl
                 ) +
-
 
                 '" style="' +
 
@@ -4159,17 +3652,13 @@ function buildNewsletterHtml() {
 
                 '">' +
 
-
                 escapeHtml(
                   ctaLabel
                 ) +
 
-
               "</a>" +
 
-
             "</div>"
-
 
           : ""
 
@@ -4180,17 +3669,11 @@ function buildNewsletterHtml() {
 
   const dateLine =
     [
-
       edition,
-
       date,
-
       title
-
     ]
-
     .filter(Boolean)
-
     .map(
       function (item) {
 
@@ -4200,15 +3683,13 @@ function buildNewsletterHtml() {
 
       }
     )
-
-    .join(
-      " · "
-    );
+    .join(" · ");
 
 
   /*
    * Full newsletter.
    */
+
   return (
 
     '<div style="' +
@@ -4271,6 +3752,7 @@ function buildNewsletterHtml() {
               /*
                * HEADER
                */
+
               "<tr>" +
 
 
@@ -4301,9 +3783,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "FLRS GLOBAL" +
-
 
                   "</div>" +
 
@@ -4324,9 +3804,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "FROM THE STUDIO OF FREDDIE L. RANKIN II" +
-
 
                   "</div>" +
 
@@ -4345,9 +3823,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "The Pleasure Dispatch" +
-
 
                   "</h1>" +
 
@@ -4366,9 +3842,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     dateLine +
-
 
                   "</div>" +
 
@@ -4382,6 +3856,7 @@ function buildNewsletterHtml() {
               /*
                * CONTENT
                */
+
               "<tr>" +
 
 
@@ -4391,8 +3866,8 @@ function buildNewsletterHtml() {
                   /*
                    * LOOP
                    */
-                  '<div style="text-align:center;margin:0 0 28px;">' +
 
+                  '<div style="text-align:center;margin:0 0 28px;">' +
 
                     '<img src="' +
 
@@ -4410,17 +3885,15 @@ function buildNewsletterHtml() {
 
                       '">' +
 
-
                   "</div>" +
 
 
                   /*
                    * SUBTITLE
                    */
+
                   (
-
                     subtitle
-
                       ? '<div style="' +
 
                           "font:18px/1.45 Garamond,Georgia,Times New Roman,serif;" +
@@ -4435,14 +3908,11 @@ function buildNewsletterHtml() {
 
                         '">' +
 
-
                           escapeHtml(
                             subtitle
                           ) +
 
-
                         "</div>"
-
 
                       : ""
 
@@ -4452,16 +3922,14 @@ function buildNewsletterHtml() {
                   /*
                    * HERO 01
                    */
+
                   (
-
                     hero1Html
-
                       ? '<div style="margin-bottom:8px;">' +
 
                           hero1Html +
 
                         "</div>"
-
 
                       : ""
 
@@ -4471,6 +3939,7 @@ function buildNewsletterHtml() {
                   /*
                    * REFLECTION
                    */
+
                   '<div style="' +
 
                     "font:10px Arial,Helvetica,sans-serif;" +
@@ -4487,9 +3956,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "01 — A REFLECTION" +
-
 
                   "</div>" +
 
@@ -4502,6 +3969,7 @@ function buildNewsletterHtml() {
                   /*
                    * THE WORK
                    */
+
                   '<div style="' +
 
                     "font:10px Arial,Helvetica,sans-serif;" +
@@ -4518,9 +3986,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "02 — THE WORK" +
-
 
                   "</div>" +
 
@@ -4533,12 +3999,14 @@ function buildNewsletterHtml() {
                   /*
                    * MODULAR IMAGES
                    */
+
                   modulesHtml +
 
 
                   /*
                    * STUDIO NOTES
                    */
+
                   '<div style="' +
 
                     "font:10px Arial,Helvetica,sans-serif;" +
@@ -4555,9 +4023,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "03 — STUDIO NOTES" +
-
 
                   "</div>" +
 
@@ -4570,16 +4036,14 @@ function buildNewsletterHtml() {
                   /*
                    * HERO 02
                    */
+
                   (
-
                     hero2Html
-
                       ? '<div style="margin:8px 0 0;">' +
 
                           hero2Html +
 
                         "</div>"
-
 
                       : ""
 
@@ -4589,6 +4053,7 @@ function buildNewsletterHtml() {
                   /*
                    * PLEASURE NOTES
                    */
+
                   '<div style="' +
 
                     "font:10px Arial,Helvetica,sans-serif;" +
@@ -4605,9 +4070,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "04 — PLEASURE NOTES" +
-
 
                   "</div>" +
 
@@ -4626,9 +4089,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "An offering of what has held my attention." +
-
 
                   "</div>" +
 
@@ -4641,12 +4102,14 @@ function buildNewsletterHtml() {
                   /*
                    * INVITATION
                    */
+
                   invitationHtml +
 
 
                   /*
                    * QUESTION
                    */
+
                   '<div style="' +
 
                     "font:10px Arial,Helvetica,sans-serif;" +
@@ -4663,9 +4126,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "06 — A QUESTION" +
-
 
                   "</div>" +
 
@@ -4684,11 +4145,9 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     escapeHtml(
                       question
                     ) +
-
 
                   "</div>" +
 
@@ -4696,6 +4155,7 @@ function buildNewsletterHtml() {
                   /*
                    * CLOSING LOOP
                    */
+
                   '<div style="' +
 
                     "text-align:center;" +
@@ -4703,7 +4163,6 @@ function buildNewsletterHtml() {
                     "margin:30px 0 18px;" +
 
                   '">' +
-
 
                     '<img src="' +
 
@@ -4720,7 +4179,6 @@ function buildNewsletterHtml() {
                         "border:0;" +
 
                       '">' +
-
 
                   "</div>" +
 
@@ -4743,9 +4201,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "Pleasure is the desire to return." +
-
 
                   "</div>" +
 
@@ -4759,6 +4215,7 @@ function buildNewsletterHtml() {
               /*
                * FOOTER
                */
+
               "<tr>" +
 
 
@@ -4789,9 +4246,7 @@ function buildNewsletterHtml() {
 
                   '">' +
 
-
                     "THE PLEASURE DISPATCH · BY FLRS GLOBAL" +
-
 
                   "</div>" +
 
@@ -4822,224 +4277,6 @@ function buildNewsletterHtml() {
 
 
 /* =========================================================
-   IMAGE UPLOAD VALIDATION
-========================================================= */
-
-function validateImageUploads() {
-
-  /*
-   * Heroes.
-   */
-  const heroKeys = [
-    "hero1",
-    "hero2"
-  ];
-
-
-  for (
-    let i = 0;
-    i < heroKeys.length;
-    i++
-  ) {
-
-    const key =
-      heroKeys[i];
-
-
-    const state =
-      uploadState[key];
-
-
-    if (
-      state.status ===
-      "compressing" ||
-      state.status ===
-      "uploading"
-    ) {
-
-      return {
-
-        valid:
-          false,
-
-        message:
-          (
-            key === "hero1"
-
-              ? "Hero Image 01"
-
-              : "Hero Image 02"
-
-          ) +
-
-          " is still uploading to Google Drive."
-
-      };
-
-    }
-
-
-    if (
-      state.status ===
-      "failed"
-    ) {
-
-      return {
-
-        valid:
-          false,
-
-        message:
-          (
-            key === "hero1"
-
-              ? "Hero Image 01"
-
-              : "Hero Image 02"
-
-          ) +
-
-          " failed to upload to Google Drive. Please upload it again."
-
-      };
-
-    }
-
-  }
-
-
-  /*
-   * Modular images.
-   */
-  const blocks =
-    getImageBlocks();
-
-
-  for (
-    let b = 0;
-    b < blocks.length;
-    b++
-  ) {
-
-    const items =
-      blocks[b].querySelectorAll(
-        ".image-item"
-      );
-
-
-    for (
-      let i = 0;
-      i < items.length;
-      i++
-    ) {
-
-      const item =
-        items[i];
-
-
-      const status =
-        item.dataset.uploadStatus;
-
-
-      if (
-        status === "compressing" ||
-        status === "uploading"
-      ) {
-
-        return {
-
-          valid:
-            false,
-
-          message:
-            "Image Module " +
-            (b + 1) +
-            " is still uploading to Google Drive."
-
-        };
-
-      }
-
-
-      if (
-        status === "failed"
-      ) {
-
-        return {
-
-          valid:
-            false,
-
-          message:
-            "An image in Image Module " +
-            (b + 1) +
-            " failed to upload to Google Drive. Please upload it again."
-
-        };
-
-      }
-
-    }
-
-  }
-
-
-  /*
-   * Final safety check.
-   *
-   * NO base64 images are allowed.
-   */
-  const sourceInputs =
-    document.querySelectorAll(
-      "#hero1Url, #hero2Url, .module-url"
-    );
-
-
-  for (
-    let i = 0;
-    i < sourceInputs.length;
-    i++
-  ) {
-
-    const source =
-      sourceInputs[i].value.trim();
-
-
-    if (
-      source.indexOf(
-        "data:image/"
-      ) === 0
-    ) {
-
-      return {
-
-        valid:
-          false,
-
-        message:
-          "An image is still stored locally instead of on Google Drive. Please wait for the upload to finish."
-
-      };
-
-    }
-
-  }
-
-
-  return {
-
-    valid:
-      true,
-
-    message:
-      ""
-
-  };
-
-}
-
-
-/* =========================================================
    BUILD PROGRESS
 ========================================================= */
 
@@ -5058,39 +4295,496 @@ function updateBuildProgress(
 
 
 /* =========================================================
-   ASYNC ERROR
+   DETAILED OFFICE ERROR
 ========================================================= */
 
-function getAsyncError(
+function getDetailedOfficeError(
   result
 ) {
 
+  if (!result) {
+
+    return (
+      "No result was returned by Outlook."
+    );
+
+  }
+
+
   if (
-    result &&
     result.error
   ) {
 
+    const error =
+      result.error;
+
+
+    const parts = [];
+
+
     if (
-      result.error.message
+      error.code !==
+      undefined
     ) {
 
-      return result.error.message;
+      parts.push(
+        "Code " +
+        error.code
+      );
 
     }
 
 
     if (
-      result.error.name
+      error.name
     ) {
 
-      return result.error.name;
+      parts.push(
+        error.name
+      );
+
+    }
+
+
+    if (
+      error.message
+    ) {
+
+      parts.push(
+        error.message
+      );
+
+    }
+
+
+    if (
+      parts.length
+    ) {
+
+      return parts.join(
+        " — "
+      );
 
     }
 
   }
 
 
-  return "Unknown Outlook error.";
+  if (
+    result.status
+  ) {
+
+    return String(
+      result.status
+    );
+
+  }
+
+
+  return (
+    "Unknown Outlook error."
+  );
+
+}
+
+
+/* =========================================================
+   OFFICE ENVIRONMENT DIAGNOSTIC
+========================================================= */
+
+function getOfficeEnvironmentInfo() {
+
+  const info = {
+
+    officeAvailable:
+      typeof Office !==
+      "undefined",
+
+    host:
+      "unknown",
+
+    platform:
+      "unknown",
+
+    itemType:
+      "unknown",
+
+    bodyAvailable:
+      false,
+
+    bodySetAsyncAvailable:
+      false,
+
+    bodyGetAsyncAvailable:
+      false,
+
+    subjectAvailable:
+      false,
+
+    subjectSetAsyncAvailable:
+      false
+
+  };
+
+
+  try {
+
+    if (
+      typeof Office !==
+      "undefined"
+    ) {
+
+      info.host =
+        Office.context &&
+        Office.context.host
+          ? Office.context.host
+          : "unknown";
+
+
+      info.platform =
+        Office.context &&
+        Office.context.platform
+          ? Office.context.platform
+          : "unknown";
+
+
+      const item =
+        Office.context &&
+        Office.context.mailbox &&
+        Office.context.mailbox.item;
+
+
+      if (item) {
+
+        info.itemType =
+          item.itemType ||
+          "unknown";
+
+
+        info.bodyAvailable =
+          !!item.body;
+
+
+        info.bodySetAsyncAvailable =
+          !!(
+            item.body &&
+            typeof item.body.setAsync ===
+              "function"
+          );
+
+
+        info.bodyGetAsyncAvailable =
+          !!(
+            item.body &&
+            typeof item.body.getAsync ===
+              "function"
+          );
+
+
+        info.subjectAvailable =
+          !!item.subject;
+
+
+        info.subjectSetAsyncAvailable =
+          !!(
+            item.subject &&
+            typeof item.subject.setAsync ===
+              "function"
+          );
+
+      }
+
+    }
+
+  } catch (error) {
+
+    info.environmentError =
+      error.message;
+
+  }
+
+
+  return info;
+
+}
+
+
+/* =========================================================
+   TEST OUTLOOK BODY API
+========================================================= */
+
+/*
+ * This is intentionally tiny.
+ *
+ * If this succeeds:
+ *
+ *     Outlook body.setAsync works.
+ *
+ * If this fails with:
+ *
+ *     The operation is not supported.
+ *
+ * then the problem is NOT the newsletter HTML
+ * and NOT the images.
+ */
+
+function testOutlookBodyWrite() {
+
+  console.log(
+    "===================================="
+  );
+
+  console.log(
+    "OUTLOOK BODY API DIAGNOSTIC"
+  );
+
+  console.log(
+    "===================================="
+  );
+
+
+  const info =
+    getOfficeEnvironmentInfo();
+
+
+  console.log(
+    "Office environment:",
+    info
+  );
+
+
+  if (
+    !info.officeAvailable
+  ) {
+
+    setStatus(
+      "Diagnostic failed — Office.js is unavailable."
+    );
+
+    return;
+
+  }
+
+
+  const item =
+    Office.context &&
+    Office.context.mailbox &&
+    Office.context.mailbox.item;
+
+
+  if (!item) {
+
+    setStatus(
+      "Diagnostic failed — no Outlook item is available."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !item.body ||
+    typeof item.body.setAsync !==
+      "function"
+  ) {
+
+    setStatus(
+      "Diagnostic failed — body.setAsync is unavailable."
+    );
+
+    return;
+
+  }
+
+
+  const testHtml =
+
+    '<div style="font-family:Arial,sans-serif;font-size:18px;padding:20px;">' +
+
+      "The Pleasure Dispatch — Outlook body test." +
+
+    "</div>";
+
+
+  console.log(
+    "Calling body.setAsync() with minimal HTML..."
+  );
+
+
+  item.body.setAsync(
+    testHtml,
+    {
+      coercionType:
+        Office.CoercionType.Html
+    },
+    function(result) {
+
+      console.log(
+        "MINIMAL BODY TEST RESULT:",
+        result
+      );
+
+
+      if (
+        result &&
+        result.status ===
+          Office.AsyncResultStatus.Succeeded
+      ) {
+
+        setStatus(
+          "✓ Outlook body API works. The newsletter HTML is the next thing to test."
+        );
+
+
+        return;
+
+      }
+
+
+      const error =
+        getDetailedOfficeError(
+          result
+        );
+
+
+      setStatus(
+        "✕ Outlook rejected body.setAsync: " +
+        error
+      );
+
+
+      console.error(
+        "Minimal body test failed.",
+        result
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   TEST NEWSLETTER HTML WITHOUT IMAGES
+========================================================= */
+
+/*
+ * This creates the smallest useful version
+ * of the newsletter.
+ *
+ * It helps isolate whether Outlook dislikes
+ * the generated newsletter HTML itself.
+ */
+
+function testNewsletterBodyWrite() {
+
+  const item =
+    Office.context &&
+    Office.context.mailbox &&
+    Office.context.mailbox.item;
+
+
+  if (!item) {
+
+    setStatus(
+      "Diagnostic failed — no Outlook message is available."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !item.body ||
+    typeof item.body.setAsync !==
+      "function"
+  ) {
+
+    setStatus(
+      "Diagnostic failed — body.setAsync is unavailable."
+    );
+
+    return;
+
+  }
+
+
+  const testHtml =
+
+    '<div style="' +
+
+      "margin:0;" +
+
+      "padding:30px;" +
+
+      "background:#303030;" +
+
+      "color:#F2EEE5;" +
+
+      "font-family:Georgia,serif;" +
+
+    '">' +
+
+      "<h1>The Pleasure Dispatch</h1>" +
+
+      "<p>This is an Outlook HTML test.</p>" +
+
+      "<p>If you can see this, body.setAsync is working with newsletter-style HTML.</p>" +
+
+    "</div>";
+
+
+  console.log(
+    "Testing simplified newsletter HTML..."
+  );
+
+
+  item.body.setAsync(
+    testHtml,
+    {
+      coercionType:
+        Office.CoercionType.Html
+    },
+    function(result) {
+
+      console.log(
+        "SIMPLIFIED NEWSLETTER TEST RESULT:",
+        result
+      );
+
+
+      if (
+        result &&
+        result.status ===
+          Office.AsyncResultStatus.Succeeded
+      ) {
+
+        setStatus(
+          "✓ Simplified newsletter HTML works."
+        );
+
+
+        return;
+
+      }
+
+
+      setStatus(
+        "✕ Simplified newsletter HTML failed: " +
+        getDetailedOfficeError(
+          result
+        )
+      );
+
+
+      console.error(
+        result
+      );
+
+    }
+  );
 
 }
 
@@ -5108,30 +4802,9 @@ function buildInOutlook() {
 
 
   /*
-   * IMAGE UPLOAD VALIDATION
-   */
-  const uploadValidation =
-    validateImageUploads();
-
-
-  if (
-    !uploadValidation.valid
-  ) {
-
-    setStatus(
-      "Build stopped — " +
-      uploadValidation.message
-    );
-
-
-    return;
-
-  }
-
-
-  /*
    * OFFICE
    */
+
   if (
     typeof Office ===
     "undefined"
@@ -5141,7 +4814,6 @@ function buildInOutlook() {
       "Build failed — Office.js is unavailable."
     );
 
-
     return;
 
   }
@@ -5150,6 +4822,7 @@ function buildInOutlook() {
   /*
    * MAILBOX
    */
+
   if (
     !Office.context ||
     !Office.context.mailbox ||
@@ -5159,7 +4832,6 @@ function buildInOutlook() {
     setStatus(
       "Build failed — open The Pleasure Dispatch from a new Outlook message."
     );
-
 
     return;
 
@@ -5171,24 +4843,81 @@ function buildInOutlook() {
 
 
   /*
+   * Log environment.
+   */
+
+  const environment =
+    getOfficeEnvironmentInfo();
+
+
+  console.log(
+    "===================================="
+  );
+
+  console.log(
+    "PLEASURE DISPATCH BUILD"
+  );
+
+  console.log(
+    "===================================="
+  );
+
+  console.log(
+    "Office environment:",
+    environment
+  );
+
+
+  /*
    * BODY API
    */
+
   if (
     !item.body ||
-    typeof item.body.getAsync !==
-      "function" ||
     typeof item.body.setAsync !==
       "function"
   ) {
 
     setStatus(
-      "Build failed — Outlook body access is unavailable."
+      "Build failed — Outlook body.setAsync is unavailable."
     );
-
 
     return;
 
   }
+
+
+  /*
+   * SUBJECT API
+   */
+
+  if (
+    !item.subject ||
+    typeof item.subject.setAsync !==
+      "function"
+  ) {
+
+    setStatus(
+      "Build failed — Outlook subject.setAsync is unavailable."
+    );
+
+    return;
+
+  }
+
+
+  /*
+   * IMPORTANT:
+   *
+   * We intentionally DO NOT call:
+   *
+   *     item.body.getAsync()
+   *
+   * before setAsync().
+   *
+   * There is no reason to read the existing
+   * message body if our goal is to replace it.
+   */
 
 
   /* =======================================================
@@ -5212,13 +4941,13 @@ function buildInOutlook() {
   } catch (error) {
 
     console.error(
-      "Newsletter build error:",
+      "Newsletter generation error:",
       error
     );
 
 
     setStatus(
-      "Build failed — " +
+      "Build failed generating newsletter: " +
       error.message
     );
 
@@ -5238,31 +4967,6 @@ function buildInOutlook() {
       "Build failed — newsletter HTML is empty."
     );
 
-
-    return;
-
-  }
-
-
-  /*
-   * FINAL HTML SAFETY CHECK.
-   */
-  if (
-    html.indexOf(
-      "data:image/"
-    ) !== -1
-  ) {
-
-    setStatus(
-      "Build stopped — a base64 image was detected in the newsletter."
-    );
-
-
-    console.error(
-      "Base64 image detected in final newsletter HTML."
-    );
-
-
     return;
 
   }
@@ -5271,6 +4975,15 @@ function buildInOutlook() {
   console.log(
     "Newsletter HTML length:",
     html.length
+  );
+
+
+  console.log(
+    "Newsletter HTML preview:",
+    html.substring(
+      0,
+      1000
+    )
   );
 
 
@@ -5334,21 +5047,16 @@ function buildInOutlook() {
   ) {
 
     updateBuildProgress(
-
       2,
-
       totalImages +
-
       " image" +
-
       (
-        totalImages === 1
+        totalImages ===
+        1
           ? ""
           : "s"
       ) +
-
       " ready…"
-
     );
 
   } else {
@@ -5368,12 +5076,22 @@ function buildInOutlook() {
 
 
   /* =======================================================
-     STEP 3 — READ CURRENT OUTLOOK BODY
+     STEP 3 — SET SUBJECT
   ======================================================= */
 
   updateBuildProgress(
     3,
-    "Preparing Outlook message…"
+    "Setting subject…"
+  );
+
+
+  const subject =
+    buildSubject();
+
+
+  console.log(
+    "Setting subject:",
+    subject
   );
 
 
@@ -5381,9 +5099,6 @@ function buildInOutlook() {
     false;
 
 
-  /*
-   * 60-second safety timeout.
-   */
   const timeout =
     setTimeout(
       function () {
@@ -5413,137 +5128,88 @@ function buildInOutlook() {
     );
 
 
-  item.body.getAsync(
-    Office.CoercionType.Html,
-    function (
-      bodyResult
-    ) {
+  try {
 
-      if (finished) {
+    item.subject.setAsync(
+      subject,
+      function(subjectResult) {
 
-        return;
+        if (finished) {
 
-      }
+          return;
 
-
-      if (
-        !bodyResult ||
-        bodyResult.status !==
-          Office.AsyncResultStatus.Succeeded
-      ) {
-
-        finished =
-          true;
+        }
 
 
-        clearTimeout(
-          timeout
-        );
-
-
-        setStatus(
-          "Build failed reading Outlook body: " +
-          getAsyncError(
-            bodyResult
-          )
-        );
-
-
-        return;
-
-      }
-
-
-      console.log(
-        "Current Outlook body length:",
-        (
-          bodyResult.value ||
-          ""
-        ).length
-      );
-
-
-      /* =================================================
-         STEP 3A — SUBJECT
-      ================================================= */
-
-      updateBuildProgress(
-        3,
-        "Setting subject…"
-      );
-
-
-      const subject =
-        buildSubject();
-
-
-      item.subject.setAsync(
-        subject,
-        function (
+        console.log(
+          "Subject result:",
           subjectResult
+        );
+
+
+        if (
+          !subjectResult ||
+          subjectResult.status !==
+            Office.AsyncResultStatus.Succeeded
         ) {
 
-          if (finished) {
-
-            return;
-
-          }
+          finished =
+            true;
 
 
-          if (
-            !subjectResult ||
-            subjectResult.status !==
-              Office.AsyncResultStatus.Succeeded
-          ) {
-
-            finished =
-              true;
-
-
-            clearTimeout(
-              timeout
-            );
-
-
-            setStatus(
-              "Build failed setting subject: " +
-              getAsyncError(
-                subjectResult
-              )
-            );
-
-
-            return;
-
-          }
-
-
-          console.log(
-            "Subject set successfully."
+          clearTimeout(
+            timeout
           );
 
 
-          /* =============================================
-             STEP 3B — BODY
-          ============================================= */
-
-          updateBuildProgress(
-            3,
-            "Writing newsletter body…"
+          setStatus(
+            "Build failed setting subject: " +
+            getDetailedOfficeError(
+              subjectResult
+            )
           );
 
+
+          return;
+
+        }
+
+
+        console.log(
+          "Subject set successfully."
+        );
+
+
+        /* =============================================
+           STEP 3B — BODY
+        ============================================= */
+
+        updateBuildProgress(
+          3,
+          "Writing newsletter body…"
+        );
+
+
+        console.log(
+          "Calling body.setAsync()..."
+        );
+
+
+        console.log(
+          "Body HTML length:",
+          html.length
+        );
+
+
+        try {
 
           item.body.setAsync(
             html,
             {
-
               coercionType:
                 Office.CoercionType.Html
-
             },
-            function (
-              bodySetResult
-            ) {
+            function(bodySetResult) {
 
               if (finished) {
 
@@ -5552,12 +5218,9 @@ function buildInOutlook() {
               }
 
 
-              finished =
-                true;
-
-
-              clearTimeout(
-                timeout
+              console.log(
+                "BODY SET RESULT:",
+                bodySetResult
               );
 
 
@@ -5566,6 +5229,15 @@ function buildInOutlook() {
                 bodySetResult.status ===
                   Office.AsyncResultStatus.Succeeded
               ) {
+
+                finished =
+                  true;
+
+
+                clearTimeout(
+                  timeout
+                );
+
 
                 updateBuildProgress(
                   4,
@@ -5583,27 +5255,302 @@ function buildInOutlook() {
               }
 
 
-              setStatus(
-                "Build failed writing newsletter: " +
-                getAsyncError(
+              /*
+               * Full newsletter failed.
+               */
+
+              const error =
+                getDetailedOfficeError(
                   bodySetResult
-                )
-              );
+                );
 
 
               console.error(
-                "body.setAsync result:",
+                "body.setAsync failed:",
                 bodySetResult
+              );
+
+
+              if (
+                bodySetResult &&
+                bodySetResult.error
+              ) {
+
+                console.error(
+                  "Outlook error code:",
+                  bodySetResult.error.code
+                );
+
+
+                console.error(
+                  "Outlook error name:",
+                  bodySetResult.error.name
+                );
+
+
+                console.error(
+                  "Outlook error message:",
+                  bodySetResult.error.message
+                );
+
+              }
+
+
+              /*
+               * Do NOT immediately report a generic error.
+               *
+               * First test whether Outlook can accept
+               * a minimal HTML body.
+               */
+
+              console.warn(
+                "Full newsletter rejected. Running minimal body diagnostic..."
+              );
+
+
+              runFallbackBodyDiagnostic(
+                item,
+                html,
+                error,
+                function() {
+
+                  finished =
+                    true;
+
+
+                  clearTimeout(
+                    timeout
+                  );
+
+                }
               );
 
             }
           );
 
-        }
-      );
+        } catch (bodyError) {
 
-    }
+          finished =
+            true;
+
+
+          clearTimeout(
+            timeout
+          );
+
+
+          console.error(
+            "body.setAsync threw an exception:",
+            bodyError
+          );
+
+
+          setStatus(
+            "Build failed writing newsletter: " +
+            bodyError.message
+          );
+
+        }
+
+      }
+    );
+
+  } catch (subjectError) {
+
+    finished =
+      true;
+
+
+    clearTimeout(
+      timeout
+    );
+
+
+    console.error(
+      "subject.setAsync threw an exception:",
+      subjectError
+    );
+
+
+    setStatus(
+      "Build failed setting subject: " +
+      subjectError.message
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   FALLBACK BODY DIAGNOSTIC
+========================================================= */
+
+function runFallbackBodyDiagnostic(
+  item,
+  originalHtml,
+  originalError,
+  completeCallback
+) {
+
+  const diagnosticHtml =
+
+    '<div style="' +
+
+      "font-family:Arial,sans-serif;" +
+
+      "font-size:18px;" +
+
+      "padding:20px;" +
+
+      "color:#222;" +
+
+      "background:#ffffff;" +
+
+    '">' +
+
+      "The Pleasure Dispatch body test." +
+
+    "</div>";
+
+
+  console.log(
+    "Running fallback body.setAsync test..."
   );
+
+
+  try {
+
+    item.body.setAsync(
+      diagnosticHtml,
+      {
+        coercionType:
+          Office.CoercionType.Html
+      },
+      function(result) {
+
+        console.log(
+          "Fallback body test result:",
+          result
+        );
+
+
+        if (
+          result &&
+          result.status ===
+            Office.AsyncResultStatus.Succeeded
+        ) {
+
+          /*
+           * This is extremely important.
+           *
+           * If this succeeds, Outlook's body API works.
+           * The problem is somewhere inside the full
+           * newsletter HTML.
+           */
+
+          setStatus(
+            "Newsletter HTML rejected by Outlook. Minimal HTML works. Check console for details."
+          );
+
+
+          console.warn(
+            "FULL NEWSLETTER HTML FAILED."
+          );
+
+
+          console.warn(
+            "MINIMAL HTML SUCCEEDED."
+          );
+
+
+          console.warn(
+            "This means body.setAsync itself is working."
+          );
+
+
+          console.warn(
+            "The problem is inside the generated newsletter HTML."
+          );
+
+
+          console.warn(
+            "Original error:",
+            originalError
+          );
+
+
+          console.log(
+            "Original newsletter length:",
+            originalHtml.length
+          );
+
+
+          completeCallback();
+
+
+          return;
+
+        }
+
+
+        /*
+         * If even the minimal body fails,
+         * this is not the newsletter HTML.
+         */
+
+        const fallbackError =
+          getDetailedOfficeError(
+            result
+          );
+
+
+        console.error(
+          "MINIMAL BODY ALSO FAILED."
+        );
+
+
+        console.error(
+          "Original newsletter error:",
+          originalError
+        );
+
+
+        console.error(
+          "Minimal body error:",
+          fallbackError
+        );
+
+
+        setStatus(
+          "Build failed writing newsletter: " +
+          fallbackError +
+          " — Outlook body API rejected even minimal HTML."
+        );
+
+
+        completeCallback();
+
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Fallback body test threw:",
+      error
+    );
+
+
+    setStatus(
+      "Build failed writing newsletter: " +
+      error.message
+    );
+
+
+    completeCallback();
+
+  }
 
 }
 
@@ -5641,29 +5588,6 @@ function buildSubject() {
 
 function previewNewsletter() {
 
-  /*
-   * Do not preview an image that hasn't
-   * successfully reached Drive.
-   */
-  const uploadValidation =
-    validateImageUploads();
-
-
-  if (
-    !uploadValidation.valid
-  ) {
-
-    setStatus(
-      "Preview stopped — " +
-      uploadValidation.message
-    );
-
-
-    return;
-
-  }
-
-
   setStatus(
     "Opening Dispatch preview…"
   );
@@ -5682,25 +5606,6 @@ function previewNewsletter() {
     setStatus(
       "Preview error: " +
       error.message
-    );
-
-
-    return;
-
-  }
-
-
-  /*
-   * Final safety check.
-   */
-  if (
-    html.indexOf(
-      "data:image/"
-    ) !== -1
-  ) {
-
-    setStatus(
-      "Preview stopped — a base64 image was detected."
     );
 
 
@@ -5735,21 +5640,15 @@ function previewNewsletter() {
 
     "<!doctype html>" +
 
-
     "<html>" +
-
 
       "<head>" +
 
-
         '<meta charset="utf-8">' +
-
 
         "<title>The Pleasure Dispatch Preview</title>" +
 
-
         "<style>" +
-
 
           "body{" +
 
@@ -5763,28 +5662,21 @@ function previewNewsletter() {
 
           "}" +
 
-
           "img{" +
 
             "cursor:pointer;" +
 
           "}" +
 
-
         "</style>" +
-
 
       "</head>" +
 
-
       "<body>" +
-
 
         html +
 
-
       "</body>" +
-
 
     "</html>"
 
@@ -5799,4 +5691,3 @@ function previewNewsletter() {
   );
 
 }
-```
