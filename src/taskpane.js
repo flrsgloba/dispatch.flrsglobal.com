@@ -1,87 +1,30 @@
 /* =========================================================
    THE PLEASURE DISPATCH
    taskpane.js
-   Consolidated Build
-
-   Current architecture:
-
-   Desktop Upload
-      ↓
-   Resize / Compress
-      ↓
-   Google Apps Script
-      ↓
-   Google Drive
-      ↓
-   Drive Thumbnail URL
-      ↓
-   Composer Preview
-      ↓
-   Build in Outlook
-
-   Includes:
-   • Hero Image 01
-   • Hero Image 02
-   • Modular image blocks
-   • Full Width
-   • Two Up
-   • Three Up
-   • Four Up
-   • Four Up = one horizontal row
-   • Desktop image upload
-   • Drive hosting
-   • Clickable images
-   • Pleasure Notes
-   • Move Up
-   • Move Down
-   • Duplicate
-   • Remove
-   • Preview
-   • Build in Outlook
-   • Build progress counter
-   • Build timeout
-========================================================= */
-
-
-/* =========================================================
-   CONFIGURATION
+   Consolidated Production Version
 ========================================================= */
 
 const DRIVE_API_URL =
   "https://script.google.com/macros/s/AKfycbyTLvYbe1O_BbzsH09UMSZdbY9_XZXga-TbSPkR3UclT3Qhlaj7gy5yhXPA_UpE6Fu7tw/exec";
 
+const LOOP_ASSET_URL =
+  "https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/pleasure-loop.svg";
 
-/*
- * Image optimization.
- */
+const COLORS = {
+  background: "#303030",
+  surface: "#595959",
+  text: "#F2EEE5",
+  secondary: "#C9C3B8",
+  rule: "#777777",
+  accent: "#D8D0C3"
+};
+
 const IMAGE_MAX_WIDTH = 1800;
 const IMAGE_MAX_HEIGHT = 1800;
 const IMAGE_QUALITY = 0.82;
-
-
-/*
- * Maximum source file size.
- */
 const MAX_SOURCE_IMAGE_MB = 40;
-
-
-/*
- * Drive image display width.
- */
 const DRIVE_IMAGE_WIDTH = 1800;
-
-
-/*
- * Maximum amount of time Outlook is allowed
- * to remain in the build stage before we report
- * a timeout to the user.
- */
-const BUILD_TIMEOUT_MS = 15000;
-
-
-/* =========================================================
-   GLOBAL STATE
-========================================================= */
+const BUILD_TIMEOUT_MS = 60000;
 
 let blockCounter = 0;
 let pleasureCounter = 0;
@@ -93,9 +36,7 @@ let initialized = false;
 ========================================================= */
 
 Office.onReady(function () {
-
   initializeDispatch();
-
 });
 
 
@@ -105,9 +46,7 @@ function initializeDispatch() {
     return;
   }
 
-
   initialized = true;
-
 
   bindStaticControls();
   bindDelegatedControls();
@@ -115,63 +54,111 @@ function initializeDispatch() {
   setupHero("hero1");
   setupHero("hero2");
 
-
-  /*
-   * Add default Pleasure Notes only when empty.
-   */
   const pleasureRows =
-    document.getElementById(
-      "pleasureRows"
-    );
-
+    document.getElementById("pleasureRows");
 
   if (
     pleasureRows &&
     pleasureRows.children.length === 0
   ) {
-
-    addPleasureRow(
-      "Coffee",
-      ""
-    );
-
-    addPleasureRow(
-      "Art",
-      ""
-    );
-
-    addPleasureRow(
-      "Object",
-      ""
-
-    );
-
+    addPleasureRow("Coffee", "");
+    addPleasureRow("Art", "");
+    addPleasureRow("Object", "");
   }
 
-
-  /*
-   * Add one image module only when empty.
-   */
   const imageBlocks =
-    document.getElementById(
-      "imageBlocks"
-    );
-
+    document.getElementById("imageBlocks");
 
   if (
     imageBlocks &&
     imageBlocks.children.length === 0
   ) {
-
     addImageBlock();
-
   }
-
 
   setStatus(
     "The Pleasure Dispatch is ready."
   );
+}
 
+
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
+
+function value(id) {
+
+  const element =
+    document.getElementById(id);
+
+  if (!element) {
+    return "";
+  }
+
+  return element.value.trim();
+}
+
+
+function escapeHtml(text) {
+
+  return String(text || "").replace(
+    /[&<>"']/g,
+    function (character) {
+
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[character];
+
+    }
+  );
+}
+
+
+function escapeAttribute(text) {
+  return escapeHtml(text);
+}
+
+
+function paragraph(text) {
+
+  if (!text) {
+    return "";
+  }
+
+  return (
+    '<p style="' +
+      "font:17px/1.75 Garamond,Georgia,Times New Roman,serif;" +
+      "margin:0 0 24px;" +
+      "color:" +
+        COLORS.text +
+      ";" +
+    '">' +
+      escapeHtml(text).replace(
+        /\n/g,
+        "<br>"
+      ) +
+    "</p>"
+  );
+}
+
+
+function setStatus(message) {
+
+  const status =
+    document.getElementById("status");
+
+  if (status) {
+    status.textContent = message;
+  }
+
+  console.log(
+    "[Pleasure Dispatch]",
+    message
+  );
 }
 
 
@@ -182,32 +169,18 @@ function initializeDispatch() {
 function bindStaticControls() {
 
   const previewButton =
-    document.getElementById(
-      "previewBtn"
-    );
-
+    document.getElementById("previewBtn");
 
   const buildButton =
-    document.getElementById(
-      "insertBtn"
-    );
-
+    document.getElementById("insertBtn");
 
   const addPleasureButton =
-    document.getElementById(
-      "addPleasure"
-    );
-
+    document.getElementById("addPleasure");
 
   let addImageButton =
-    document.getElementById(
-      "addImageBlock"
-    );
+    document.getElementById("addImageBlock");
 
 
-  /*
-   * Preview.
-   */
   if (previewButton) {
 
     previewButton.onclick =
@@ -223,9 +196,6 @@ function bindStaticControls() {
   }
 
 
-  /*
-   * Build.
-   */
   if (buildButton) {
 
     buildButton.onclick =
@@ -241,9 +211,6 @@ function bindStaticControls() {
   }
 
 
-  /*
-   * Pleasure Note.
-   */
   if (addPleasureButton) {
 
     addPleasureButton.onclick =
@@ -267,9 +234,8 @@ function bindStaticControls() {
 
 
   /*
-   * Add Image Block.
-   *
-   * First look for the expected ID.
+   * Find Add Image Block by ID.
+   * If unavailable, locate by visible text.
    */
   if (!addImageButton) {
 
@@ -312,9 +278,6 @@ function bindStaticControls() {
   }
 
 
-  /*
-   * Bind Add Image Block directly.
-   */
   if (addImageButton) {
 
     addImageButton.onclick =
@@ -329,13 +292,13 @@ function bindStaticControls() {
 
 
     console.log(
-      "The Pleasure Dispatch: Add Image Block bound."
+      "Add Image Block bound."
     );
 
   } else {
 
     console.error(
-      "The Pleasure Dispatch: Add Image Block control not found."
+      "Add Image Block control not found."
     );
 
   }
@@ -368,7 +331,7 @@ function bindDelegatedControls() {
 
 
       /*
-       * Static controls are already handled.
+       * Static controls already have direct handlers.
        */
       if (
         button.id === "previewBtn" ||
@@ -376,9 +339,7 @@ function bindDelegatedControls() {
         button.id === "addImageBlock" ||
         button.id === "addPleasure"
       ) {
-
         return;
-
       }
 
 
@@ -392,7 +353,6 @@ function bindDelegatedControls() {
       ) {
 
         event.preventDefault();
-
 
         const block =
           button.closest(
@@ -408,7 +368,6 @@ function bindDelegatedControls() {
           );
 
         }
-
 
         return;
 
@@ -426,7 +385,6 @@ function bindDelegatedControls() {
 
         event.preventDefault();
 
-
         const block =
           button.closest(
             ".image-block"
@@ -441,7 +399,6 @@ function bindDelegatedControls() {
           );
 
         }
-
 
         return;
 
@@ -459,7 +416,6 @@ function bindDelegatedControls() {
 
         event.preventDefault();
 
-
         const block =
           button.closest(
             ".image-block"
@@ -473,7 +429,6 @@ function bindDelegatedControls() {
           );
 
         }
-
 
         return;
 
@@ -490,7 +445,6 @@ function bindDelegatedControls() {
       ) {
 
         event.preventDefault();
-
 
         const block =
           button.closest(
@@ -510,7 +464,6 @@ function bindDelegatedControls() {
 
         }
 
-
         return;
 
       }
@@ -527,13 +480,11 @@ function bindDelegatedControls() {
 
         event.preventDefault();
 
-
         removeImageItem(
           button.closest(
             ".image-item"
           )
         );
-
 
         return;
 
@@ -541,7 +492,7 @@ function bindDelegatedControls() {
 
 
       /*
-       * URL BUTTON
+       * IMAGE URL BUTTON
        */
       if (
         button.classList.contains(
@@ -550,7 +501,6 @@ function bindDelegatedControls() {
       ) {
 
         event.preventDefault();
-
 
         const item =
           button.closest(
@@ -570,7 +520,6 @@ function bindDelegatedControls() {
 
             input.focus();
 
-
             setStatus(
               "Paste a direct HTTPS image URL."
             );
@@ -578,7 +527,6 @@ function bindDelegatedControls() {
           }
 
         }
-
 
         return;
 
@@ -589,12 +537,15 @@ function bindDelegatedControls() {
 
 
   /*
-   * LAYOUTS
+   * CHANGE
    */
   document.addEventListener(
     "change",
     function (event) {
 
+      /*
+       * Layout selection.
+       */
       const layout =
         event.target.closest(
           ".layout-select"
@@ -638,7 +589,7 @@ function bindDelegatedControls() {
 
 
       /*
-       * MODULAR FILE UPLOAD
+       * Modular image upload.
        */
       if (
         event.target.matches(
@@ -669,7 +620,6 @@ function bindDelegatedControls() {
 
         }
 
-
         return;
 
       }
@@ -679,7 +629,7 @@ function bindDelegatedControls() {
 
 
   /*
-   * MODULAR URL INPUTS
+   * INPUT
    */
   document.addEventListener(
     "input",
@@ -692,6 +642,20 @@ function bindDelegatedControls() {
         event.target.id ===
         "hero1Url"
       ) {
+
+        const preview =
+          document.getElementById(
+            "hero1Preview"
+          );
+
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+          delete preview.dataset.fileId;
+
+        }
+
 
         renderHeroPreview(
           "hero1",
@@ -712,6 +676,20 @@ function bindDelegatedControls() {
         "hero2Url"
       ) {
 
+        const preview =
+          document.getElementById(
+            "hero2Preview"
+          );
+
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+          delete preview.dataset.fileId;
+
+        }
+
+
         renderHeroPreview(
           "hero2",
           event.target.value.trim()
@@ -724,7 +702,7 @@ function bindDelegatedControls() {
 
 
       /*
-       * Modular image.
+       * Modular URL.
        */
       if (
         event.target.classList.contains(
@@ -761,117 +739,7 @@ function bindDelegatedControls() {
 
 
 /* =========================================================
-   BASIC HELPERS
-========================================================= */
-
-function value(id) {
-
-  const element =
-    document.getElementById(
-      id
-    );
-
-
-  if (!element) {
-    return "";
-  }
-
-
-  return element.value.trim();
-
-}
-
-
-function escapeHtml(text) {
-
-  return String(
-    text || ""
-  ).replace(
-    /[&<>"']/g,
-    function (character) {
-
-      return {
-
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-
-      }[character];
-
-    }
-  );
-
-}
-
-
-function escapeAttribute(text) {
-
-  return escapeHtml(
-    text
-  );
-
-}
-
-
-function paragraph(text) {
-
-  if (!text) {
-    return "";
-  }
-
-
-  return (
-
-    '<p style="' +
-      "font:17px/1.7 Garamond,Georgia,Times New Roman,serif;" +
-      "margin:0 0 24px;" +
-      "color:#151515;" +
-    '">' +
-
-      escapeHtml(
-        text
-      ).replace(
-        /\n/g,
-        "<br>"
-      ) +
-
-    "</p>"
-
-  );
-
-}
-
-
-function setStatus(
-  message
-) {
-
-  const status =
-    document.getElementById(
-      "status"
-    );
-
-
-  if (status) {
-
-    status.textContent =
-      message;
-
-  }
-
-
-  console.log(
-    "[Pleasure Dispatch]",
-    message
-  );
-
-}
-
-
-/* =========================================================
-   DRIVE URL HELPERS
+   DRIVE URLS
 ========================================================= */
 
 function buildDriveImageUrl(
@@ -1243,7 +1111,6 @@ async function uploadToDrive(
       await fetch(
         DRIVE_API_URL,
         {
-
           method:
             "POST",
 
@@ -1271,7 +1138,9 @@ async function uploadToDrive(
   }
 
 
-  if (!response.ok) {
+  if (
+    !response.ok
+  ) {
 
     throw new Error(
       "Google Drive returned HTTP " +
@@ -1316,7 +1185,7 @@ async function uploadToDrive(
 
 
   /*
-   * Construct image URL ourselves from the file ID.
+   * Normalize URLs from file ID.
    */
   result.imageUrl =
     buildDriveImageUrl(
@@ -1370,22 +1239,18 @@ function cleanFileName(
     name ||
     "image"
   )
-
   .replace(
     /[\/\\:*?"<>|#%{}[\]]/g,
     "_"
   )
-
   .replace(
     /\s+/g,
     "_"
   )
-
   .replace(
     /\.[^.]+$/,
     ""
   )
-
   .substring(
     0,
     80
@@ -1400,7 +1265,6 @@ function getEditionSafeName() {
     value("edition") ||
     "001"
   )
-
   .replace(
     /[^a-zA-Z0-9_-]/g,
     "_"
@@ -1410,7 +1274,7 @@ function getEditionSafeName() {
 
 
 /* =========================================================
-   HERO IMAGES
+   HERO IMAGE HANDLING
 ========================================================= */
 
 function setupHero(
@@ -1463,6 +1327,21 @@ function setupHero(
       "input",
       function () {
 
+        const preview =
+          document.getElementById(
+            key +
+            "Preview"
+          );
+
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+          delete preview.dataset.fileId;
+
+        }
+
+
         renderHeroPreview(
           key,
           urlInput.value.trim()
@@ -1514,7 +1393,7 @@ function handleHeroUpload(
 
 
       /*
-       * Local preview.
+       * Immediate local preview.
        */
       input.value =
         result.dataUrl;
@@ -1535,9 +1414,6 @@ function handleHeroUpload(
           );
 
 
-        /*
-         * Permanent image URL.
-         */
         input.value =
           drive.imageUrl;
 
@@ -1710,7 +1586,7 @@ function handleModuleUpload(
 
 
       /*
-       * Local preview first.
+       * Immediate local preview.
        */
       urlInput.value =
         result.dataUrl;
@@ -1737,27 +1613,23 @@ function handleModuleUpload(
 
 
         /*
-         * Store Drive data.
+         * Save Drive references.
          */
         item.dataset.fileId =
           drive.fileId;
 
-
         item.dataset.imageUrl =
           drive.imageUrl;
 
-
         item.dataset.fullUrl =
           drive.driveUrl;
-
 
         item.dataset.driveUrl =
           drive.driveUrl;
 
 
         /*
-         * Replace temporary data URL
-         * with Drive-hosted URL.
+         * Use Drive thumbnail URL.
          */
         urlInput.value =
           drive.imageUrl;
@@ -1776,9 +1648,6 @@ function handleModuleUpload(
 
       } catch (error) {
 
-        /*
-         * Keep local preview.
-         */
         setStatus(
           "Preview ready. Drive upload failed: " +
           error.message
@@ -1797,10 +1666,6 @@ function handleModuleUpload(
 
 }
 
-
-/* =========================================================
-   MODULAR IMAGE PREVIEW
-========================================================= */
 
 function renderModulePreview(
   item,
@@ -1872,130 +1737,29 @@ function renderModulePreview(
 
 
 /* =========================================================
-   PLEASURE NOTES
+   IMAGE MODULES
 ========================================================= */
 
-function addPleasureRow(
-  labelValue,
-  noteValue
-) {
+function getImageBlocks() {
 
   const container =
     document.getElementById(
-      "pleasureRows"
+      "imageBlocks"
     );
 
 
   if (!container) {
-    return;
+    return [];
   }
 
-
-  pleasureCounter++;
-
-
-  const row =
-    document.createElement(
-      "div"
-    );
-
-
-  row.className =
-    "pleasure-row";
-
-
-  row.innerHTML =
-
-    '<input class="pleasure-label" value="' +
-      escapeAttribute(
-        labelValue ||
-        ""
-      ) +
-    '" placeholder="Category">' +
-
-    '<input class="pleasure-value" value="' +
-      escapeAttribute(
-        noteValue ||
-        ""
-      ) +
-    '" placeholder="What has held your attention?">' +
-
-    '<button type="button">×</button>';
-
-
-  const remove =
-    row.querySelector(
-      "button"
-    );
-
-
-  remove.addEventListener(
-    "click",
-    function () {
-
-      row.remove();
-
-      setStatus(
-        "Pleasure Note removed."
-      );
-
-    }
-  );
-
-
-  container.appendChild(
-    row
-  );
-
-}
-
-
-function collectPleasureNotes() {
 
   return Array.from(
-    document.querySelectorAll(
-      ".pleasure-row"
-    )
-  )
+    container.children
+  ).filter(
+    function (element) {
 
-  .map(
-    function (row) {
-
-      const label =
-        row.querySelector(
-          ".pleasure-label"
-        );
-
-
-      const note =
-        row.querySelector(
-          ".pleasure-value"
-        );
-
-
-      return {
-
-        label:
-          label
-            ? label.value.trim()
-            : "",
-
-        value:
-          note
-            ? note.value.trim()
-            : ""
-
-      };
-
-    }
-  )
-
-  .filter(
-    function (item) {
-
-      return (
-        item.label ||
-        item.value
+      return element.classList.contains(
+        "image-block"
       );
 
     }
@@ -2003,65 +1767,6 @@ function collectPleasureNotes() {
 
 }
 
-
-function buildPleasureNotesHtml(
-  notes
-) {
-
-  if (
-    !notes ||
-    !notes.length
-  ) {
-
-    return "";
-
-  }
-
-
-  return (
-
-    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;margin:4px 0 30px;">' +
-
-      notes.map(
-        function (note) {
-
-          return (
-
-            "<tr>" +
-
-              '<td style="width:120px;vertical-align:top;padding:5px 18px 5px 0;font:10px Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#777;">' +
-
-                escapeHtml(
-                  note.label
-                ) +
-
-              "</td>" +
-
-              '<td style="vertical-align:top;padding:5px 0;font:16px/1.5 Garamond,Georgia,Times New Roman,serif;color:#151515;">' +
-
-                escapeHtml(
-                  note.value
-                ) +
-
-              "</td>" +
-
-            "</tr>"
-
-          );
-
-        }
-      ).join("") +
-
-    "</table>"
-
-  );
-
-}
-
-
-/* =========================================================
-   IMAGE MODULE CREATION
-========================================================= */
 
 function addImageBlock() {
 
@@ -2077,11 +1782,9 @@ function addImageBlock() {
       "Image module container not found."
     );
 
-
     console.error(
       "#imageBlocks was not found."
     );
-
 
     return;
 
@@ -2185,84 +1888,40 @@ function addImageBlock() {
 }
 
 
-/* =========================================================
-   GET IMAGE BLOCKS
-========================================================= */
-
-function getImageBlocks() {
-
-  const container =
-    document.getElementById(
-      "imageBlocks"
-    );
-
-
-  if (!container) {
-    return [];
-  }
-
-
-  return Array.from(
-    container.children
-  )
-  .filter(
-    function (element) {
-
-      return element.classList.contains(
-        "image-block"
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   RENUMBER MODULES
-========================================================= */
-
 function renumberImageBlocks() {
 
-  const blocks =
-    getImageBlocks();
+  getImageBlocks()
+    .forEach(
+      function (
+        block,
+        index
+      ) {
+
+        const number =
+          block.querySelector(
+            ".block-number"
+          );
 
 
-  blocks.forEach(
-    function (
-      block,
-      index
-    ) {
+        if (number) {
 
-      const number =
-        block.querySelector(
-          ".block-number"
-        );
+          number.textContent =
+            "Image Module " +
+            (index + 1);
+
+        }
 
 
-      if (number) {
-
-        number.textContent =
-          "Image Module " +
-          (index + 1);
+        block.dataset.position =
+          String(
+            index + 1
+          );
 
       }
-
-
-      block.dataset.position =
-        String(
-          index + 1
-        );
-
-    }
-  );
+    );
 
 }
 
-
-/* =========================================================
-   MOVE MODULE
-========================================================= */
 
 function moveImageBlock(
   block,
@@ -2299,10 +1958,7 @@ function moveImageBlock(
     );
 
 
-  if (
-    index ===
-    -1
-  ) {
+  if (index === -1) {
 
     setStatus(
       "Unable to find image module."
@@ -2319,10 +1975,8 @@ function moveImageBlock(
 
 
   if (
-    targetIndex <
-      0 ||
-    targetIndex >=
-      blocks.length
+    targetIndex < 0 ||
+    targetIndex >= blocks.length
   ) {
 
     setStatus(
@@ -2341,8 +1995,7 @@ function moveImageBlock(
 
 
   if (
-    direction <
-    0
+    direction < 0
   ) {
 
     container.insertBefore(
@@ -2371,10 +2024,6 @@ function moveImageBlock(
 
 }
 
-
-/* =========================================================
-   LAYOUT / IMAGE SLOTS
-========================================================= */
 
 function syncImageInputs(
   block
@@ -2440,9 +2089,6 @@ function syncImageInputs(
     );
 
 
-  /*
-   * Remove excess slots.
-   */
   while (
     wrap.children.length >
     count
@@ -2453,9 +2099,6 @@ function syncImageInputs(
   }
 
 
-  /*
-   * Add missing slots.
-   */
   while (
     wrap.children.length <
     count
@@ -2555,8 +2198,7 @@ function addImageItem(
 
 
   /*
-   * Preserve clickable destination
-   * when duplicating.
+   * Preserve Drive click destination.
    */
   if (
     preset.clickUrl
@@ -2615,13 +2257,106 @@ function renumberImageItems(
 }
 
 
+function removeImageItem(
+  item
+) {
+
+  if (!item) {
+    return;
+  }
+
+
+  const wrap =
+    item.parentElement;
+
+
+  if (!wrap) {
+
+    item.remove();
+
+    return;
+
+  }
+
+
+  /*
+   * Keep one blank slot.
+   */
+  if (
+    wrap.children.length ===
+    1
+  ) {
+
+    const url =
+      item.querySelector(
+        ".module-url"
+      );
+
+
+    const caption =
+      item.querySelector(
+        ".module-caption"
+      );
+
+
+    if (url) {
+      url.value = "";
+    }
+
+
+    if (caption) {
+      caption.value = "";
+    }
+
+
+    delete item.dataset.fullUrl;
+    delete item.dataset.driveUrl;
+    delete item.dataset.fileId;
+
+
+    renderModulePreview(
+      item,
+      ""
+    );
+
+
+    setStatus(
+      "Image removed."
+    );
+
+
+    return;
+
+  }
+
+
+  item.remove();
+
+
+  renumberImageItems(
+    wrap
+  );
+
+
+  setStatus(
+    "Image removed."
+  );
+
+}
+
+
 /* =========================================================
-   DUPLICATE MODULE
+   DUPLICATE
 ========================================================= */
 
 function duplicateBlock(
   block
 ) {
+
+  if (!block) {
+    return;
+  }
+
 
   const layout =
     block.dataset.layout ||
@@ -2797,13 +2532,215 @@ function duplicateBlock(
 
 
 /* =========================================================
+   COLLECT PLEASURE NOTES
+========================================================= */
+
+function collectPleasureNotes() {
+
+  return Array.from(
+    document.querySelectorAll(
+      ".pleasure-row"
+    )
+  )
+  .map(
+    function (row) {
+
+      const label =
+        row.querySelector(
+          ".pleasure-label"
+        );
+
+
+      const note =
+        row.querySelector(
+          ".pleasure-value"
+        );
+
+
+      return {
+
+        label:
+          label
+            ? label.value.trim()
+            : "",
+
+        value:
+          note
+            ? note.value.trim()
+            : ""
+
+      };
+
+    }
+  )
+  .filter(
+    function (item) {
+
+      return (
+        item.label ||
+        item.value
+      );
+
+    }
+  );
+
+}
+
+
+function addPleasureRow(
+  labelValue,
+  noteValue
+) {
+
+  const container =
+    document.getElementById(
+      "pleasureRows"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  pleasureCounter++;
+
+
+  const row =
+    document.createElement(
+      "div"
+    );
+
+
+  row.className =
+    "pleasure-row";
+
+
+  row.innerHTML =
+
+    '<input class="pleasure-label" value="' +
+      escapeAttribute(
+        labelValue ||
+        ""
+      ) +
+    '" placeholder="Category">' +
+
+    '<input class="pleasure-value" value="' +
+      escapeAttribute(
+        noteValue ||
+        ""
+      ) +
+    '" placeholder="What has held your attention?">' +
+
+    '<button type="button">×</button>';
+
+
+  row.querySelector(
+    "button"
+  ).addEventListener(
+    "click",
+    function () {
+
+      row.remove();
+
+      setStatus(
+        "Pleasure Note removed."
+      );
+
+    }
+  );
+
+
+  container.appendChild(
+    row
+  );
+
+}
+
+
+function buildPleasureNotesHtml(
+  notes
+) {
+
+  if (
+    !notes ||
+    !notes.length
+  ) {
+
+    return "";
+
+  }
+
+
+  return (
+
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="' +
+      "border-collapse:collapse;" +
+      "width:100%;" +
+      "margin:4px 0 30px;" +
+    '">' +
+
+      notes.map(
+        function (note) {
+
+          return (
+
+            "<tr>" +
+
+              '<td style="' +
+                "width:120px;" +
+                "vertical-align:top;" +
+                "padding:5px 18px 5px 0;" +
+                "font:10px Arial,Helvetica,sans-serif;" +
+                "letter-spacing:1px;" +
+                "text-transform:uppercase;" +
+                "color:" +
+                  COLORS.secondary +
+                ";" +
+              '">' +
+
+                escapeHtml(
+                  note.label
+                ) +
+
+              "</td>" +
+
+              '<td style="' +
+                "vertical-align:top;" +
+                "padding:5px 0;" +
+                "font:16px/1.5 Garamond,Georgia,Times New Roman,serif;" +
+                "color:" +
+                  COLORS.text +
+                ";" +
+              '">' +
+
+                escapeHtml(
+                  note.value
+                ) +
+
+              "</td>" +
+
+            "</tr>"
+
+          );
+
+        }
+      ).join("") +
+
+    "</table>"
+
+  );
+
+}
+
+
+/* =========================================================
    COLLECT IMAGE MODULES
 ========================================================= */
 
 function collectImageBlocks() {
 
   return getImageBlocks()
-
     .map(
       function (block) {
 
@@ -2819,7 +2756,6 @@ function collectImageBlocks() {
                 ".image-item"
               )
             )
-
             .map(
               function (item) {
 
@@ -2856,7 +2792,6 @@ function collectImageBlocks() {
 
               }
             )
-
             .filter(
               function (item) {
 
@@ -2872,7 +2807,6 @@ function collectImageBlocks() {
 
       }
     )
-
     .filter(
       function (block) {
 
@@ -2932,7 +2866,13 @@ function buildEmailImage(
 
     html +=
 
-      '<div style="font:12px/1.45 Arial,Helvetica,sans-serif;color:#777;margin-top:7px;">' +
+      '<div style="' +
+        "font:12px/1.45 Arial,Helvetica,sans-serif;" +
+        "color:" +
+          COLORS.secondary +
+        ";" +
+        "margin-top:7px;" +
+      '">' +
 
         escapeHtml(
           caption
@@ -2968,11 +2908,17 @@ function buildFullWidthImage(
 
   return (
 
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;margin:30px 0;">' +
+    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
+      "border-collapse:collapse;" +
+      "margin:30px 0;" +
+      "background:" +
+        COLORS.surface +
+      ";" +
+    '">' +
 
       "<tr>" +
 
-        '<td style="padding:0;">' +
+        '<td style="padding:8px;">' +
 
           buildEmailImage(
             item.url,
@@ -3019,9 +2965,16 @@ function buildImageRow(
 
           '<td width="' +
             width +
-            '%" valign="top" style="width:' +
-            width +
-            '%;padding:3px;vertical-align:top;">' +
+            '%" valign="top" style="' +
+              "width:" +
+              width +
+              "%;" +
+              "padding:3px;" +
+              "vertical-align:top;" +
+              "background:" +
+                COLORS.surface +
+              ";" +
+            '">' +
 
             buildEmailImage(
               item.url,
@@ -3055,55 +3008,13 @@ function buildImageRow(
 }
 
 
-/*
- * Four-Up is always one horizontal row.
- */
 function buildFourImageRow(
   items
 ) {
 
-  const usable =
-    items.slice(
-      0,
-      4
-    );
-
-
-  const cells =
-    usable.map(
-      function (item) {
-
-        return (
-
-          '<td width="25%" valign="top" style="width:25%;padding:3px;vertical-align:top;">' +
-
-            buildEmailImage(
-              item.url,
-              item.clickUrl ||
-                item.url,
-              item.caption
-            ) +
-
-          "</td>"
-
-        );
-
-      }
-    ).join("");
-
-
-  return (
-
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;table-layout:fixed;margin:28px 0;">' +
-
-      "<tr>" +
-
-        cells +
-
-      "</tr>" +
-
-    "</table>"
-
+  return buildImageRow(
+    items,
+    4
   );
 
 }
@@ -3244,6 +3155,7 @@ function buildNewsletterHtml() {
   /*
    * Hero click destinations.
    */
+
   const hero1Preview =
     document.getElementById(
       "hero1Preview"
@@ -3273,6 +3185,7 @@ function buildNewsletterHtml() {
   /*
    * Hero HTML.
    */
+
   const hero1Html =
     hero1
       ? buildEmailImage(
@@ -3294,8 +3207,9 @@ function buildNewsletterHtml() {
 
 
   /*
-   * Module HTML.
+   * Modular image HTML.
    */
+
   let modulesHtml =
     "";
 
@@ -3315,6 +3229,7 @@ function buildNewsletterHtml() {
   /*
    * Invitation.
    */
+
   let invitationHtml =
     "";
 
@@ -3327,15 +3242,29 @@ function buildNewsletterHtml() {
 
     invitationHtml =
 
-      '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:40px 0 11px;">' +
+      '<div style="' +
+        "font:10px Arial,Helvetica,sans-serif;" +
+        "letter-spacing:1.5px;" +
+        "color:" +
+          COLORS.secondary +
+        ";" +
+        "margin:40px 0 11px;" +
+      '">' +
 
         "05 — AN INVITATION" +
 
       "</div>" +
 
+
       (
         inviteTitle
-          ? '<div style="font:27px/1.15 Garamond,Georgia,Times New Roman,serif;margin:0 0 10px;">' +
+          ? '<div style="' +
+              "font:27px/1.15 Garamond,Georgia,Times New Roman,serif;" +
+              "color:" +
+                COLORS.text +
+              ";" +
+              "margin:0 0 10px;" +
+            '">' +
 
               escapeHtml(
                 inviteTitle
@@ -3345,9 +3274,11 @@ function buildNewsletterHtml() {
           : ""
       ) +
 
+
       paragraph(
         inviteText
       ) +
+
 
       (
         ctaUrl
@@ -3357,11 +3288,14 @@ function buildNewsletterHtml() {
                 escapeAttribute(
                   ctaUrl
                 ) +
-
                 '" style="' +
                   "display:inline-block;" +
-                  "background:#151515;" +
-                  "color:#fff;" +
+                  "background:" +
+                    COLORS.text +
+                  ";" +
+                  "color:" +
+                    COLORS.background +
+                  ";" +
                   "text-decoration:none;" +
                   "padding:12px 18px;" +
                   "font:10px Arial,Helvetica,sans-serif;" +
@@ -3387,36 +3321,56 @@ function buildNewsletterHtml() {
       date,
       title
     ]
+      .filter(Boolean)
+      .map(
+        function (item) {
 
-    .filter(Boolean)
+          return escapeHtml(
+            item
+          );
 
-    .map(
-      function (item) {
-
-        return escapeHtml(
-          item
-        );
-
-      }
-    )
-
-    .join(" · ");
+        }
+      )
+      .join(" · ");
 
 
   /*
-   * Complete email.
+   * Full newsletter.
    */
+
   return (
 
-    '<div style="margin:0;padding:0;background:#f4f0e8;color:#151515;">' +
+    '<div style="' +
+      "margin:0;" +
+      "padding:0;" +
+      "background:" +
+        COLORS.background +
+      ";" +
+      "color:" +
+        COLORS.text +
+      ";" +
+    '">' +
 
-      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;background:#f4f0e8;">' +
+      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
+        "border-collapse:collapse;" +
+        "background:" +
+          COLORS.background +
+        ";" +
+      '">' +
 
         "<tr>" +
 
           '<td align="center" style="padding:28px 12px;">' +
 
-            '<table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;max-width:680px;background:#fffdf8;">' +
+            '<table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="' +
+              "border-collapse:collapse;" +
+              "width:100%;" +
+              "max-width:680px;" +
+              "background:" +
+                COLORS.background +
+              ";" +
+            '">' +
+
 
               /*
                * HEADER
@@ -3424,35 +3378,107 @@ function buildNewsletterHtml() {
 
               "<tr>" +
 
-                '<td style="padding:42px 42px 20px;">' +
+                '<td style="' +
+                  "padding:42px 42px 24px;" +
+                  "border-bottom:1px solid " +
+                    COLORS.rule +
+                  ";" +
+                '">' +
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:2px;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:2px;" +
+                    "color:" +
+                      COLORS.text +
+                    ";" +
+                  '">' +
 
                     "FLRS GLOBAL" +
 
                   "</div>" +
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.4px;color:#777;margin-top:8px;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.4px;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                    "margin-top:8px;" +
+                  '">' +
 
                     "FROM THE STUDIO OF FREDDIE L. RANKIN II" +
 
                   "</div>" +
 
-                  '<h1 style="font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;margin:20px 0 10px;">' +
+                  '<h1 style="' +
+                    "font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;" +
+                    "color:" +
+                      COLORS.text +
+                    ";" +
+                    "margin:20px 0 10px;" +
+                  '">' +
 
                     "The Pleasure Dispatch" +
 
                   "</h1>" +
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.3px;color:#777;border-bottom:1px solid #151515;padding-bottom:20px;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.3px;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                  '">' +
 
                     dateLine +
 
                   "</div>" +
 
+                "</td>" +
+
+              "</tr>" +
+
+
+              /*
+               * CONTENT
+               */
+
+              "<tr>" +
+
+                '<td style="padding:26px 42px 42px;">' +
+
+
+                  /*
+                   * LOOP
+                   */
+
+                  '<div style="text-align:center;margin:0 0 28px;">' +
+
+                    '<img src="' +
+                      LOOP_ASSET_URL +
+                      '" alt="The Loop" width="92" style="' +
+                        "display:inline-block;" +
+                        "width:92px;" +
+                        "height:auto;" +
+                        "border:0;" +
+                      '">' +
+
+                  "</div>" +
+
+
+                  /*
+                   * SUBTITLE
+                   */
+
                   (
                     subtitle
-                      ? '<div style="font:18px/1.45 Garamond,Georgia,Times New Roman,serif;margin-top:20px;">' +
+                      ? '<div style="' +
+                          "font:18px/1.45 Garamond,Georgia,Times New Roman,serif;" +
+                          "color:" +
+                            COLORS.secondary +
+                          ";" +
+                          "margin:0 0 28px;" +
+                        '">' +
 
                           escapeHtml(
                             subtitle
@@ -3462,41 +3488,32 @@ function buildNewsletterHtml() {
                       : ""
                   ) +
 
-                "</td>" +
-
-              "</tr>" +
-
-              /*
-               * BODY
-               */
-
-              "<tr>" +
-
-                '<td style="padding:0 42px;">' +
 
                   /*
-                   * Pleasure motif.
-                   */
-
-                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:0 0 20px;">◒</div>' +
-
-                  /*
-                   * Hero 01.
+                   * HERO 01
                    */
 
                   (
                     hero1Html
-                      ? '<div style="margin-bottom:4px;">' +
+                      ? '<div style="margin-bottom:8px;">' +
                           hero1Html +
                         "</div>"
                       : ""
                   ) +
 
+
                   /*
-                   * Reflection.
+                   * REFLECTION
                    */
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:30px 0 11px;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                    "margin:30px 0 11px;" +
+                  '">' +
 
                     "01 — A REFLECTION" +
 
@@ -3506,11 +3523,19 @@ function buildNewsletterHtml() {
                     reflection
                   ) +
 
+
                   /*
-                   * Work.
+                   * THE WORK
                    */
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                    "margin:38px 0 11px;" +
+                  '">' +
 
                     "02 — THE WORK" +
 
@@ -3520,17 +3545,26 @@ function buildNewsletterHtml() {
                     workText
                   ) +
 
+
                   /*
-                   * Modular images.
+                   * MODULAR IMAGES
                    */
 
                   modulesHtml +
 
+
                   /*
-                   * Studio Notes.
+                   * STUDIO NOTES
                    */
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                    "margin:38px 0 11px;" +
+                  '">' +
 
                     "03 — STUDIO NOTES" +
 
@@ -3540,29 +3574,44 @@ function buildNewsletterHtml() {
                     studioText
                   ) +
 
+
                   /*
-                   * Hero 02.
+                   * HERO 02
                    */
 
                   (
                     hero2Html
-                      ? '<div style="margin-bottom:4px;">' +
+                      ? '<div style="margin:8px 0 0;">' +
                           hero2Html +
                         "</div>"
                       : ""
                   ) +
 
+
                   /*
-                   * Pleasure Notes.
+                   * PLEASURE NOTES
                    */
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                    "margin:38px 0 11px;" +
+                  '">' +
 
                     "04 — PLEASURE NOTES" +
 
                   "</div>" +
 
-                  '<div style="font:19px/1.4 Garamond,Georgia,Times New Roman,serif;margin:0 0 8px;">' +
+                  '<div style="' +
+                    "font:19px/1.4 Garamond,Georgia,Times New Roman,serif;" +
+                    "color:" +
+                      COLORS.text +
+                    ";" +
+                    "margin:0 0 8px;" +
+                  '">' +
 
                     "An offering of what has held my attention." +
 
@@ -3572,23 +3621,38 @@ function buildNewsletterHtml() {
                     notes
                   ) +
 
+
                   /*
-                   * Invitation.
+                   * INVITATION
                    */
 
                   invitationHtml +
 
+
                   /*
-                   * Question.
+                   * QUESTION
                    */
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.5px;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                    "margin:38px 0 11px;" +
+                  '">' +
 
                     "06 — A QUESTION" +
 
                   "</div>" +
 
-                  '<div style="font:25px/1.35 Garamond,Georgia,Times New Roman,serif;margin:0 0 36px;">' +
+                  '<div style="' +
+                    "font:25px/1.35 Garamond,Georgia,Times New Roman,serif;" +
+                    "color:" +
+                      COLORS.text +
+                    ";" +
+                    "margin:0 0 36px;" +
+                  '">' +
 
                     escapeHtml(
                       question
@@ -3596,25 +3660,67 @@ function buildNewsletterHtml() {
 
                   "</div>" +
 
+
                   /*
-                   * Closing motif.
+                   * CLOSING LOOP
                    */
 
-                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:20px 0 32px;">◒</div>' +
+                  '<div style="' +
+                    "text-align:center;" +
+                    "margin:30px 0 18px;" +
+                  '">' +
+
+                    '<img src="' +
+                      LOOP_ASSET_URL +
+                      '" alt="The Loop" width="66" style="' +
+                        "display:inline-block;" +
+                        "width:66px;" +
+                        "height:auto;" +
+                        "border:0;" +
+                      '">' +
+
+                  "</div>" +
+
+                  '<div style="' +
+                    "text-align:center;" +
+                    "font:15px/1.4 Garamond,Georgia,Times New Roman,serif;" +
+                    "font-style:italic;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                    "margin:0 0 10px;" +
+                  '">' +
+
+                    "Pleasure is the desire to return." +
+
+                  "</div>" +
+
 
                 "</td>" +
 
               "</tr>" +
 
+
               /*
-               * Footer.
+               * FOOTER
                */
 
               "<tr>" +
 
-                '<td style="padding:18px 42px 34px;border-top:1px solid #151515;">' +
+                '<td style="' +
+                  "padding:18px 42px 34px;" +
+                  "border-top:1px solid " +
+                    COLORS.rule +
+                  ";" +
+                '">' +
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.1px;color:#777;">' +
+                  '<div style="' +
+                    "font:10px Arial,Helvetica,sans-serif;" +
+                    "letter-spacing:1.1px;" +
+                    "color:" +
+                      COLORS.secondary +
+                    ";" +
+                  '">' +
 
                     "THE PLEASURE DISPATCH · BY FLRS GLOBAL" +
 
@@ -3623,6 +3729,7 @@ function buildNewsletterHtml() {
                 "</td>" +
 
               "</tr>" +
+
 
             "</table>" +
 
@@ -3658,6 +3765,44 @@ function updateBuildProgress(
 
 
 /* =========================================================
+   ASYNC ERROR
+========================================================= */
+
+function getAsyncError(
+  result
+) {
+
+  if (
+    result &&
+    result.error
+  ) {
+
+    if (
+      result.error.message
+    ) {
+
+      return result.error.message;
+
+    }
+
+
+    if (
+      result.error.name
+    ) {
+
+      return result.error.name;
+
+    }
+
+  }
+
+
+  return "Unknown Outlook error.";
+
+}
+
+
+/* =========================================================
    BUILD IN OUTLOOK
 ========================================================= */
 
@@ -3670,7 +3815,7 @@ function buildInOutlook() {
 
 
   /*
-   * OFFICE CHECK
+   * OFFICE
    */
 
   if (
@@ -3688,7 +3833,7 @@ function buildInOutlook() {
 
 
   /*
-   * OUTLOOK CHECK
+   * MAILBOX
    */
 
   if (
@@ -3711,11 +3856,13 @@ function buildInOutlook() {
 
 
   /*
-   * BODY CHECK
+   * BODY API
    */
 
   if (
     !item.body ||
+    typeof item.body.getAsync !==
+      "function" ||
     typeof item.body.setAsync !==
       "function"
   ) {
@@ -3729,9 +3876,9 @@ function buildInOutlook() {
   }
 
 
-  /* -------------------------------------------------------
-     STEP 1
-  ------------------------------------------------------- */
+  /* =======================================================
+     STEP 1 — GENERATE HTML
+  ======================================================= */
 
   updateBuildProgress(
     1,
@@ -3750,7 +3897,7 @@ function buildInOutlook() {
   } catch (error) {
 
     console.error(
-      "Newsletter HTML error:",
+      "Newsletter build error:",
       error
     );
 
@@ -3766,9 +3913,29 @@ function buildInOutlook() {
   }
 
 
-  /* -------------------------------------------------------
-     STEP 2
-  ------------------------------------------------------- */
+  if (
+    !html ||
+    typeof html !== "string"
+  ) {
+
+    setStatus(
+      "Build failed — newsletter HTML is empty."
+    );
+
+    return;
+
+  }
+
+
+  console.log(
+    "Newsletter HTML length:",
+    html.length
+  );
+
+
+  /* =======================================================
+     STEP 2 — IMAGE COUNT
+  ======================================================= */
 
   updateBuildProgress(
     2,
@@ -3817,12 +3984,12 @@ function buildInOutlook() {
 
 
   const totalImages =
-    heroCount +
-    modularCount;
+    modularCount +
+    heroCount;
 
 
   if (
-    totalImages
+    totalImages > 0
   ) {
 
     updateBuildProgress(
@@ -3830,65 +3997,67 @@ function buildInOutlook() {
       totalImages +
       " image" +
       (
-        totalImages === 1
+        totalImages ===
+        1
           ? ""
           : "s"
       ) +
       " ready…"
     );
 
+  } else {
+
+    updateBuildProgress(
+      2,
+      "No images in this issue…"
+    );
+
   }
 
 
-  /* -------------------------------------------------------
-     SUBJECT
-  ------------------------------------------------------- */
-
-  const subject =
-    buildSubject();
-
-
-  /* -------------------------------------------------------
-     STEP 3
-  ------------------------------------------------------- */
-
-  updateBuildProgress(
-    3,
-    "Writing newsletter to Outlook…"
+  console.log(
+    "Total images:",
+    totalImages
   );
 
 
-  let completed =
+  /* =======================================================
+     STEP 3 — READ CURRENT OUTLOOK BODY
+  ======================================================= */
+
+  updateBuildProgress(
+    3,
+    "Preparing Outlook message…"
+  );
+
+
+  let finished =
     false;
 
 
   /*
-   * Timeout safeguard.
+   * 60-second safety timeout.
    */
   const timeout =
     setTimeout(
       function () {
 
-        if (
-          completed
-        ) {
-
+        if (finished) {
           return;
-
         }
 
 
-        completed =
+        finished =
           true;
 
 
         setStatus(
-          "Build timed out — Outlook did not finish writing the newsletter."
+          "Build timed out — Outlook did not respond after 60 seconds."
         );
 
 
         console.error(
-          "The Pleasure Dispatch: Outlook body.setAsync timed out."
+          "Outlook operation timed out."
         );
 
       },
@@ -3896,32 +4065,24 @@ function buildInOutlook() {
     );
 
 
-  /*
-   * SET SUBJECT
-   */
-
-  item.subject.setAsync(
-    subject,
+  item.body.getAsync(
+    Office.CoercionType.Html,
     function (
-      subjectResult
+      bodyResult
     ) {
 
-      if (
-        completed
-      ) {
-
+      if (finished) {
         return;
-
       }
 
 
       if (
-        subjectResult &&
-        subjectResult.status !==
+        !bodyResult ||
+        bodyResult.status !==
           Office.AsyncResultStatus.Succeeded
       ) {
 
-        completed =
+        finished =
           true;
 
 
@@ -3931,9 +4092,9 @@ function buildInOutlook() {
 
 
         setStatus(
-          "Build failed while writing subject: " +
+          "Build failed reading Outlook body: " +
           getAsyncError(
-            subjectResult
+            bodyResult
           )
         );
 
@@ -3943,47 +4104,60 @@ function buildInOutlook() {
       }
 
 
-      /*
-       * SET BODY
-       */
+      console.log(
+        "Current Outlook body length:",
+        (
+          bodyResult.value ||
+          ""
+        ).length
+      );
 
-      item.body.setAsync(
-        html,
-        {
-          coercionType:
-            Office.CoercionType.Html
-        },
+
+      /* =================================================
+         STEP 3A — SUBJECT
+      ================================================= */
+
+      updateBuildProgress(
+        3,
+        "Setting subject…"
+      );
+
+
+      const subject =
+        buildSubject();
+
+
+      item.subject.setAsync(
+        subject,
         function (
-          bodyResult
+          subjectResult
         ) {
 
-          if (
-            completed
-          ) {
-
+          if (finished) {
             return;
-
           }
 
 
-          completed =
-            true;
-
-
-          clearTimeout(
-            timeout
-          );
-
-
           if (
-            bodyResult &&
-            bodyResult.status ===
+            !subjectResult ||
+            subjectResult.status !==
               Office.AsyncResultStatus.Succeeded
           ) {
 
-            updateBuildProgress(
-              4,
-              "✓ Complete — Dispatch built in Outlook."
+            finished =
+              true;
+
+
+            clearTimeout(
+              timeout
+            );
+
+
+            setStatus(
+              "Build failed setting subject: " +
+              getAsyncError(
+                subjectResult
+              )
             );
 
 
@@ -3992,11 +4166,81 @@ function buildInOutlook() {
           }
 
 
-          setStatus(
-            "Build failed while writing newsletter: " +
-            getAsyncError(
-              bodyResult
-            )
+          console.log(
+            "Subject set successfully."
+          );
+
+
+          /* =============================================
+             STEP 3B — BODY
+          ============================================= */
+
+          updateBuildProgress(
+            3,
+            "Writing newsletter body…"
+          );
+
+
+          item.body.setAsync(
+            html,
+            {
+              coercionType:
+                Office.CoercionType.Html
+            },
+            function (
+              bodySetResult
+            ) {
+
+              if (finished) {
+                return;
+              }
+
+
+              finished =
+                true;
+
+
+              clearTimeout(
+                timeout
+              );
+
+
+              if (
+                bodySetResult &&
+                bodySetResult.status ===
+                  Office.AsyncResultStatus.Succeeded
+              ) {
+
+                updateBuildProgress(
+                  4,
+                  "✓ Complete — Dispatch built in Outlook."
+                );
+
+
+                console.log(
+                  "Newsletter body inserted successfully."
+                );
+
+
+                return;
+
+              }
+
+
+              setStatus(
+                "Build failed writing newsletter: " +
+                getAsyncError(
+                  bodySetResult
+                )
+              );
+
+
+              console.error(
+                "body.setAsync result:",
+                bodySetResult
+              );
+
+            }
           );
 
         }
@@ -4009,7 +4253,7 @@ function buildInOutlook() {
 
 
 /* =========================================================
-   BUILD SUBJECT
+   SUBJECT
 ========================================================= */
 
 function buildSubject() {
@@ -4103,9 +4347,16 @@ function previewNewsletter() {
 
         "<style>" +
 
-          "body{margin:0;}" +
+          "body{" +
+            "margin:0;" +
+            "background:" +
+              COLORS.background +
+            ";" +
+          "}" +
 
-          "img{cursor:pointer;}" +
+          "img{" +
+            "cursor:pointer;" +
+          "}" +
 
         "</style>" +
 
