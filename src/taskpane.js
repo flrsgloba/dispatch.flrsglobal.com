@@ -1471,3 +1471,739 @@ function preview() {
 
   previewWindow.document.close();
 }
+/* =========================================================
+   PLEASURE DISPATCH — CONTROL TEST / HARDENING LAYER
+========================================================= */
+
+(function () {
+
+  let controlsInitialized = false;
+
+  function initControlLayer() {
+
+    if (controlsInitialized) {
+      return;
+    }
+
+    controlsInitialized = true;
+
+    /*
+     * Use document-level event delegation.
+     * This catches buttons created later,
+     * including image modules and duplicated modules.
+     */
+
+    document.addEventListener("click", function (event) {
+
+      const button =
+        event.target.closest("button");
+
+      if (!button) {
+        return;
+      }
+
+      /*
+       * Prevent accidental form submission.
+       */
+      event.preventDefault();
+
+      /*
+       * REPORT CLICK
+       */
+      const buttonText =
+        button.textContent
+          .trim()
+          .replace(/\s+/g, " ");
+
+      console.log(
+        "Pleasure Dispatch button clicked:",
+        buttonText
+      );
+
+      /*
+       * BUILD IN OUTLOOK
+       */
+      if (button.id === "insertBtn") {
+
+        setStatus(
+          "✓ Build in Outlook clicked."
+        );
+
+        /*
+         * Give Outlook a moment to register
+         * the click before calling the API.
+         */
+
+        setTimeout(function () {
+
+          try {
+
+            buildInOutlook();
+
+          } catch (error) {
+
+            console.error(
+              "Build error:",
+              error
+            );
+
+            setStatus(
+              "Build error: " +
+              error.message
+            );
+
+          }
+
+        }, 50);
+
+        return;
+      }
+
+
+      /*
+       * PREVIEW
+       */
+      if (button.id === "previewBtn") {
+
+        setStatus(
+          "✓ Preview clicked."
+        );
+
+        setTimeout(function () {
+
+          try {
+
+            preview();
+
+          } catch (error) {
+
+            console.error(
+              "Preview error:",
+              error
+            );
+
+            setStatus(
+              "Preview error: " +
+              error.message
+            );
+
+          }
+
+        }, 50);
+
+        return;
+      }
+
+
+      /*
+       * ADD PLEASURE NOTE
+       */
+      if (button.id === "addPleasure") {
+
+        addPleasureRow(
+          "",
+          ""
+        );
+
+        setStatus(
+          "✓ Pleasure Note added."
+        );
+
+        return;
+      }
+
+
+      /*
+       * ADD IMAGE BLOCK
+       */
+      if (button.id === "addImageBlock") {
+
+        addImageBlock();
+
+        setStatus(
+          "✓ Image Module added."
+        );
+
+        return;
+      }
+
+
+      /*
+       * MOVE IMAGE MODULE UP
+       */
+      if (
+        button.classList.contains(
+          "move-up"
+        )
+      ) {
+
+        const block =
+          button.closest(
+            ".image-block"
+          );
+
+        if (!block) {
+
+          setStatus(
+            "Move Up error: image module not found."
+          );
+
+          return;
+        }
+
+        moveImageBlock(
+          block,
+          -1
+        );
+
+        return;
+      }
+
+
+      /*
+       * MOVE IMAGE MODULE DOWN
+       */
+      if (
+        button.classList.contains(
+          "move-down"
+        )
+      ) {
+
+        const block =
+          button.closest(
+            ".image-block"
+          );
+
+        if (!block) {
+
+          setStatus(
+            "Move Down error: image module not found."
+          );
+
+          return;
+        }
+
+        moveImageBlock(
+          block,
+          1
+        );
+
+        return;
+      }
+
+
+      /*
+       * DUPLICATE IMAGE MODULE
+       */
+      if (
+        button.classList.contains(
+          "duplicate"
+        )
+      ) {
+
+        const block =
+          button.closest(
+            ".image-block"
+          );
+
+        if (!block) {
+
+          setStatus(
+            "Duplicate error: image module not found."
+          );
+
+          return;
+        }
+
+        duplicateBlock(
+          block
+        );
+
+        setStatus(
+          "✓ Image Module duplicated."
+        );
+
+        return;
+      }
+
+
+      /*
+       * REMOVE IMAGE MODULE
+       */
+      if (
+        button.classList.contains(
+          "remove"
+        )
+      ) {
+
+        const block =
+          button.closest(
+            ".image-block"
+          );
+
+        if (!block) {
+
+          setStatus(
+            "Remove error: image module not found."
+          );
+
+          return;
+        }
+
+        block.remove();
+
+        renumberImageBlocks();
+
+        setStatus(
+          "✓ Image Module removed."
+        );
+
+        return;
+      }
+
+
+      /*
+       * REMOVE INDIVIDUAL IMAGE
+       */
+      if (
+        button.classList.contains(
+          "remove-image"
+        )
+      ) {
+
+        const item =
+          button.closest(
+            ".image-item"
+          );
+
+        if (!item) {
+
+          setStatus(
+            "Remove image error."
+          );
+
+          return;
+        }
+
+        const wrap =
+          item.parentElement;
+
+        if (
+          wrap &&
+          wrap.children.length === 1
+        ) {
+
+          const url =
+            item.querySelector(
+              ".module-url"
+            );
+
+          const caption =
+            item.querySelector(
+              ".module-caption"
+            );
+
+          if (url) {
+            url.value = "";
+          }
+
+          if (caption) {
+            caption.value = "";
+          }
+
+          renderModulePreview(
+            item,
+            ""
+          );
+
+        } else {
+
+          item.remove();
+
+          if (wrap) {
+            renumberImageItems(
+              wrap
+            );
+          }
+
+        }
+
+        setStatus(
+          "✓ Image removed."
+        );
+
+        return;
+      }
+
+
+      /*
+       * IMAGE URL BUTTON
+       */
+      if (
+        button.classList.contains(
+          "url-item"
+        )
+      ) {
+
+        const item =
+          button.closest(
+            ".image-item"
+          );
+
+        if (item) {
+
+          const input =
+            item.querySelector(
+              ".module-url"
+            );
+
+          if (input) {
+
+            input.focus();
+
+            setStatus(
+              "Paste the image URL."
+            );
+
+          }
+
+        }
+
+        return;
+      }
+
+
+      /*
+       * IMAGE URL SOURCE BUTTON
+       */
+      if (
+        button.dataset.url
+      ) {
+
+        const key =
+          button.dataset.url;
+
+        const input =
+          document.getElementById(
+            key + "Url"
+          );
+
+        if (input) {
+
+          input.focus();
+
+          setStatus(
+            "Paste the image URL."
+          );
+
+        }
+
+        return;
+      }
+
+    });
+
+
+    /*
+     * LAYOUT SELECTOR
+     *
+     * Use delegated change handling so
+     * duplicated modules work too.
+     */
+
+    document.addEventListener(
+      "change",
+      function (event) {
+
+        const select =
+          event.target.closest(
+            ".layout-select"
+          );
+
+        if (!select) {
+          return;
+        }
+
+        const block =
+          select.closest(
+            ".image-block"
+          );
+
+        if (!block) {
+          return;
+        }
+
+        block.dataset.layout =
+          select.value;
+
+        syncImageInputs(
+          block
+        );
+
+        setStatus(
+          "✓ Layout changed to " +
+          select.options[
+            select.selectedIndex
+          ].text +
+          "."
+        );
+
+      }
+    );
+
+
+    /*
+     * INPUT TESTING
+     *
+     * Makes sure URL previews work
+     * even on dynamically created images.
+     */
+
+    document.addEventListener(
+      "input",
+      function (event) {
+
+        const heroInput =
+          event.target.closest(
+            ".source-url"
+          );
+
+        if (!heroInput) {
+          return;
+        }
+
+        /*
+         * Hero images
+         */
+        if (
+          heroInput.id === "hero1Url"
+        ) {
+
+          renderHeroPreview(
+            "hero1",
+            heroInput.value.trim()
+          );
+
+          return;
+        }
+
+        if (
+          heroInput.id === "hero2Url"
+        ) {
+
+          renderHeroPreview(
+            "hero2",
+            heroInput.value.trim()
+          );
+
+          return;
+        }
+
+        /*
+         * Modular image
+         */
+        if (
+          heroInput.classList.contains(
+            "module-url"
+          )
+        ) {
+
+          const item =
+            heroInput.closest(
+              ".image-item"
+            );
+
+          if (item) {
+
+            renderModulePreview(
+              item,
+              heroInput.value.trim()
+            );
+
+          }
+
+        }
+
+      }
+    );
+
+
+    /*
+     * FILE UPLOAD TESTING
+     */
+
+    document.addEventListener(
+      "change",
+      function (event) {
+
+        const input =
+          event.target;
+
+        if (
+          !input.matches(
+            'input[type="file"]'
+          )
+        ) {
+          return;
+        }
+
+        const file =
+          input.files &&
+          input.files[0];
+
+        if (!file) {
+          return;
+        }
+
+        /*
+         * HERO IMAGE
+         */
+
+        if (
+          input.id === "hero1File"
+        ) {
+
+          handleLocalImage(
+            file,
+            function (dataUrl) {
+
+              const url =
+                document.getElementById(
+                  "hero1Url"
+                );
+
+              if (url) {
+                url.value =
+                  dataUrl;
+              }
+
+              renderHeroPreview(
+                "hero1",
+                dataUrl
+              );
+
+              setStatus(
+                "✓ Hero Image 01 uploaded."
+              );
+
+            }
+          );
+
+          return;
+        }
+
+
+        if (
+          input.id === "hero2File"
+        ) {
+
+          handleLocalImage(
+            file,
+            function (dataUrl) {
+
+              const url =
+                document.getElementById(
+                  "hero2Url"
+                );
+
+              if (url) {
+                url.value =
+                  dataUrl;
+              }
+
+              renderHeroPreview(
+                "hero2",
+                dataUrl
+              );
+
+              setStatus(
+                "✓ Hero Image 02 uploaded."
+              );
+
+            }
+          );
+
+          return;
+        }
+
+
+        /*
+         * MODULAR IMAGE
+         */
+
+        const item =
+          input.closest(
+            ".image-item"
+          );
+
+        if (!item) {
+          return;
+        }
+
+        handleLocalImage(
+          file,
+          function (dataUrl) {
+
+            const url =
+              item.querySelector(
+                ".module-url"
+              );
+
+            if (url) {
+              url.value =
+                dataUrl;
+            }
+
+            renderModulePreview(
+              item,
+              dataUrl
+            );
+
+            setStatus(
+              "✓ Image uploaded."
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+    console.log(
+      "The Pleasure Dispatch control layer initialized."
+    );
+
+    setStatus(
+      "The Pleasure Dispatch is ready."
+    );
+
+  }
+
+
+  /*
+   * Initialize immediately.
+   *
+   * This is deliberately outside
+   * Office.onReady so the controls
+   * exist even if Office takes a moment
+   * to initialize.
+   */
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      initControlLayer
+    );
+
+  } else {
+
+    initControlLayer();
+
+  }
+
+})();
