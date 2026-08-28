@@ -1,13 +1,14 @@
 /* =========================================================
    THE PLEASURE DISPATCH
-   v0.9
+   v1.0
 
-   Desktop image workflow:
+   IMAGE WORKFLOW
+
    Desktop Upload
         ↓
-   Resize / compress
+   Resize + compress
         ↓
-   Upload to Google Apps Script
+   Google Apps Script
         ↓
    Google Drive
         ↓
@@ -19,7 +20,13 @@
         ↓
    Build in Outlook
 
-   Text / externally hosted images still work normally.
+   External Image URL
+        ↓
+   Preview
+        ↓
+   Clickable image
+        ↓
+   Build in Outlook
 ========================================================= */
 
 
@@ -27,45 +34,38 @@
    CONFIGURATION
 ========================================================= */
 
-/*
- * Your CURRENT Google Apps Script Web App deployment.
- */
 const DRIVE_API_URL =
   "https://script.google.com/macros/s/AKfycbyTLvYbe1O_BbzsH09UMSZdbY9_XZXga-TbSPkR3UclT3Qhlaj7gy5yhXPA_UpE6Fu7tw/exec";
 
 
 /*
- * Email image sizing.
- *
- * 1800px is large enough for email viewing while
- * preventing giant camera files from entering Outlook.
+ * Email image dimensions.
  */
 const IMAGE_MAX_WIDTH = 1800;
 const IMAGE_MAX_HEIGHT = 1800;
 
 
 /*
- * JPEG compression quality.
+ * JPEG quality for email assets.
  */
 const IMAGE_QUALITY = 0.82;
 
 
 /*
- * Maximum file size we will accept BEFORE
- * compression.
+ * Maximum source image size accepted
+ * from the desktop.
  */
 const MAX_SOURCE_IMAGE_MB = 40;
 
 
 /*
- * Maximum compressed image size we
- * prefer to send into Outlook.
+ * Target compressed image size.
  */
 const MAX_EMAIL_IMAGE_MB = 5;
 
 
 /* =========================================================
-   GLOBAL STATE
+   STATE
 ========================================================= */
 
 let blockCounter = 0;
@@ -73,17 +73,22 @@ let pleasureCounter = 0;
 
 
 /*
- * Holds information about images uploaded
- * from the desktop.
+ * Prevent initialization from happening twice.
+ */
+let dispatchInitialized = false;
+
+
+/*
+ * Upload state.
  *
- * Example:
+ * Every image object looks like:
  *
  * {
- *   dataUrl: "...",
- *   fileName: "...",
+ *   localUrl: "...",
  *   driveUrl: "...",
  *   imageUrl: "...",
- *   fileId: "..."
+ *   fileId: "...",
+ *   fileName: "..."
  * }
  */
 const uploadedImages = [];
@@ -102,14 +107,22 @@ Office.onReady(function () {
 
 function initializeDispatch() {
 
+  if (dispatchInitialized) {
+    return;
+  }
+
+  dispatchInitialized = true;
+
+
   setupStaticControls();
   setupDelegatedControls();
 
   setupHero("hero1");
   setupHero("hero2");
 
+
   /*
-   * Default Pleasure Notes.
+   * Starting Pleasure Notes.
    */
   addPleasureRow(
     "Coffee",
@@ -128,7 +141,7 @@ function initializeDispatch() {
 
 
   /*
-   * Start with one modular image block.
+   * Starting image module.
    */
   addImageBlock();
 
@@ -285,7 +298,8 @@ function setupDelegatedControls() {
 
 
       /*
-       * Static controls already have listeners.
+       * These already have static
+       * handlers.
        */
 
       if (
@@ -468,7 +482,7 @@ function setupDelegatedControls() {
 
 
       /*
-       * URL BUTTON
+       * IMAGE URL
        */
 
       if (
@@ -510,7 +524,7 @@ function setupDelegatedControls() {
 
 
       /*
-       * HERO URL BUTTON
+       * HERO URL
        */
 
       if (
@@ -541,7 +555,7 @@ function setupDelegatedControls() {
 
 
   /*
-   * SELECTS + FILE INPUTS
+   * SELECT + FILE INPUTS
    */
 
   document.addEventListener(
@@ -594,10 +608,6 @@ function setupDelegatedControls() {
       }
 
 
-      /*
-       * Desktop image uploads.
-       */
-
       if (
         event.target.matches(
           'input[type="file"]'
@@ -615,7 +625,7 @@ function setupDelegatedControls() {
 
 
   /*
-   * TEXT / IMAGE URL INPUTS
+   * URL INPUTS
    */
 
   document.addEventListener(
@@ -632,7 +642,6 @@ function setupDelegatedControls() {
           event.target.value.trim()
         );
 
-
         return;
 
       }
@@ -647,7 +656,6 @@ function setupDelegatedControls() {
           "hero2",
           event.target.value.trim()
         );
-
 
         return;
 
@@ -766,7 +774,9 @@ function paragraph(text) {
 }
 
 
-function setStatus(message) {
+function setStatus(
+  message
+) {
 
   const status =
     document.getElementById(
@@ -798,7 +808,7 @@ function compressImage(
     callback(
       null,
       new Error(
-        "No image was selected."
+        "No image selected."
       )
     );
 
@@ -832,6 +842,7 @@ function compressImage(
 
 
   if (
+    !file.type ||
     !file.type.match(
       /^image\/(jpeg|jpg|png|webp)$/
     )
@@ -927,9 +938,10 @@ function compressImage(
 
 
           /*
-           * Fill the canvas white before converting
-           * transparent PNGs to JPEG.
+           * White background for PNG
+           * transparency converted to JPEG.
            */
+
           context.fillStyle =
             "#ffffff";
 
@@ -968,19 +980,19 @@ function compressImage(
               }
 
 
-              /*
-               * If the image is still unusually large,
-               * progressively reduce dimensions/quality.
-               */
-              reduceBlobIfNeeded(
+              reduceImageIfNeeded(
                 blob,
                 width,
                 height,
-                function (finalBlob) {
+                function (
+                  finalBlob
+                ) {
 
                   blobToDataUrl(
                     finalBlob,
-                    function (dataUrl) {
+                    function (
+                      dataUrl
+                    ) {
 
                       callback(
                         {
@@ -996,6 +1008,7 @@ function compressImage(
                           height:
                             height
                         },
+
                         null
                       );
 
@@ -1053,7 +1066,7 @@ function compressImage(
 }
 
 
-function reduceBlobIfNeeded(
+function reduceImageIfNeeded(
   blob,
   width,
   height,
@@ -1079,10 +1092,6 @@ function reduceBlobIfNeeded(
 
   }
 
-
-  /*
-   * Reduce dimensions by 20%.
-   */
 
   const image =
     new Image();
@@ -1146,9 +1155,13 @@ function reduceBlobIfNeeded(
 
 
       canvas.toBlob(
-        function (smallerBlob) {
+        function (
+          smallerBlob
+        ) {
 
-          if (!smallerBlob) {
+          if (
+            !smallerBlob
+          ) {
 
             callback(
               blob
@@ -1164,7 +1177,7 @@ function reduceBlobIfNeeded(
             blob.size
           ) {
 
-            reduceBlobIfNeeded(
+            reduceImageIfNeeded(
               smallerBlob,
               newWidth,
               newHeight,
@@ -1229,8 +1242,8 @@ function blobToDataUrl(
   reader.onerror =
     function () {
 
-      setStatus(
-        "Could not create image data."
+      callback(
+        null
       );
 
     };
@@ -1244,20 +1257,19 @@ function blobToDataUrl(
 
 
 /* =========================================================
-   GOOGLE DRIVE UPLOAD
+   DRIVE UPLOAD
 ========================================================= */
 
-async function uploadToGoogleDrive(
-  data,
+async function uploadToDrive(
+  dataUrl,
   originalFileName
 ) {
 
-  /*
-   * The Apps Script accepts JSON.
-   *
-   * We deliberately use text/plain instead of application/json
-   * to avoid an unnecessary CORS preflight request.
-   */
+  const base64 =
+    stripDataUrlPrefix(
+      dataUrl
+    );
+
 
   const payload = {
 
@@ -1278,9 +1290,7 @@ async function uploadToGoogleDrive(
       "image/jpeg",
 
     fileContent:
-      stripDataUrlPrefix(
-        data
-      )
+      base64
 
   };
 
@@ -1295,6 +1305,10 @@ async function uploadToGoogleDrive(
 
   try {
 
+    /*
+     * text/plain avoids the browser sending
+     * a CORS preflight OPTIONS request.
+     */
     response =
       await fetch(
         DRIVE_API_URL,
@@ -1325,9 +1339,7 @@ async function uploadToGoogleDrive(
   }
 
 
-  if (
-    !response.ok
-  ) {
+  if (!response.ok) {
 
     throw new Error(
       "Google Drive returned HTTP " +
@@ -1380,14 +1392,14 @@ function stripDataUrlPrefix(
   dataUrl
 ) {
 
-  const separator =
+  const comma =
     dataUrl.indexOf(
       ","
     );
 
 
   if (
-    separator ===
+    comma ===
     -1
   ) {
 
@@ -1397,7 +1409,7 @@ function stripDataUrlPrefix(
 
 
   return dataUrl.substring(
-    separator + 1
+    comma + 1
   );
 
 }
@@ -1445,10 +1457,10 @@ function getEditionSafeName() {
 }
 
 
-/*
- * Store the Drive result so the image can use
- * the same asset later.
- */
+/* =========================================================
+   REMEMBER DRIVE ASSET
+========================================================= */
+
 function rememberUploadedImage(
   result,
   localDataUrl
@@ -1456,7 +1468,7 @@ function rememberUploadedImage(
 
   uploadedImages.push({
 
-    dataUrl:
+    localUrl:
       localDataUrl,
 
     fileId:
@@ -1477,7 +1489,7 @@ function rememberUploadedImage(
 
 
 /* =========================================================
-   HERO IMAGE UPLOADS
+   HERO UPLOAD
 ========================================================= */
 
 function setupHero(
@@ -1549,10 +1561,129 @@ async function handleHeroUpload(
   file
 ) {
 
-  setStatus(
-    "Optimizing hero image…"
+  compressImage(
+    file,
+    async function (
+      result,
+      error
+    ) {
+
+      if (error) {
+
+        setStatus(
+          error.message
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Show local preview immediately.
+       */
+      const urlInput =
+        document.getElementById(
+          key +
+          "Url"
+        );
+
+
+      urlInput.value =
+        result.dataUrl;
+
+
+      renderHeroPreview(
+        key,
+        result.dataUrl
+      );
+
+
+      try {
+
+        /*
+         * Upload optimized image to Drive.
+         */
+        const driveResult =
+          await uploadToDrive(
+            result.dataUrl,
+            file.name
+          );
+
+
+        rememberUploadedImage(
+          driveResult,
+          result.dataUrl
+        );
+
+
+        /*
+         * Replace temporary local source
+         * with permanent Drive source.
+         */
+        urlInput.value =
+          driveResult.imageUrl;
+
+
+        renderHeroPreview(
+          key,
+          driveResult.imageUrl
+        );
+
+
+        /*
+         * Store the full clickable URL
+         * on the preview itself.
+         */
+        const preview =
+          document.getElementById(
+            key +
+            "Preview"
+          );
+
+
+        if (preview) {
+
+          preview.dataset.fullUrl =
+            driveResult.driveUrl;
+
+        }
+
+
+        setStatus(
+          key === "hero1"
+            ? "Hero Image 01 saved to Drive."
+            : "Hero Image 02 saved to Drive."
+        );
+
+
+      } catch (error) {
+
+        /*
+         * Local preview remains usable if
+         * Drive upload fails.
+         */
+        setStatus(
+          "Preview ready. Drive upload failed: " +
+          error.message
+        );
+
+      }
+
+    }
   );
 
+}
+
+
+/* =========================================================
+   MODULE IMAGE UPLOAD
+========================================================= */
+
+async function handleModuleUpload(
+  item,
+  file
+) {
 
   compressImage(
     file,
@@ -1573,36 +1704,28 @@ async function handleHeroUpload(
 
 
       const urlInput =
-        document.getElementById(
-          key +
-          "Url"
+        item.querySelector(
+          ".module-url"
         );
 
 
       /*
-       * Preview immediately.
+       * Immediate local preview.
        */
-      if (urlInput) {
-
-        urlInput.value =
-          result.dataUrl;
-
-      }
+      urlInput.value =
+        result.dataUrl;
 
 
-      renderHeroPreview(
-        key,
+      renderModulePreview(
+        item,
         result.dataUrl
       );
 
 
-      /*
-       * Upload to Drive.
-       */
       try {
 
         const driveResult =
-          await uploadToGoogleDrive(
+          await uploadToDrive(
             result.dataUrl,
             file.name
           );
@@ -1615,39 +1738,32 @@ async function handleHeroUpload(
 
 
         /*
-         * Replace temporary local image
-         * with the persistent Drive asset.
+         * Permanent Drive image URL.
          */
-        if (urlInput) {
-
-          urlInput.value =
-            driveResult.imageUrl;
-
-        }
+        urlInput.value =
+          driveResult.imageUrl;
 
 
-        renderHeroPreview(
-          key,
+        renderModulePreview(
+          item,
           driveResult.imageUrl
         );
 
 
+        item.dataset.fullUrl =
+          driveResult.driveUrl;
+
+
         setStatus(
-          key === "hero1"
-            ? "Hero Image 01 saved to Drive."
-            : "Hero Image 02 saved to Drive."
+          "Image saved to Google Drive."
         );
 
 
-      } catch (uploadError) {
+      } catch (error) {
 
-        /*
-         * Keep local preview functioning even
-         * when Drive upload isn't available.
-         */
         setStatus(
-          "Preview ready, but Drive upload failed: " +
-          uploadError.message
+          "Preview ready. Drive upload failed: " +
+          error.message
         );
 
       }
@@ -1658,96 +1774,16 @@ async function handleHeroUpload(
 }
 
 
-/* =========================================================
-   HERO PREVIEW
-========================================================= */
-
-function renderHeroPreview(
-  key,
-  url
-) {
-
-  const box =
-    document.getElementById(
-      key +
-      "Preview"
-    );
-
-
-  if (!box) {
-    return;
-  }
-
-
-  if (!url) {
-
-    box.className =
-      "preview hero-preview empty";
-
-    box.textContent =
-      "No hero image selected";
-
-    return;
-
-  }
-
-
-  box.className =
-    "preview hero-preview";
-
-  box.innerHTML =
-    "";
-
-
-  const image =
-    new Image();
-
-
-  image.onload =
-    function () {
-
-      box.appendChild(
-        image
-      );
-
-    };
-
-
-  image.onerror =
-    function () {
-
-      box.className =
-        "preview hero-preview error";
-
-      box.textContent =
-        "This image could not be loaded.";
-
-    };
-
-
-  image.src =
-    url;
-
-}
-
-
-/* =========================================================
-   MODULAR DESKTOP IMAGE UPLOAD
-========================================================= */
-
-async function handleFileInput(
+function handleFileInput(
   input
 ) {
 
   /*
-   * Hero uploads are handled separately.
+   * Hero 01
    */
-
   if (
     input.id ===
-    "hero1File" ||
-    input.id ===
-    "hero2File"
+    "hero1File"
   ) {
 
     return;
@@ -1755,13 +1791,16 @@ async function handleFileInput(
   }
 
 
-  const file =
-    input.files &&
-    input.files[0];
+  /*
+   * Hero 02
+   */
+  if (
+    input.id ===
+    "hero2File"
+  ) {
 
-
-  if (!file) {
     return;
+
   }
 
 
@@ -1776,88 +1815,19 @@ async function handleFileInput(
   }
 
 
-  compressImage(
-    file,
-    async function (
-      result,
-      error
-    ) {
-
-      if (error) {
-
-        setStatus(
-          error.message
-        );
-
-        return;
-
-      }
+  const file =
+    input.files &&
+    input.files[0];
 
 
-      const url =
-        item.querySelector(
-          ".module-url"
-        );
+  if (!file) {
+    return;
+  }
 
 
-      if (url) {
-
-        url.value =
-          result.dataUrl;
-
-      }
-
-
-      renderModulePreview(
-        item,
-        result.dataUrl
-      );
-
-
-      try {
-
-        const driveResult =
-          await uploadToGoogleDrive(
-            result.dataUrl,
-            file.name
-          );
-
-
-        rememberUploadedImage(
-          driveResult,
-          result.dataUrl
-        );
-
-
-        if (url) {
-
-          url.value =
-            driveResult.imageUrl;
-
-        }
-
-
-        renderModulePreview(
-          item,
-          driveResult.imageUrl
-        );
-
-
-        setStatus(
-          "Image saved to Google Drive."
-        );
-
-
-      } catch (uploadError) {
-
-        setStatus(
-          "Preview ready, but Drive upload failed: " +
-          uploadError.message
-        );
-
-      }
-
-    }
+  handleModuleUpload(
+    item,
+    file
   );
 
 }
@@ -1952,48 +1922,48 @@ function collectPleasureNotes() {
     )
   )
 
-    .map(
-      function (row) {
+  .map(
+    function (row) {
 
-        const label =
-          row.querySelector(
-            ".pleasure-label"
-          );
-
-
-        const note =
-          row.querySelector(
-            ".pleasure-value"
-          );
-
-
-        return {
-
-          label:
-            label
-              ? label.value.trim()
-              : "",
-
-          value:
-            note
-              ? note.value.trim()
-              : ""
-
-        };
-
-      }
-    )
-
-    .filter(
-      function (item) {
-
-        return (
-          item.label ||
-          item.value
+      const label =
+        row.querySelector(
+          ".pleasure-label"
         );
 
-      }
-    );
+
+      const note =
+        row.querySelector(
+          ".pleasure-value"
+        );
+
+
+      return {
+
+        label:
+          label
+            ? label.value.trim()
+            : "",
+
+        value:
+          note
+            ? note.value.trim()
+            : ""
+
+      };
+
+    }
+  )
+
+  .filter(
+    function (item) {
+
+      return (
+        item.label ||
+        item.value
+      );
+
+    }
+  );
 
 }
 
@@ -2009,9 +1979,11 @@ function buildPleasureNotesHtml(
 
   return (
 
-    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" ' +
-
-      'style="border-collapse:collapse;width:100%;margin:4px 0 30px;">' +
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="' +
+      "border-collapse:collapse;" +
+      "width:100%;" +
+      "margin:4px 0 30px;" +
+    '">' +
 
       notes.map(
         function (note) {
@@ -2114,21 +2086,13 @@ function addImageBlock() {
 
       '<select class="layout-select" aria-label="Image layout">' +
 
-        '<option value="full">' +
-          "Full Width" +
-        "</option>" +
+        '<option value="full">Full Width</option>' +
 
-        '<option value="two">' +
-          "Two Up" +
-        "</option>" +
+        '<option value="two">Two Up</option>' +
 
-        '<option value="three">' +
-          "Three Up" +
-        "</option>" +
+        '<option value="three">Three Up</option>' +
 
-        '<option value="four">' +
-          "Four Up" +
-        "</option>" +
+        '<option value="four">Four Up</option>' +
 
       "</select>" +
 
@@ -2245,6 +2209,10 @@ function moveImageBlock(
     );
 
 
+  const blocks =
+    getImageBlocks();
+
+
   if (
     !container ||
     !block
@@ -2257,10 +2225,6 @@ function moveImageBlock(
     return;
 
   }
-
-
-  const blocks =
-    getImageBlocks();
 
 
   const index =
@@ -2315,10 +2279,6 @@ function moveImageBlock(
       target
     );
 
-    setStatus(
-      "Image Module moved up."
-    );
-
   } else {
 
     container.insertBefore(
@@ -2326,14 +2286,17 @@ function moveImageBlock(
       target.nextSibling
     );
 
-    setStatus(
-      "Image Module moved down."
-    );
-
   }
 
 
   renumberImageBlocks();
+
+
+  setStatus(
+    direction < 0
+      ? "Image Module moved up."
+      : "Image Module moved down."
+  );
 
 }
 
@@ -2347,38 +2310,14 @@ function syncImageInputs(
     "full";
 
 
-  let count =
-    1;
-
-
-  if (
-    layout ===
-    "two"
-  ) {
-
-    count = 2;
-
-  }
-
-
-  if (
-    layout ===
-    "three"
-  ) {
-
-    count = 3;
-
-  }
-
-
-  if (
-    layout ===
-    "four"
-  ) {
-
-    count = 4;
-
-  }
+  const count =
+    layout === "full"
+      ? 1
+      : layout === "two"
+        ? 2
+        : layout === "three"
+          ? 3
+          : 4;
 
 
   const wrap =
@@ -2543,6 +2482,7 @@ function renderModulePreview(
   preview.className =
     "preview module-preview";
 
+
   preview.innerHTML =
     "";
 
@@ -2568,7 +2508,7 @@ function renderModulePreview(
         "preview module-preview error";
 
       preview.textContent =
-        "Image could not be loaded.";
+        "Image could not be loaded. Please use a direct HTTPS image URL.";
 
     };
 
@@ -2585,7 +2525,8 @@ function renumberImageItems(
 
   Array.from(
     wrap.children
-  ).forEach(
+  )
+  .forEach(
     function (
       item,
       index
@@ -2611,88 +2552,8 @@ function renumberImageItems(
 }
 
 
-function removeImageItem(
-  item
-) {
-
-  if (!item) {
-    return;
-  }
-
-
-  const wrap =
-    item.parentElement;
-
-
-  if (!wrap) {
-
-    item.remove();
-
-    return;
-
-  }
-
-
-  if (
-    wrap.children.length ===
-    1
-  ) {
-
-    const url =
-      item.querySelector(
-        ".module-url"
-      );
-
-
-    const caption =
-      item.querySelector(
-        ".module-caption"
-      );
-
-
-    if (url) {
-      url.value = "";
-    }
-
-
-    if (caption) {
-      caption.value = "";
-    }
-
-
-    renderModulePreview(
-      item,
-      ""
-    );
-
-
-    setStatus(
-      "Image removed."
-    );
-
-
-    return;
-
-  }
-
-
-  item.remove();
-
-
-  renumberImageItems(
-    wrap
-  );
-
-
-  setStatus(
-    "Image removed."
-  );
-
-}
-
-
 /* =========================================================
-   DUPLICATE IMAGE MODULE
+   DUPLICATE MODULE
 ========================================================= */
 
 function duplicateBlock(
@@ -2743,30 +2604,30 @@ function duplicateBlock(
     );
 
 
-  const newBlock =
+  blockCounter++;
+
+
+  const clone =
     document.createElement(
       "article"
     );
 
 
-  blockCounter++;
-
-
-  newBlock.className =
+  clone.className =
     "image-block";
 
 
-  newBlock.dataset.id =
+  clone.dataset.id =
     String(
       blockCounter
     );
 
 
-  newBlock.dataset.layout =
+  clone.dataset.layout =
     layout;
 
 
-  newBlock.innerHTML =
+  clone.innerHTML =
 
     '<div class="block-top">' +
 
@@ -2776,21 +2637,13 @@ function duplicateBlock(
 
       '<select class="layout-select" aria-label="Image layout">' +
 
-        '<option value="full">' +
-          "Full Width" +
-        "</option>" +
+        '<option value="full">Full Width</option>' +
 
-        '<option value="two">' +
-          "Two Up" +
-        "</option>" +
+        '<option value="two">Two Up</option>' +
 
-        '<option value="three">' +
-          "Three Up" +
-        "</option>" +
+        '<option value="three">Three Up</option>' +
 
-        '<option value="four">' +
-          "Four Up" +
-        "</option>" +
+        '<option value="four">Four Up</option>' +
 
       "</select>" +
 
@@ -2800,27 +2653,19 @@ function duplicateBlock(
 
     '<div class="block-actions">' +
 
-      '<button type="button" class="move-up">' +
-        "↑ Move Up" +
-      "</button>" +
+      '<button type="button" class="move-up">↑ Move Up</button>' +
 
-      '<button type="button" class="move-down">' +
-        "↓ Move Down" +
-      "</button>" +
+      '<button type="button" class="move-down">↓ Move Down</button>' +
 
-      '<button type="button" class="duplicate">' +
-        "Duplicate" +
-      "</button>" +
+      '<button type="button" class="duplicate">Duplicate</button>' +
 
-      '<button type="button" class="remove">' +
-        "Remove" +
-      "</button>" +
+      '<button type="button" class="remove">Remove</button>' +
 
     "</div>";
 
 
   const select =
-    newBlock.querySelector(
+    clone.querySelector(
       ".layout-select"
     );
 
@@ -2830,7 +2675,7 @@ function duplicateBlock(
 
 
   const wrap =
-    newBlock.querySelector(
+    clone.querySelector(
       ".image-items"
     );
 
@@ -2845,20 +2690,33 @@ function duplicateBlock(
     );
 
 
-  items.forEach(
-    function (
-      item,
-      index
-    ) {
+  const count =
+    layout ===
+    "full"
+      ? 1
+      : layout ===
+        "two"
+          ? 2
+          : layout ===
+            "three"
+              ? 3
+              : 4;
 
-      addImageItem(
-        wrap,
-        index + 1,
-        item
-      );
 
-    }
-  );
+  for (
+    let i = 0;
+    i < count;
+    i++
+  ) {
+
+    addImageItem(
+      wrap,
+      i + 1,
+      items[i] ||
+      {}
+    );
+
+  }
 
 
   const container =
@@ -2868,7 +2726,7 @@ function duplicateBlock(
 
 
   container.insertBefore(
-    newBlock,
+    clone,
     block.nextSibling
   );
 
@@ -2884,102 +2742,12 @@ function duplicateBlock(
 
 
 /* =========================================================
-   COLLECT MODULES
+   EMAIL IMAGE
 ========================================================= */
 
-function collectImageBlocks() {
-
-  return getImageBlocks()
-    .map(
-      function (block) {
-
-        return {
-
-          layout:
-            block.dataset.layout ||
-            "full",
-
-          items:
-            Array.from(
-              block.querySelectorAll(
-                ".image-item"
-              )
-            )
-            .map(
-              function (item) {
-
-                const url =
-                  item.querySelector(
-                    ".module-url"
-                  );
-
-
-                const caption =
-                  item.querySelector(
-                    ".module-caption"
-                  );
-
-
-                return {
-
-                  url:
-                    url
-                      ? url.value.trim()
-                      : "",
-
-                  caption:
-                    caption
-                      ? caption.value.trim()
-                      : ""
-
-                };
-
-              }
-            )
-            .filter(
-              function (item) {
-
-                return (
-                  item.url ||
-                  item.caption
-                );
-
-              }
-            )
-
-        };
-
-      }
-    )
-    .filter(
-      function (block) {
-
-        return (
-          block.items.length
-        );
-
-      }
-    );
-
-}
-
-
-/* =========================================================
-   CLICKABLE EMAIL IMAGES
-========================================================= */
-
-/*
- * Every externally hosted / Drive-hosted image becomes:
- *
- * <a href="full image">
- *    <img src="display image">
- * </a>
- *
- * Desktop images are converted to CID attachments later.
- */
-function emailImage(
+function buildEmailImage(
   imageUrl,
-  displayUrl,
+  clickUrl,
   caption
 ) {
 
@@ -2988,8 +2756,8 @@ function emailImage(
   }
 
 
-  const source =
-    displayUrl ||
+  const destination =
+    clickUrl ||
     imageUrl;
 
 
@@ -2997,16 +2765,20 @@ function emailImage(
 
     '<a href="' +
       escapeAttribute(
-        imageUrl
+        destination
       ) +
       '" target="_blank" style="text-decoration:none;">' +
 
       '<img src="' +
         escapeAttribute(
-          source
+          imageUrl
         ) +
-        '" alt="" ' +
-        'style="display:block;width:100%;height:auto;border:0;">' +
+        '" alt="" style="' +
+          "display:block;" +
+          "width:100%;" +
+          "height:auto;" +
+          "border:0;" +
+      '">' +
 
     "</a>";
 
@@ -3053,6 +2825,17 @@ function buildFullWidthImage(
   }
 
 
+  /*
+   * For Drive-hosted images, the file itself
+   * is the clickable destination.
+   *
+   * For external URLs, the same URL works.
+   */
+  const clickUrl =
+    item.clickUrl ||
+    item.url;
+
+
   return (
 
     '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;margin:30px 0;">' +
@@ -3061,9 +2844,9 @@ function buildFullWidthImage(
 
         '<td style="padding:0;">' +
 
-          emailImage(
+          buildEmailImage(
             item.url,
-            item.url,
+            clickUrl,
             item.caption
           ) +
 
@@ -3113,9 +2896,10 @@ function buildImageRow(
               "vertical-align:top;" +
           '">' +
 
-            emailImage(
+            buildEmailImage(
               item.url,
-              item.url,
+              item.clickUrl ||
+                item.url,
               item.caption
             ) +
 
@@ -3145,7 +2929,7 @@ function buildImageRow(
 
 
 /*
- * Four Up = one horizontal row.
+ * Four Up is ONE horizontal row.
  */
 function buildFourImageRow(
   items
@@ -3166,9 +2950,10 @@ function buildFourImageRow(
 
           '<td width="25%" valign="top" style="width:25%;padding:3px;vertical-align:top;">' +
 
-            emailImage(
+            buildEmailImage(
               item.url,
-              item.url,
+              item.clickUrl ||
+                item.url,
               item.caption
             ) +
 
@@ -3268,6 +3053,99 @@ function buildImageModuleHtml(
 
 
 /* =========================================================
+   COLLECT IMAGE MODULES
+========================================================= */
+
+function collectImageBlocks() {
+
+  return getImageBlocks()
+
+    .map(
+      function (block) {
+
+        return {
+
+          layout:
+            block.dataset.layout ||
+            "full",
+
+          items:
+            Array.from(
+              block.querySelectorAll(
+                ".image-item"
+              )
+            )
+
+            .map(
+              function (item) {
+
+                const url =
+                  item.querySelector(
+                    ".module-url"
+                  );
+
+
+                const caption =
+                  item.querySelector(
+                    ".module-caption"
+                  );
+
+
+                return {
+
+                  url:
+                    url
+                      ? url.value.trim()
+                      : "",
+
+                  /*
+                   * Preserve a Drive click destination
+                   * when we have one.
+                   */
+                  clickUrl:
+                    item.dataset.fullUrl ||
+                    "",
+
+                  caption:
+                    caption
+                      ? caption.value.trim()
+                      : ""
+
+                };
+
+              }
+            )
+
+            .filter(
+              function (item) {
+
+                return (
+                  item.url ||
+                  item.caption
+                );
+
+              }
+            )
+
+        };
+
+      }
+    )
+
+    .filter(
+      function (block) {
+
+        return (
+          block.items.length
+        );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
    NEWSLETTER BUILDER
 ========================================================= */
 
@@ -3347,51 +3225,60 @@ function buildNewsletterHtml() {
 
 
   /*
-   * HERO 01
+   * Hero click destinations.
    */
+  const hero1Preview =
+    document.getElementById(
+      "hero1Preview"
+    );
 
-  let hero1Html =
-    "";
+
+  const hero2Preview =
+    document.getElementById(
+      "hero2Preview"
+    );
 
 
-  if (hero1) {
+  const hero1Click =
+    hero1Preview &&
+    hero1Preview.dataset.fullUrl
+      ? hero1Preview.dataset.fullUrl
+      : hero1;
 
-    hero1Html =
 
-      emailImage(
-        hero1,
-        hero1,
-        hero1Caption
-      );
-
-  }
+  const hero2Click =
+    hero2Preview &&
+    hero2Preview.dataset.fullUrl
+      ? hero2Preview.dataset.fullUrl
+      : hero2;
 
 
   /*
-   * HERO 02
+   * Heroes.
    */
+  const hero1Html =
+    hero1
+      ? buildEmailImage(
+          hero1,
+          hero1Click,
+          hero1Caption
+        )
+      : "";
 
-  let hero2Html =
-    "";
 
-
-  if (hero2) {
-
-    hero2Html =
-
-      emailImage(
-        hero2,
-        hero2,
-        hero2Caption
-      );
-
-  }
+  const hero2Html =
+    hero2
+      ? buildEmailImage(
+          hero2,
+          hero2Click,
+          hero2Caption
+        )
+      : "";
 
 
   /*
-   * MODULAR IMAGE BLOCKS
+   * Modular images.
    */
-
   let modulesHtml =
     "";
 
@@ -3409,9 +3296,8 @@ function buildNewsletterHtml() {
 
 
   /*
-   * INVITATION
+   * Invitation.
    */
-
   let invitationHtml =
     "";
 
@@ -3435,6 +3321,7 @@ function buildNewsletterHtml() {
 
       "</div>" +
 
+
       (
         invitationTitle
           ? '<div style="' +
@@ -3450,9 +3337,11 @@ function buildNewsletterHtml() {
           : ""
       ) +
 
+
       paragraph(
         invitationText
       ) +
+
 
       (
         ctaUrl
@@ -3462,6 +3351,7 @@ function buildNewsletterHtml() {
                 escapeAttribute(
                   ctaUrl
                 ) +
+
                 '" style="' +
                   "display:inline-block;" +
                   "background:#151515;" +
@@ -3491,19 +3381,24 @@ function buildNewsletterHtml() {
       date,
       title
     ]
+
       .filter(Boolean)
+
       .map(
         function (item) {
+
           return escapeHtml(
             item
           );
+
         }
       )
+
       .join(" · ");
 
 
   /*
-   * FULL EMAIL
+   * COMPLETE EMAIL
    */
 
   return (
@@ -3515,21 +3410,13 @@ function buildNewsletterHtml() {
       "color:#151515;" +
     '">' +
 
-      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
-        "border-collapse:collapse;" +
-        "background:#f4f0e8;" +
-      '">' +
+      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;background:#f4f0e8;">' +
 
         "<tr>" +
 
           '<td align="center" style="padding:28px 12px;">' +
 
-            '<table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="' +
-              "border-collapse:collapse;" +
-              "width:100%;" +
-              "max-width:680px;" +
-              "background:#fffdf8;" +
-            '">' +
+            '<table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;max-width:680px;background:#fffdf8;">' +
 
 
               /*
@@ -3540,62 +3427,28 @@ function buildNewsletterHtml() {
 
                 '<td style="padding:42px 42px 20px;">' +
 
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:2px;" +
-                  '">' +
-
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:2px;">' +
                     "FLRS GLOBAL" +
-
                   "</div>" +
 
-
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:1.4px;" +
-                    "color:#777;" +
-                    "margin-top:8px;" +
-                  '">' +
-
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.4px;color:#777;margin-top:8px;">' +
                     "FROM THE STUDIO OF FREDDIE L. RANKIN II" +
-
                   "</div>" +
 
-
-                  '<h1 style="' +
-                    "font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;" +
-                    "margin:20px 0 10px;" +
-                  '">' +
-
+                  '<h1 style="font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;margin:20px 0 10px;">' +
                     "The Pleasure Dispatch" +
-
                   "</h1>" +
 
-
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:1.3px;" +
-                    "color:#777;" +
-                    "border-bottom:1px solid #151515;" +
-                    "padding-bottom:20px;" +
-                  '">' +
-
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.3px;color:#777;border-bottom:1px solid #151515;padding-bottom:20px;">' +
                     dateLine +
-
                   "</div>" +
-
 
                   (
                     subtitle
-                      ? '<div style="' +
-                          "font:18px/1.45 Garamond,Georgia,Times New Roman,serif;" +
-                          "margin-top:20px;" +
-                        '">' +
-
+                      ? '<div style="font:18px/1.45 Garamond,Georgia,Times New Roman,serif;margin-top:20px;">' +
                           escapeHtml(
                             subtitle
                           ) +
-
                         "</div>"
                       : ""
                   ) +
@@ -3606,27 +3459,18 @@ function buildNewsletterHtml() {
 
 
               /*
-               * BODY
+               * CONTENT
                */
 
               "<tr>" +
 
                 '<td style="padding:0 42px;">' +
 
-
                   /*
                    * MOTIF
                    */
 
-                  '<div style="' +
-                    "text-align:center;" +
-                    "font:27px Garamond,Georgia,serif;" +
-                    "margin:0 0 20px;" +
-                  '">' +
-
-                    "◒" +
-
-                  "</div>" +
+                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:0 0 20px;">◒</div>' +
 
 
                   /*
@@ -3646,17 +3490,9 @@ function buildNewsletterHtml() {
                    * REFLECTION
                    */
 
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:1.5px;" +
-                    "color:#777;" +
-                    "margin:30px 0 11px;" +
-                  '">' +
-
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:30px 0 11px;">' +
                     "01 — A REFLECTION" +
-
                   "</div>" +
-
 
                   paragraph(
                     reflection
@@ -3667,17 +3503,9 @@ function buildNewsletterHtml() {
                    * THE WORK
                    */
 
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:1.5px;" +
-                    "color:#777;" +
-                    "margin:38px 0 11px;" +
-                  '">' +
-
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
                     "02 — THE WORK" +
-
                   "</div>" +
-
 
                   paragraph(
                     workText
@@ -3695,17 +3523,9 @@ function buildNewsletterHtml() {
                    * STUDIO NOTES
                    */
 
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:1.5px;" +
-                    "color:#777;" +
-                    "margin:38px 0 11px;" +
-                  '">' +
-
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
                     "03 — STUDIO NOTES" +
-
                   "</div>" +
-
 
                   paragraph(
                     studioText
@@ -3729,27 +3549,13 @@ function buildNewsletterHtml() {
                    * PLEASURE NOTES
                    */
 
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:1.5px;" +
-                    "color:#777;" +
-                    "margin:38px 0 11px;" +
-                  '">' +
-
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
                     "04 — PLEASURE NOTES" +
-
                   "</div>" +
 
-
-                  '<div style="' +
-                    "font:19px/1.4 Garamond,Georgia,Times New Roman,serif;" +
-                    "margin:0 0 8px;" +
-                  '">' +
-
+                  '<div style="font:19px/1.4 Garamond,Georgia,Times New Roman,serif;margin:0 0 8px;">' +
                     "An offering of what has held my attention." +
-
                   "</div>" +
-
 
                   buildPleasureNotesHtml(
                     notes
@@ -3767,22 +3573,11 @@ function buildNewsletterHtml() {
                    * QUESTION
                    */
 
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:1.5px;" +
-                    "color:#777;" +
-                    "margin:38px 0 11px;" +
-                  '">' +
-
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
                     "06 — A QUESTION" +
-
                   "</div>" +
 
-
-                  '<div style="' +
-                    "font:25px/1.35 Garamond,Georgia,Times New Roman,serif;" +
-                    "margin:0 0 36px;" +
-                  '">' +
+                  '<div style="font:25px/1.35 Garamond,Georgia,Times New Roman,serif;margin:0 0 36px;">' +
 
                     escapeHtml(
                       question
@@ -3795,15 +3590,7 @@ function buildNewsletterHtml() {
                    * CLOSING MOTIF
                    */
 
-                  '<div style="' +
-                    "text-align:center;" +
-                    "font:27px Garamond,Georgia,serif;" +
-                    "margin:20px 0 32px;" +
-                  '">' +
-
-                    "◒" +
-
-                  "</div>" +
+                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:20px 0 32px;">◒</div>' +
 
                 "</td>" +
 
@@ -3816,16 +3603,9 @@ function buildNewsletterHtml() {
 
               "<tr>" +
 
-                '<td style="' +
-                  "padding:18px 42px 34px;" +
-                  "border-top:1px solid #151515;" +
-                '">' +
+                '<td style="padding:18px 42px 34px;border-top:1px solid #151515;">' +
 
-                  '<div style="' +
-                    "font:10px Arial,Helvetica,sans-serif;" +
-                    "letter-spacing:1.1px;" +
-                    "color:#777;" +
-                  '">' +
+                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.1px;color:#777;">' +
 
                     "THE PLEASURE DISPATCH · BY FLRS GLOBAL" +
 
@@ -3852,238 +3632,7 @@ function buildNewsletterHtml() {
 
 
 /* =========================================================
-   OUTLOOK INLINE IMAGE CONVERSION
-========================================================= */
-
-/*
- * Find desktop-uploaded Base64 images still present
- * in the generated HTML.
- *
- * Drive-hosted images will NOT match this and therefore
- * remain ordinary hosted images.
- */
-function findBase64Images(
-  html
-) {
-
-  const regex =
-    /data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+/g;
-
-
-  const matches =
-    html.match(
-      regex
-    ) || [];
-
-
-  return matches.filter(
-    function (
-      item,
-      index,
-      array
-    ) {
-
-      return (
-        array.indexOf(item) ===
-        index
-      );
-
-    }
-  );
-
-}
-
-
-function parseDataUrl(
-  dataUrl
-) {
-
-  const match =
-    dataUrl.match(
-      /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
-    );
-
-
-  if (!match) {
-    return null;
-  }
-
-
-  return {
-
-    mimeType:
-      match[1],
-
-    base64:
-      match[2]
-
-  };
-
-}
-
-
-function getExtension(
-  mimeType
-) {
-
-  switch (
-    mimeType.toLowerCase()
-  ) {
-
-    case "image/png":
-      return "png";
-
-    case "image/webp":
-      return "webp";
-
-    case "image/jpeg":
-    case "image/jpg":
-    default:
-      return "jpg";
-
-  }
-
-}
-
-
-/*
- * Add locally uploaded Base64 images as Outlook
- * inline attachments.
- *
- * This is the fallback for a Drive upload that wasn't
- * successful. The normal desktop workflow should already
- * have a Drive URL by the time Build is clicked.
- */
-function addInlineImages(
-  item,
-  html,
-  images,
-  index,
-  callback
-) {
-
-  if (
-    index >=
-    images.length
-  ) {
-
-    callback(
-      null,
-      html
-    );
-
-    return;
-
-  }
-
-
-  const dataUrl =
-    images[index];
-
-
-  const parsed =
-    parseDataUrl(
-      dataUrl
-    );
-
-
-  if (!parsed) {
-
-    addInlineImages(
-      item,
-      html,
-      images,
-      index + 1,
-      callback
-    );
-
-    return;
-
-  }
-
-
-  const filename =
-    "pleasure-dispatch-" +
-    Date.now() +
-    "-" +
-    (index + 1) +
-    "." +
-    getExtension(
-      parsed.mimeType
-    );
-
-
-  setStatus(
-    "Embedding fallback image " +
-    (index + 1) +
-    " of " +
-    images.length +
-    "…"
-  );
-
-
-  item.addFileAttachmentFromBase64Async(
-    parsed.base64,
-    filename,
-    {
-      isInline:
-        true
-    },
-    function (
-      result
-    ) {
-
-      if (
-        result.status ===
-        Office.AsyncResultStatus.Failed
-      ) {
-
-        callback(
-          new Error(
-            "Outlook could not embed image " +
-            (index + 1) +
-            ": " +
-            (
-              result.error
-                ? result.error.message
-                : "Unknown error."
-            )
-          ),
-          null
-        );
-
-        return;
-
-      }
-
-
-      html =
-        html
-          .split(
-            dataUrl
-          )
-          .join(
-            "cid:" +
-            filename
-          );
-
-
-      addInlineImages(
-        item,
-        html,
-        images,
-        index + 1,
-        callback
-      );
-
-    }
-  );
-
-}
-
-
-/* =========================================================
-   BUILD IN OUTLOOK
+   OUTLOOK
 ========================================================= */
 
 function buildSubject() {
@@ -4122,7 +3671,7 @@ function buildInOutlook() {
   ) {
 
     setStatus(
-      "Office.js is not available. Reload the add-in."
+      "Office.js is not available. Reload the Outlook add-in."
     );
 
     return;
@@ -4198,14 +3747,11 @@ function buildInOutlook() {
 
 
   /*
-   * Microsoft recommends getting the current body
-   * before working with inline Base64 images.
+   * Read current Outlook body before writing.
    */
   item.body.getAsync(
     Office.CoercionType.Html,
-    function (
-      bodyResult
-    ) {
+    function (bodyResult) {
 
       if (
         bodyResult &&
@@ -4226,11 +3772,13 @@ function buildInOutlook() {
 
 
       /*
-       * Normally there should be ZERO Base64 images
-       * because desktop images are uploaded to Drive.
+       * Drive-hosted images should already be ordinary URLs.
        *
-       * This is retained as a fallback.
+       * Base64 is retained only as a fallback in case
+       * an upload failed and the user built the email
+       * before replacing the local image source.
        */
+
       const localImages =
         findBase64Images(
           html
@@ -4238,54 +3786,67 @@ function buildInOutlook() {
 
 
       if (
-        localImages.length ===
+        localImages.length >
         0
       ) {
 
-        writeNewsletter(
-          item,
-          subject,
-          html
+        setStatus(
+          "Embedding " +
+          localImages.length +
+          " fallback image" +
+          (
+            localImages.length ===
+            1
+              ? ""
+              : "s"
+          ) +
+          "…"
         );
+
+
+        addFallbackInlineImages(
+          item,
+          html,
+          localImages,
+          0,
+          function (
+            error,
+            finalHtml
+          ) {
+
+            if (error) {
+
+              setStatus(
+                error.message
+              );
+
+              return;
+
+            }
+
+
+            writeNewsletter(
+              item,
+              subject,
+              finalHtml
+            );
+
+          }
+        );
+
 
         return;
 
       }
 
 
-      setStatus(
-        "Preparing fallback image embedding…"
-      );
-
-
-      addInlineImages(
+      /*
+       * Normal path.
+       */
+      writeNewsletter(
         item,
-        html,
-        localImages,
-        0,
-        function (
-          error,
-          finalHtml
-        ) {
-
-          if (error) {
-
-            setStatus(
-              error.message
-            );
-
-            return;
-
-          }
-
-
-          writeNewsletter(
-            item,
-            subject,
-            finalHtml
-          );
-
-        }
+        subject,
+        html
       );
 
     }
@@ -4295,7 +3856,213 @@ function buildInOutlook() {
 
 
 /* =========================================================
-   WRITE NEWSLETTER TO OUTLOOK
+   BASE64 FALLBACK
+========================================================= */
+
+function findBase64Images(
+  html
+) {
+
+  const regex =
+    /data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+/g;
+
+
+  const matches =
+    html.match(
+      regex
+    ) || [];
+
+
+  return matches.filter(
+    function (
+      item,
+      index,
+      array
+    ) {
+
+      return (
+        array.indexOf(item) ===
+        index
+      );
+
+    }
+  );
+
+}
+
+
+function parseDataUrl(
+  dataUrl
+) {
+
+  const match =
+    dataUrl.match(
+      /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
+    );
+
+
+  if (!match) {
+    return null;
+  }
+
+
+  return {
+
+    mimeType:
+      match[1],
+
+    base64:
+      match[2]
+
+  };
+
+}
+
+
+function getImageExtension(
+  mimeType
+) {
+
+  switch (
+    mimeType.toLowerCase()
+  ) {
+
+    case "image/png":
+      return "png";
+
+    case "image/webp":
+      return "webp";
+
+    case "image/jpeg":
+    case "image/jpg":
+
+    default:
+      return "jpg";
+
+  }
+
+}
+
+
+function addFallbackInlineImages(
+  item,
+  html,
+  images,
+  index,
+  callback
+) {
+
+  if (
+    index >=
+    images.length
+  ) {
+
+    callback(
+      null,
+      html
+    );
+
+    return;
+
+  }
+
+
+  const dataUrl =
+    images[index];
+
+
+  const parsed =
+    parseDataUrl(
+      dataUrl
+    );
+
+
+  if (!parsed) {
+
+    addFallbackInlineImages(
+      item,
+      html,
+      images,
+      index + 1,
+      callback
+    );
+
+    return;
+
+  }
+
+
+  const filename =
+    "pleasure-dispatch-" +
+    Date.now() +
+    "-" +
+    (index + 1) +
+    "." +
+    getImageExtension(
+      parsed.mimeType
+    );
+
+
+  item.addFileAttachmentFromBase64Async(
+    parsed.base64,
+    filename,
+    {
+      isInline:
+        true
+    },
+    function (result) {
+
+      if (
+        result.status ===
+        Office.AsyncResultStatus.Failed
+      ) {
+
+        callback(
+          new Error(
+            "Outlook could not embed image " +
+            (index + 1) +
+            ": " +
+            (
+              result.error
+                ? result.error.message
+                : "Unknown error."
+            )
+          ),
+          null
+        );
+
+        return;
+
+      }
+
+
+      html =
+        html
+          .split(
+            dataUrl
+          )
+          .join(
+            "cid:" +
+            filename
+          );
+
+
+      addFallbackInlineImages(
+        item,
+        html,
+        images,
+        index + 1,
+        callback
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   WRITE TO OUTLOOK
 ========================================================= */
 
 function writeNewsletter(
@@ -4404,6 +4171,26 @@ function preview() {
   );
 
 
+  let html;
+
+
+  try {
+
+    html =
+      buildNewsletterHtml();
+
+  } catch (error) {
+
+    setStatus(
+      "Preview error: " +
+      error.message
+    );
+
+    return;
+
+  }
+
+
   const previewWindow =
     window.open(
       "",
@@ -4420,10 +4207,6 @@ function preview() {
     return;
 
   }
-
-
-  const html =
-    buildNewsletterHtml();
 
 
   previewWindow.document.open();
