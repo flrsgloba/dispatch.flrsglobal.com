@@ -1,6 +1,6 @@
 /* =========================================================
    THE PLEASURE DISPATCH
-   v1.3 — Consolidated Taskpane
+   Complete taskpane.js
 ========================================================= */
 
 const DRIVE_API_URL =
@@ -18,10 +18,15 @@ let initialized = false;
 
 
 /* =========================================================
-   OFFICE INITIALIZATION
+   OFFICE
 ========================================================= */
 
 Office.onReady(function () {
+  initializeDispatch();
+});
+
+
+function initializeDispatch() {
 
   if (initialized) {
     return;
@@ -29,22 +34,12 @@ Office.onReady(function () {
 
   initialized = true;
 
-  initializeDispatch();
-
-});
-
-
-function initializeDispatch() {
-
   bindStaticControls();
   bindDelegatedControls();
 
   setupHero("hero1");
   setupHero("hero2");
 
-  /*
-   * Only create defaults if the editor is empty.
-   */
   const pleasureRows =
     document.getElementById("pleasureRows");
 
@@ -52,13 +47,10 @@ function initializeDispatch() {
     pleasureRows &&
     pleasureRows.children.length === 0
   ) {
-
     addPleasureRow("Coffee", "");
     addPleasureRow("Art", "");
     addPleasureRow("Object", "");
-
   }
-
 
   const imageBlocks =
     document.getElementById("imageBlocks");
@@ -67,16 +59,12 @@ function initializeDispatch() {
     imageBlocks &&
     imageBlocks.children.length === 0
   ) {
-
     addImageBlock();
-
   }
-
 
   setStatus(
     "The Pleasure Dispatch is ready."
   );
-
 }
 
 
@@ -86,93 +74,147 @@ function initializeDispatch() {
 
 function bindStaticControls() {
 
-  const preview =
-    document.getElementById(
-      "previewBtn"
-    );
+  const previewButton =
+    document.getElementById("previewBtn");
 
-  const build =
-    document.getElementById(
-      "insertBtn"
-    );
+  const buildButton =
+    document.getElementById("insertBtn");
 
-  const addImage =
-    document.getElementById(
-      "addImageBlock"
-    );
+  const addPleasureButton =
+    document.getElementById("addPleasure");
 
-  const addPleasure =
-    document.getElementById(
-      "addPleasure"
-    );
+  let addImageButton =
+    document.getElementById("addImageBlock");
 
 
-  if (preview) {
+  /* Preview */
 
-    preview.addEventListener(
-      "click",
+  if (previewButton) {
+
+    previewButton.onclick =
       function (event) {
 
         event.preventDefault();
+        event.stopPropagation();
 
         previewNewsletter();
 
-      }
-    );
+      };
 
   }
 
 
-  if (build) {
+  /* Build */
 
-    build.addEventListener(
-      "click",
+  if (buildButton) {
+
+    buildButton.onclick =
       function (event) {
 
         event.preventDefault();
+        event.stopPropagation();
 
         buildInOutlook();
 
-      }
-    );
+      };
 
   }
 
 
-  if (addImage) {
+  /* Add Pleasure Note */
 
-    addImage.addEventListener(
-      "click",
+  if (addPleasureButton) {
+
+    addPleasureButton.onclick =
       function (event) {
 
         event.preventDefault();
+        event.stopPropagation();
 
-        addImageBlock();
-
-      }
-    );
-
-  }
-
-
-  if (addPleasure) {
-
-    addPleasure.addEventListener(
-      "click",
-      function (event) {
-
-        event.preventDefault();
-
-        addPleasureRow(
-          "",
-          ""
-        );
+        addPleasureRow("", "");
 
         setStatus(
           "Pleasure Note added."
         );
 
+      };
+
+  }
+
+
+  /*
+   * Add Image Block
+   *
+   * Supports:
+   * #addImageBlock
+   *
+   * and, as a fallback, finds a button
+   * whose visible text contains
+   * "Add Image Block".
+   */
+
+  if (!addImageButton) {
+
+    const candidates =
+      document.querySelectorAll(
+        "button, a, [role='button']"
+      );
+
+
+    for (
+      let i = 0;
+      i < candidates.length;
+      i++
+    ) {
+
+      const text =
+        (
+          candidates[i].textContent ||
+          ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+      if (
+        text.includes(
+          "add image block"
+        )
+      ) {
+
+        addImageButton =
+          candidates[i];
+
+        break;
+
       }
+
+    }
+
+  }
+
+
+  if (addImageButton) {
+
+    addImageButton.onclick =
+      function (event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        addImageBlock();
+
+      };
+
+
+    console.log(
+      "Add Image Block control bound."
+    );
+
+  } else {
+
+    console.error(
+      "Add Image Block control not found."
     );
 
   }
@@ -181,20 +223,20 @@ function bindStaticControls() {
 
 
 /* =========================================================
-   DELEGATED CONTROLS
+   DYNAMIC CONTROLS
 ========================================================= */
 
 function bindDelegatedControls() {
 
-  /*
-   * BUTTONS
-   */
   document.addEventListener(
     "click",
     function (event) {
 
       const button =
-        event.target.closest("button");
+        event.target.closest(
+          "button, a, [role='button']"
+        );
+
 
       if (!button) {
         return;
@@ -202,7 +244,7 @@ function bindDelegatedControls() {
 
 
       /*
-       * Static controls.
+       * Static controls already handled.
        */
       if (
         button.id === "previewBtn" ||
@@ -210,108 +252,116 @@ function bindDelegatedControls() {
         button.id === "addImageBlock" ||
         button.id === "addPleasure"
       ) {
-
         return;
-
       }
-
-
-      event.preventDefault();
 
 
       /*
        * MOVE UP
        */
+
       if (
         button.classList.contains(
           "move-up"
         )
       ) {
 
+        event.preventDefault();
+
         const block =
           button.closest(
             ".image-block"
           );
 
-        if (block) {
 
+        if (block) {
           moveImageBlock(
             block,
             -1
           );
-
         }
 
         return;
+
       }
 
 
       /*
        * MOVE DOWN
        */
+
       if (
         button.classList.contains(
           "move-down"
         )
       ) {
 
+        event.preventDefault();
+
         const block =
           button.closest(
             ".image-block"
           );
 
-        if (block) {
 
+        if (block) {
           moveImageBlock(
             block,
             1
           );
-
         }
 
         return;
+
       }
 
 
       /*
        * DUPLICATE
        */
+
       if (
         button.classList.contains(
           "duplicate"
         )
       ) {
 
+        event.preventDefault();
+
         const block =
           button.closest(
             ".image-block"
           );
 
-        if (block) {
 
+        if (block) {
           duplicateBlock(
             block
           );
-
         }
 
         return;
+
       }
 
 
       /*
        * REMOVE MODULE
        */
+
       if (
         button.classList.contains(
           "remove"
         )
       ) {
 
+        event.preventDefault();
+
         const block =
           button.closest(
             ".image-block"
           );
+
 
         if (block) {
 
@@ -326,17 +376,21 @@ function bindDelegatedControls() {
         }
 
         return;
+
       }
 
 
       /*
        * REMOVE IMAGE
        */
+
       if (
         button.classList.contains(
           "remove-image"
         )
       ) {
+
+        event.preventDefault();
 
         removeImageItem(
           button.closest(
@@ -345,22 +399,27 @@ function bindDelegatedControls() {
         );
 
         return;
+
       }
 
 
       /*
-       * FOCUS IMAGE URL
+       * FOCUS URL INPUT
        */
+
       if (
         button.classList.contains(
           "url-item"
         )
       ) {
 
+        event.preventDefault();
+
         const item =
           button.closest(
             ".image-item"
           );
+
 
         if (item) {
 
@@ -368,6 +427,7 @@ function bindDelegatedControls() {
             item.querySelector(
               ".module-url"
             );
+
 
           if (input) {
 
@@ -381,7 +441,6 @@ function bindDelegatedControls() {
 
         }
 
-        return;
       }
 
     }
@@ -389,24 +448,26 @@ function bindDelegatedControls() {
 
 
   /*
-   * LAYOUTS + FILE UPLOADS
+   * LAYOUT + FILE INPUTS
    */
+
   document.addEventListener(
     "change",
     function (event) {
 
-      const select =
+      const layout =
         event.target.closest(
           ".layout-select"
         );
 
 
-      if (select) {
+      if (layout) {
 
         const block =
-          select.closest(
+          layout.closest(
             ".image-block"
           );
+
 
         if (!block) {
           return;
@@ -414,7 +475,7 @@ function bindDelegatedControls() {
 
 
         block.dataset.layout =
-          select.value;
+          layout.value;
 
 
         syncImageInputs(
@@ -422,26 +483,24 @@ function bindDelegatedControls() {
         );
 
 
-        const selected =
-          select.options[
-            select.selectedIndex
-          ];
-
-
         setStatus(
           "Layout changed to " +
-          selected.text +
+          layout.options[
+            layout.selectedIndex
+          ].text +
           "."
         );
 
 
         return;
+
       }
 
 
       /*
-       * Modular image upload.
+       * Modular file upload.
        */
+
       if (
         event.target.matches(
           ".module-file-input"
@@ -452,6 +511,7 @@ function bindDelegatedControls() {
           event.target.closest(
             ".image-item"
           );
+
 
         const file =
           event.target.files &&
@@ -470,7 +530,6 @@ function bindDelegatedControls() {
 
         }
 
-        return;
       }
 
     }
@@ -478,79 +537,43 @@ function bindDelegatedControls() {
 
 
   /*
-   * IMAGE URL INPUTS
+   * URL inputs
    */
+
   document.addEventListener(
     "input",
     function (event) {
 
-      /*
-       * Hero 01.
-       */
       if (
         event.target.id ===
         "hero1Url"
       ) {
-
-        const preview =
-          document.getElementById(
-            "hero1Preview"
-          );
-
-
-        if (preview) {
-
-          delete preview.dataset.fullUrl;
-          delete preview.dataset.fileId;
-
-        }
-
 
         renderHeroPreview(
           "hero1",
           event.target.value.trim()
         );
 
-
         return;
+
       }
 
 
-      /*
-       * Hero 02.
-       */
       if (
         event.target.id ===
         "hero2Url"
       ) {
-
-        const preview =
-          document.getElementById(
-            "hero2Preview"
-          );
-
-
-        if (preview) {
-
-          delete preview.dataset.fullUrl;
-          delete preview.dataset.fileId;
-
-        }
-
 
         renderHeroPreview(
           "hero2",
           event.target.value.trim()
         );
 
-
         return;
+
       }
 
 
-      /*
-       * Modular image URL.
-       */
       if (
         event.target.classList.contains(
           "module-url"
@@ -566,8 +589,8 @@ function bindDelegatedControls() {
         if (item) {
 
           delete item.dataset.fullUrl;
-          delete item.dataset.fileId;
           delete item.dataset.driveUrl;
+          delete item.dataset.fileId;
 
 
           renderModulePreview(
@@ -586,7 +609,7 @@ function bindDelegatedControls() {
 
 
 /* =========================================================
-   BASIC HELPERS
+   GENERAL HELPERS
 ========================================================= */
 
 function value(id) {
@@ -597,12 +620,9 @@ function value(id) {
     );
 
 
-  if (!element) {
-    return "";
-  }
-
-
-  return element.value.trim();
+  return element
+    ? element.value.trim()
+    : "";
 
 }
 
@@ -616,13 +636,11 @@ function escapeHtml(text) {
     function (character) {
 
       return {
-
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
         "'": "&#039;"
-
       }[character];
 
     }
@@ -632,11 +650,7 @@ function escapeHtml(text) {
 
 
 function escapeAttribute(text) {
-
-  return escapeHtml(
-    text
-  );
-
+  return escapeHtml(text);
 }
 
 
@@ -648,30 +662,22 @@ function paragraph(text) {
 
 
   return (
-
     '<p style="' +
       "font:17px/1.7 Garamond,Georgia,Times New Roman,serif;" +
       "margin:0 0 24px;" +
       "color:#151515;" +
     '">' +
-
-      escapeHtml(
-        text
-      ).replace(
+      escapeHtml(text).replace(
         /\n/g,
         "<br>"
       ) +
-
     "</p>"
-
   );
 
 }
 
 
-function setStatus(
-  message
-) {
+function setStatus(message) {
 
   const status =
     document.getElementById(
@@ -680,10 +686,8 @@ function setStatus(
 
 
   if (status) {
-
     status.textContent =
       message;
-
   }
 
 }
@@ -743,6 +747,7 @@ function compressImage(
     );
 
     return;
+
   }
 
 
@@ -752,8 +757,7 @@ function compressImage(
 
 
   if (
-    sizeMB >
-    MAX_SOURCE_IMAGE_MB
+    sizeMB > MAX_SOURCE_IMAGE_MB
   ) {
 
     callback(
@@ -766,6 +770,7 @@ function compressImage(
     );
 
     return;
+
   }
 
 
@@ -784,6 +789,7 @@ function compressImage(
     );
 
     return;
+
   }
 
 
@@ -803,7 +809,6 @@ function compressImage(
 
           let width =
             image.naturalWidth;
-
 
           let height =
             image.naturalHeight;
@@ -841,7 +846,6 @@ function compressImage(
 
           canvas.width =
             width;
-
 
           canvas.height =
             height;
@@ -887,6 +891,7 @@ function compressImage(
                 );
 
                 return;
+
               }
 
 
@@ -898,11 +903,11 @@ function compressImage(
 
                   callback(
                     {
-                      blob:
-                        blob,
-
                       dataUrl:
                         dataUrl,
+
+                      blob:
+                        blob,
 
                       width:
                         width,
@@ -1003,18 +1008,13 @@ function blobToDataUrl(
 
 
 /* =========================================================
-   GOOGLE DRIVE UPLOAD
+   DRIVE UPLOAD
 ========================================================= */
 
 async function uploadToDrive(
   dataUrl,
   originalFileName
 ) {
-
-  setStatus(
-    "Saving image to Google Drive…"
-  );
-
 
   const payload = {
 
@@ -1126,7 +1126,8 @@ async function uploadToDrive(
 
 
   /*
-   * Build our own reliable URLs from fileId.
+   * Build the correct image endpoint
+   * from the Drive file ID.
    */
   result.imageUrl =
     buildDriveImageUrl(
@@ -1180,22 +1181,18 @@ function cleanFileName(
     name ||
     "image"
   )
-
   .replace(
     /[\/\\:*?"<>|#%{}[\]]/g,
     "_"
   )
-
   .replace(
     /\s+/g,
     "_"
   )
-
   .replace(
     /\.[^.]+$/,
     ""
   )
-
   .substring(
     0,
     80
@@ -1219,7 +1216,7 @@ function getEditionSafeName() {
 
 
 /* =========================================================
-   HERO IMAGE
+   HERO IMAGES
 ========================================================= */
 
 function setupHero(
@@ -1251,15 +1248,14 @@ function setupHero(
           fileInput.files[0];
 
 
-        if (!file) {
-          return;
+        if (file) {
+
+          handleHeroUpload(
+            key,
+            file
+          );
+
         }
-
-
-        handleHeroUpload(
-          key,
-          file
-        );
 
       }
     );
@@ -1305,6 +1301,7 @@ function handleHeroUpload(
         );
 
         return;
+
       }
 
 
@@ -1323,7 +1320,7 @@ function handleHeroUpload(
 
 
       /*
-       * Show immediately.
+       * Local preview immediately.
        */
       input.value =
         result.dataUrl;
@@ -1337,6 +1334,11 @@ function handleHeroUpload(
 
       try {
 
+        setStatus(
+          "Saving hero image to Google Drive…"
+        );
+
+
         const drive =
           await uploadToDrive(
             result.dataUrl,
@@ -1344,9 +1346,6 @@ function handleHeroUpload(
           );
 
 
-        /*
-         * Permanent Drive image URL.
-         */
         input.value =
           drive.imageUrl;
 
@@ -1375,11 +1374,11 @@ function handleHeroUpload(
         );
 
 
-      } catch (uploadError) {
+      } catch (error) {
 
         setStatus(
           "Preview ready. Drive upload failed: " +
-          uploadError.message
+          error.message
         );
 
       }
@@ -1416,6 +1415,7 @@ function renderHeroPreview(
       "No hero image selected";
 
     return;
+
   }
 
 
@@ -1463,20 +1463,10 @@ function renderHeroPreview(
    MODULAR IMAGE UPLOAD
 ========================================================= */
 
-async function handleModuleUpload(
+function handleModuleUpload(
   item,
   file
 ) {
-
-  if (!item || !file) {
-
-    setStatus(
-      "No modular image selected."
-    );
-
-    return;
-  }
-
 
   setStatus(
     "Optimizing modular image…"
@@ -1497,6 +1487,7 @@ async function handleModuleUpload(
         );
 
         return;
+
       }
 
 
@@ -1509,15 +1500,16 @@ async function handleModuleUpload(
       if (!urlInput) {
 
         setStatus(
-          "The modular image field could not be found."
+          "Could not find the modular image field."
         );
 
         return;
+
       }
 
 
       /*
-       * Immediate local preview.
+       * Show local image immediately.
        */
       urlInput.value =
         result.dataUrl;
@@ -1531,6 +1523,11 @@ async function handleModuleUpload(
 
       try {
 
+        setStatus(
+          "Saving modular image to Google Drive…"
+        );
+
+
         const drive =
           await uploadToDrive(
             result.dataUrl,
@@ -1539,14 +1536,10 @@ async function handleModuleUpload(
 
 
         /*
-         * Store both URLs.
+         * Store Drive information.
          */
         item.dataset.fileId =
           drive.fileId;
-
-
-        item.dataset.imageUrl =
-          drive.imageUrl;
 
 
         item.dataset.fullUrl =
@@ -1557,9 +1550,13 @@ async function handleModuleUpload(
           drive.driveUrl;
 
 
+        item.dataset.imageUrl =
+          drive.imageUrl;
+
+
         /*
-         * Replace temporary Base64
-         * with permanent Drive thumbnail.
+         * Replace local image with
+         * Drive-hosted image.
          */
         urlInput.value =
           drive.imageUrl;
@@ -1576,16 +1573,15 @@ async function handleModuleUpload(
         );
 
 
-      } catch (uploadError) {
+      } catch (error) {
 
         setStatus(
           "Preview ready. Drive upload failed: " +
-          uploadError.message
+          error.message
         );
 
-
         console.error(
-          uploadError
+          error
         );
 
       }
@@ -1597,7 +1593,80 @@ async function handleModuleUpload(
 
 
 /* =========================================================
-   IMAGE MODULES
+   MODULAR PREVIEW
+========================================================= */
+
+function renderModulePreview(
+  item,
+  url
+) {
+
+  const preview =
+    item.querySelector(
+      ".module-preview"
+    );
+
+
+  if (!preview) {
+    return;
+  }
+
+
+  if (!url) {
+
+    preview.className =
+      "preview module-preview empty";
+
+    preview.textContent =
+      "No image selected";
+
+    return;
+
+  }
+
+
+  preview.className =
+    "preview module-preview";
+
+
+  preview.innerHTML =
+    "";
+
+
+  const image =
+    new Image();
+
+
+  image.onload =
+    function () {
+
+      preview.appendChild(
+        image
+      );
+
+    };
+
+
+  image.onerror =
+    function () {
+
+      preview.className =
+        "preview module-preview error";
+
+      preview.textContent =
+        "Image could not be loaded.";
+
+    };
+
+
+  image.src =
+    url;
+
+}
+
+
+/* =========================================================
+   IMAGE MODULE MANAGEMENT
 ========================================================= */
 
 function addImageBlock() {
@@ -1614,7 +1683,12 @@ function addImageBlock() {
       "Image module container not found."
     );
 
+    console.error(
+      "#imageBlocks was not found."
+    );
+
     return;
+
   }
 
 
@@ -1652,21 +1726,13 @@ function addImageBlock() {
 
       '<select class="layout-select" aria-label="Image layout">' +
 
-        '<option value="full">' +
-          "Full Width" +
-        "</option>" +
+        '<option value="full">Full Width</option>' +
 
-        '<option value="two">' +
-          "Two Up" +
-        "</option>" +
+        '<option value="two">Two Up</option>' +
 
-        '<option value="three">' +
-          "Three Up" +
-        "</option>" +
+        '<option value="three">Three Up</option>' +
 
-        '<option value="four">' +
-          "Four Up" +
-        "</option>" +
+        '<option value="four">Four Up</option>' +
 
       "</select>" +
 
@@ -1709,14 +1775,15 @@ function addImageBlock() {
 
 
   setStatus(
-    "Image Module added."
+    "✓ Image Module added."
   );
 
 }
 
 
 /*
- * THIS FUNCTION WAS MISSING BEFORE.
+ * IMPORTANT:
+ * This function was missing in the previous version.
  */
 function getImageBlocks() {
 
@@ -1778,10 +1845,6 @@ function renumberImageBlocks() {
 }
 
 
-/* =========================================================
-   MOVE MODULES
-========================================================= */
-
 function moveImageBlock(
   block,
   direction
@@ -1817,7 +1880,10 @@ function moveImageBlock(
     );
 
 
-  if (index === -1) {
+  if (
+    index ===
+    -1
+  ) {
 
     setStatus(
       "Unable to find image module."
@@ -1834,7 +1900,8 @@ function moveImageBlock(
 
 
   if (
-    targetIndex < 0 ||
+    targetIndex <
+      0 ||
     targetIndex >=
       blocks.length
   ) {
@@ -1855,7 +1922,8 @@ function moveImageBlock(
 
 
   if (
-    direction < 0
+    direction <
+    0
   ) {
 
     container.insertBefore(
@@ -1885,10 +1953,6 @@ function moveImageBlock(
 }
 
 
-/* =========================================================
-   IMAGE LAYOUTS
-========================================================= */
-
 function syncImageInputs(
   block
 ) {
@@ -1906,9 +1970,7 @@ function syncImageInputs(
     layout ===
     "two"
   ) {
-
     count = 2;
-
   }
 
 
@@ -1916,9 +1978,7 @@ function syncImageInputs(
     layout ===
     "three"
   ) {
-
     count = 3;
-
   }
 
 
@@ -1926,9 +1986,7 @@ function syncImageInputs(
     layout ===
     "four"
   ) {
-
     count = 4;
-
   }
 
 
@@ -1946,7 +2004,8 @@ function syncImageInputs(
   wrap.className =
     "image-items " +
     (
-      layout === "full"
+      layout ===
+      "full"
         ? "one"
         : layout
     );
@@ -2061,8 +2120,9 @@ function addImageItem(
 
 
   /*
-   * Preserve Drive click destination.
+   * Preserve click target when duplicated.
    */
+
   if (
     preset.clickUrl
   ) {
@@ -2093,8 +2153,7 @@ function renumberImageItems(
 
   Array.from(
     wrap.children
-  )
-  .forEach(
+  ).forEach(
     function (
       item,
       index
@@ -2120,96 +2179,8 @@ function renumberImageItems(
 }
 
 
-function removeImageItem(
-  item
-) {
-
-  if (!item) {
-    return;
-  }
-
-
-  const wrap =
-    item.parentElement;
-
-
-  if (!wrap) {
-
-    item.remove();
-
-    return;
-
-  }
-
-
-  /*
-   * Leave one blank slot in a module.
-   */
-  if (
-    wrap.children.length ===
-    1
-  ) {
-
-    const url =
-      item.querySelector(
-        ".module-url"
-      );
-
-
-    const caption =
-      item.querySelector(
-        ".module-caption"
-      );
-
-
-    if (url) {
-      url.value = "";
-    }
-
-
-    if (caption) {
-      caption.value = "";
-    }
-
-
-    delete item.dataset.fullUrl;
-    delete item.dataset.driveUrl;
-    delete item.dataset.fileId;
-
-
-    renderModulePreview(
-      item,
-      ""
-    );
-
-
-    setStatus(
-      "Image removed."
-    );
-
-
-    return;
-
-  }
-
-
-  item.remove();
-
-
-  renumberImageItems(
-    wrap
-  );
-
-
-  setStatus(
-    "Image removed."
-  );
-
-}
-
-
 /* =========================================================
-   DUPLICATE MODULE
+   DUPLICATE
 ========================================================= */
 
 function duplicateBlock(
@@ -2226,7 +2197,7 @@ function duplicateBlock(
     "full";
 
 
-  const sourceItems =
+  const items =
     Array.from(
       block.querySelectorAll(
         ".image-item"
@@ -2270,13 +2241,13 @@ function duplicateBlock(
     );
 
 
+  blockCounter++;
+
+
   const clone =
     document.createElement(
       "article"
     );
-
-
-  blockCounter++;
 
 
   clone.className =
@@ -2303,21 +2274,13 @@ function duplicateBlock(
 
       '<select class="layout-select" aria-label="Image layout">' +
 
-        '<option value="full">' +
-          "Full Width" +
-        "</option>" +
+        '<option value="full">Full Width</option>' +
 
-        '<option value="two">' +
-          "Two Up" +
-        "</option>" +
+        '<option value="two">Two Up</option>' +
 
-        '<option value="three">' +
-          "Three Up" +
-        "</option>" +
+        '<option value="three">Three Up</option>' +
 
-        '<option value="four">' +
-          "Four Up" +
-        "</option>" +
+        '<option value="four">Four Up</option>' +
 
       "</select>" +
 
@@ -2373,7 +2336,7 @@ function duplicateBlock(
     addImageItem(
       wrap,
       i + 1,
-      sourceItems[i] ||
+      items[i] ||
       {}
     );
 
@@ -2403,7 +2366,7 @@ function duplicateBlock(
 
 
 /* =========================================================
-   COLLECT IMAGE DATA
+   NEWSLETTER DATA
 ========================================================= */
 
 function collectImageBlocks() {
@@ -2489,183 +2452,6 @@ function collectImageBlocks() {
 
 
 /* =========================================================
-   PLEASURE NOTES
-========================================================= */
-
-function collectPleasureNotes() {
-
-  return Array.from(
-    document.querySelectorAll(
-      ".pleasure-row"
-    )
-  )
-  .map(
-    function (row) {
-
-      const label =
-        row.querySelector(
-          ".pleasure-label"
-        );
-
-
-      const note =
-        row.querySelector(
-          ".pleasure-value"
-        );
-
-
-      return {
-
-        label:
-          label
-            ? label.value.trim()
-            : "",
-
-        value:
-          note
-            ? note.value.trim()
-            : ""
-
-      };
-
-    }
-  )
-  .filter(
-    function (item) {
-
-      return (
-        item.label ||
-        item.value
-      );
-
-    }
-  );
-
-}
-
-
-function addPleasureRow(
-  labelValue,
-  noteValue
-) {
-
-  const container =
-    document.getElementById(
-      "pleasureRows"
-    );
-
-
-  if (!container) {
-    return;
-  }
-
-
-  pleasureCounter++;
-
-
-  const row =
-    document.createElement(
-      "div"
-    );
-
-
-  row.className =
-    "pleasure-row";
-
-
-  row.innerHTML =
-
-    '<input class="pleasure-label" value="' +
-      escapeAttribute(
-        labelValue ||
-        ""
-      ) +
-    '" placeholder="Category">' +
-
-    '<input class="pleasure-value" value="' +
-      escapeAttribute(
-        noteValue ||
-        ""
-      ) +
-    '" placeholder="What has held your attention?">' +
-
-    '<button type="button">×</button>';
-
-
-  row.querySelector(
-    "button"
-  ).addEventListener(
-    "click",
-    function () {
-
-      row.remove();
-
-      setStatus(
-        "Pleasure Note removed."
-      );
-
-    }
-  );
-
-
-  container.appendChild(
-    row
-  );
-
-}
-
-
-function buildPleasureNotesHtml(
-  notes
-) {
-
-  if (!notes.length) {
-    return "";
-  }
-
-
-  return (
-
-    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;margin:4px 0 30px;">' +
-
-      notes.map(
-        function (note) {
-
-          return (
-
-            "<tr>" +
-
-              '<td style="width:120px;vertical-align:top;padding:5px 18px 5px 0;font:10px Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#777;">' +
-
-                escapeHtml(
-                  note.label
-                ) +
-
-              "</td>" +
-
-              '<td style="vertical-align:top;padding:5px 0;font:16px/1.5 Garamond,Georgia,Times New Roman,serif;color:#151515;">' +
-
-                escapeHtml(
-                  note.value
-                ) +
-
-              "</td>" +
-
-            "</tr>"
-
-          );
-
-        }
-      ).join("") +
-
-    "</table>"
-
-  );
-
-}
-
-
-/* =========================================================
    EMAIL IMAGE
 ========================================================= */
 
@@ -2722,6 +2508,10 @@ function buildEmailImage(
 }
 
 
+/* =========================================================
+   IMAGE MODULE EMAIL
+========================================================= */
+
 function buildFullWidthImage(
   item
 ) {
@@ -2730,7 +2520,9 @@ function buildFullWidthImage(
     !item ||
     !item.url
   ) {
+
     return "";
+
   }
 
 
@@ -2824,7 +2616,7 @@ function buildImageRow(
 
 
 /*
- * FOUR-UP — one single row.
+ * FOUR UP = one single horizontal row.
  */
 function buildFourImageRow(
   items
@@ -2948,7 +2740,7 @@ function buildImageModuleHtml(
 
 
 /* =========================================================
-   COMPLETE NEWSLETTER
+   NEWSLETTER BUILDER
 ========================================================= */
 
 function buildNewsletterHtml() {
@@ -2986,10 +2778,10 @@ function buildNewsletterHtml() {
   const hero2Caption =
     value("hero2Caption");
 
-  const invitationTitle =
+  const inviteTitle =
     value("inviteTitle");
 
-  const invitationText =
+  const inviteText =
     value("inviteText");
 
   const ctaLabel =
@@ -3010,7 +2802,7 @@ function buildNewsletterHtml() {
 
 
   /*
-   * Hero click destinations.
+   * Hero click URLs.
    */
   const hero1Preview =
     document.getElementById(
@@ -3039,7 +2831,7 @@ function buildNewsletterHtml() {
 
 
   /*
-   * Hero HTML.
+   * Heroes.
    */
   const hero1Html =
     hero1
@@ -3062,7 +2854,7 @@ function buildNewsletterHtml() {
 
 
   /*
-   * Modular HTML.
+   * Modules.
    */
   let modulesHtml =
     "";
@@ -3088,33 +2880,29 @@ function buildNewsletterHtml() {
 
 
   if (
-    invitationTitle ||
-    invitationText ||
+    inviteTitle ||
+    inviteText ||
     ctaUrl
   ) {
 
     invitationHtml =
 
       '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:40px 0 11px;">' +
-
         "05 — AN INVITATION" +
-
       "</div>" +
 
       (
-        invitationTitle
+        inviteTitle
           ? '<div style="font:27px/1.15 Garamond,Georgia,Times New Roman,serif;margin:0 0 10px;">' +
-
               escapeHtml(
-                invitationTitle
+                inviteTitle
               ) +
-
             "</div>"
           : ""
       ) +
 
       paragraph(
-        invitationText
+        inviteText
       ) +
 
       (
@@ -3146,18 +2934,15 @@ function buildNewsletterHtml() {
       date,
       title
     ]
-      .filter(Boolean)
-      .map(
-        function (item) {
-          return escapeHtml(item);
-        }
-      )
-      .join(" · ");
+    .filter(Boolean)
+    .map(
+      function (item) {
+        return escapeHtml(item);
+      }
+    )
+    .join(" · ");
 
 
-  /*
-   * COMPLETE EMAIL.
-   */
   return (
 
     '<div style="margin:0;padding:0;background:#f4f0e8;color:#151515;">' +
@@ -3179,37 +2964,27 @@ function buildNewsletterHtml() {
                 '<td style="padding:42px 42px 20px;">' +
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:2px;">' +
-
                     "FLRS GLOBAL" +
-
                   "</div>" +
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.4px;color:#777;margin-top:8px;">' +
-
                     "FROM THE STUDIO OF FREDDIE L. RANKIN II" +
-
                   "</div>" +
 
                   '<h1 style="font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;margin:20px 0 10px;">' +
-
                     "The Pleasure Dispatch" +
-
                   "</h1>" +
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.3px;color:#777;border-bottom:1px solid #151515;padding-bottom:20px;">' +
-
                     dateLine +
-
                   "</div>" +
 
                   (
                     subtitle
                       ? '<div style="font:18px/1.45 Garamond,Georgia,Times New Roman,serif;margin-top:20px;">' +
-
                           escapeHtml(
                             subtitle
                           ) +
-
                         "</div>"
                       : ""
                   ) +
@@ -3219,7 +2994,7 @@ function buildNewsletterHtml() {
               "</tr>" +
 
               /*
-               * CONTENT
+               * BODY
                */
 
               "<tr>" +
@@ -3227,29 +3002,23 @@ function buildNewsletterHtml() {
                 '<td style="padding:0 42px;">' +
 
                   /*
-                   * Motif
+                   * Pleasure motif.
                    */
 
-                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:0 0 20px;">' +
-
-                    "◒" +
-
-                  "</div>" +
+                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:0 0 20px;">◒</div>' +
 
                   /*
-                   * Hero
+                   * Hero 01.
                    */
 
                   hero1Html +
 
                   /*
-                   * Reflection
+                   * Reflection.
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:30px 0 11px;">' +
-
                     "01 — A REFLECTION" +
-
                   "</div>" +
 
                   paragraph(
@@ -3257,13 +3026,11 @@ function buildNewsletterHtml() {
                   ) +
 
                   /*
-                   * Work
+                   * The Work.
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
-
                     "02 — THE WORK" +
-
                   "</div>" +
 
                   paragraph(
@@ -3271,19 +3038,17 @@ function buildNewsletterHtml() {
                   ) +
 
                   /*
-                   * Modules
+                   * Modular image blocks.
                    */
 
                   modulesHtml +
 
                   /*
-                   * Studio Notes
+                   * Studio Notes.
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
-
                     "03 — STUDIO NOTES" +
-
                   "</div>" +
 
                   paragraph(
@@ -3291,25 +3056,21 @@ function buildNewsletterHtml() {
                   ) +
 
                   /*
-                   * Hero 02
+                   * Hero 02.
                    */
 
                   hero2Html +
 
                   /*
-                   * Pleasure Notes
+                   * Pleasure Notes.
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
-
                     "04 — PLEASURE NOTES" +
-
                   "</div>" +
 
                   '<div style="font:19px/1.4 Garamond,Georgia,Times New Roman,serif;margin:0 0 8px;">' +
-
                     "An offering of what has held my attention." +
-
                   "</div>" +
 
                   buildPleasureNotesHtml(
@@ -3317,38 +3078,30 @@ function buildNewsletterHtml() {
                   ) +
 
                   /*
-                   * Invitation
+                   * Invitation.
                    */
 
                   invitationHtml +
 
                   /*
-                   * Question
+                   * Question.
                    */
 
                   '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">' +
-
                     "06 — A QUESTION" +
-
                   "</div>" +
 
                   '<div style="font:25px/1.35 Garamond,Georgia,Times New Roman,serif;margin:0 0 36px;">' +
-
                     escapeHtml(
                       question
                     ) +
-
                   "</div>" +
 
                   /*
-                   * Closing motif
+                   * Closing motif.
                    */
 
-                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:20px 0 32px;">' +
-
-                    "◒" +
-
-                  "</div>" +
+                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:20px 0 32px;">◒</div>' +
 
                 "</td>" +
 
@@ -3388,31 +3141,65 @@ function buildNewsletterHtml() {
 
 
 /* =========================================================
-   OUTLOOK BUILD
+   PLEASURE NOTE HTML
 ========================================================= */
 
-function buildSubject() {
+function buildPleasureNotesHtml(
+  notes
+) {
+
+  if (
+    !notes ||
+    !notes.length
+  ) {
+    return "";
+  }
+
 
   return (
 
-    "The Pleasure Dispatch — " +
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;margin:4px 0 30px;">' +
 
-    (
-      value("edition") ||
-      "No. 001"
-    ) +
+      notes.map(
+        function (note) {
 
-    ": " +
+          return (
 
-    (
-      value("title") ||
-      "A Note on Pleasure"
-    )
+            "<tr>" +
+
+              '<td style="width:120px;vertical-align:top;padding:5px 18px 5px 0;font:10px Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#777;">' +
+
+                escapeHtml(
+                  note.label
+                ) +
+
+              "</td>" +
+
+              '<td style="vertical-align:top;padding:5px 0;font:16px/1.5 Garamond,Georgia,Times New Roman,serif;color:#151515;">' +
+
+                escapeHtml(
+                  note.value
+                ) +
+
+              "</td>" +
+
+            "</tr>"
+
+          );
+
+        }
+      ).join("") +
+
+    "</table>"
 
   );
 
 }
 
+
+/* =========================================================
+   OUTLOOK BUILD
+========================================================= */
 
 function buildInOutlook() {
 
@@ -3480,6 +3267,7 @@ function buildInOutlook() {
   } catch (error) {
 
     console.error(
+      "Newsletter build error:",
       error
     );
 
@@ -3499,9 +3287,6 @@ function buildInOutlook() {
     buildSubject();
 
 
-  /*
-   * Drive-hosted images are regular HTTPS URLs.
-   */
   item.subject.setAsync(
     subject,
     function (
@@ -3561,6 +3346,29 @@ function buildInOutlook() {
       );
 
     }
+  );
+
+}
+
+
+function buildSubject() {
+
+  return (
+
+    "The Pleasure Dispatch — " +
+
+    (
+      value("edition") ||
+      "No. 001"
+    ) +
+
+    ": " +
+
+    (
+      value("title") ||
+      "A Note on Pleasure"
+    )
+
   );
 
 }
