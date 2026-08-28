@@ -1,10 +1,15 @@
 /* =========================================================
-   THE PLEASURE DISPATCH v0.7
-   Consolidated controls
+   THE PLEASURE DISPATCH
+   v0.8 — Image Compression + Reliable Outlook Build
 ========================================================= */
 
 let blockCounter = 0;
 let pleasureCounter = 0;
+
+const IMAGE_MAX_WIDTH = 1800;
+const IMAGE_MAX_HEIGHT = 1800;
+const IMAGE_QUALITY = 0.82;
+const MAX_INLINE_IMAGE_BYTES = 8 * 1024 * 1024;
 
 
 /* =========================================================
@@ -24,16 +29,10 @@ function initializeDispatch() {
   setupHero("hero1");
   setupHero("hero2");
 
-  /*
-   * Starting Pleasure Notes
-   */
   addPleasureRow("Coffee", "");
   addPleasureRow("Art", "");
   addPleasureRow("Object", "");
 
-  /*
-   * Start with one image module.
-   */
   addImageBlock();
 
   setStatus(
@@ -62,75 +61,52 @@ function setupStaticControls() {
 
 
   if (previewButton) {
-
     previewButton.addEventListener(
       "click",
       function (event) {
-
         event.preventDefault();
-
         preview();
-
       }
     );
-
   }
 
 
   if (buildButton) {
-
     buildButton.addEventListener(
       "click",
       function (event) {
-
         event.preventDefault();
-
         buildInOutlook();
-
       }
     );
-
   }
 
 
   if (addImageButton) {
-
     addImageButton.addEventListener(
       "click",
       function (event) {
-
         event.preventDefault();
-
         addImageBlock();
-
       }
     );
-
   }
 
 
   if (addPleasureButton) {
-
     addPleasureButton.addEventListener(
       "click",
       function (event) {
-
         event.preventDefault();
 
-        addPleasureRow(
-          "",
-          ""
-        );
+        addPleasureRow("", "");
 
         setStatus(
           "Pleasure Note added."
         );
-
       }
     );
-
   }
-
 }
 
 
@@ -140,20 +116,12 @@ function setupStaticControls() {
 
 function setupDelegatedControls() {
 
-
-  /*
-   * BUTTONS
-   */
-
   document.addEventListener(
     "click",
     function (event) {
 
       const button =
-        event.target.closest(
-          "button"
-        );
-
+        event.target.closest("button");
 
       if (!button) {
         return;
@@ -161,19 +129,15 @@ function setupDelegatedControls() {
 
 
       /*
-       * These are already handled
-       * by the static control listeners.
+       * Static controls already have handlers.
        */
-
       if (
         button.id === "previewBtn" ||
         button.id === "insertBtn" ||
         button.id === "addImageBlock" ||
         button.id === "addPleasure"
       ) {
-
         return;
-
       }
 
 
@@ -183,29 +147,19 @@ function setupDelegatedControls() {
       /*
        * MOVE UP
        */
-
       if (
-        button.classList.contains(
-          "move-up"
-        )
+        button.classList.contains("move-up")
       ) {
 
         const block =
-          button.closest(
-            ".image-block"
-          );
-
+          button.closest(".image-block");
 
         if (!block) {
-
           setStatus(
             "Could not find image module."
           );
-
           return;
-
         }
-
 
         moveImageBlock(
           block,
@@ -213,36 +167,25 @@ function setupDelegatedControls() {
         );
 
         return;
-
       }
 
 
       /*
        * MOVE DOWN
        */
-
       if (
-        button.classList.contains(
-          "move-down"
-        )
+        button.classList.contains("move-down")
       ) {
 
         const block =
-          button.closest(
-            ".image-block"
-          );
-
+          button.closest(".image-block");
 
         if (!block) {
-
           setStatus(
             "Could not find image module."
           );
-
           return;
-
         }
-
 
         moveImageBlock(
           block,
@@ -250,66 +193,45 @@ function setupDelegatedControls() {
         );
 
         return;
-
       }
 
 
       /*
        * DUPLICATE
        */
-
       if (
-        button.classList.contains(
-          "duplicate"
-        )
+        button.classList.contains("duplicate")
       ) {
 
         const block =
-          button.closest(
-            ".image-block"
-          );
-
+          button.closest(".image-block");
 
         if (!block) {
-
           setStatus(
             "Could not find image module."
           );
-
           return;
-
         }
 
-
-        duplicateBlock(
-          block
-        );
+        duplicateBlock(block);
 
         return;
-
       }
 
 
       /*
        * REMOVE MODULE
        */
-
       if (
-        button.classList.contains(
-          "remove"
-        )
+        button.classList.contains("remove")
       ) {
 
         const block =
-          button.closest(
-            ".image-block"
-          );
-
+          button.closest(".image-block");
 
         if (!block) {
           return;
         }
-
 
         block.remove();
 
@@ -320,54 +242,38 @@ function setupDelegatedControls() {
         );
 
         return;
-
       }
 
 
       /*
-       * REMOVE INDIVIDUAL IMAGE
+       * REMOVE IMAGE
        */
-
       if (
-        button.classList.contains(
-          "remove-image"
-        )
+        button.classList.contains("remove-image")
       ) {
 
         removeImageItem(
-          button.closest(
-            ".image-item"
-          )
+          button.closest(".image-item")
         );
 
         return;
-
       }
 
 
       /*
        * IMAGE URL BUTTON
        */
-
       if (
-        button.classList.contains(
-          "url-item"
-        )
+        button.classList.contains("url-item")
       ) {
 
         const item =
-          button.closest(
-            ".image-item"
-          );
-
+          button.closest(".image-item");
 
         if (item) {
 
           const input =
-            item.querySelector(
-              ".module-url"
-            );
-
+            item.querySelector(".module-url");
 
           if (input) {
 
@@ -382,36 +288,27 @@ function setupDelegatedControls() {
         }
 
         return;
-
       }
 
 
       /*
-       * HERO IMAGE URL BUTTONS
+       * HERO URL BUTTON
        */
-
       if (
         button.dataset.url
       ) {
 
-        const key =
-          button.dataset.url;
-
-
         const input =
           document.getElementById(
-            key + "Url"
+            button.dataset.url + "Url"
           );
 
-
         if (input) {
-
           input.focus();
 
           setStatus(
             "Paste a direct HTTPS image URL."
           );
-
         }
 
       }
@@ -421,17 +318,11 @@ function setupDelegatedControls() {
 
 
   /*
-   * SELECT / FILE INPUTS
+   * SELECT + FILE INPUTS
    */
-
   document.addEventListener(
     "change",
     function (event) {
-
-
-      /*
-       * IMAGE LAYOUT
-       */
 
       const layout =
         event.target.closest(
@@ -446,26 +337,21 @@ function setupDelegatedControls() {
             ".image-block"
           );
 
-
         if (!block) {
           return;
         }
 
-
         block.dataset.layout =
           layout.value;
-
 
         syncImageInputs(
           block
         );
 
-
         const selected =
           layout.options[
             layout.selectedIndex
           ];
-
 
         setStatus(
           "Layout changed to " +
@@ -473,15 +359,9 @@ function setupDelegatedControls() {
           "."
         );
 
-
         return;
-
       }
 
-
-      /*
-       * FILE UPLOAD
-       */
 
       if (
         event.target.matches(
@@ -500,17 +380,11 @@ function setupDelegatedControls() {
 
 
   /*
-   * TEXT / URL INPUTS
+   * URL INPUTS
    */
-
   document.addEventListener(
     "input",
     function (event) {
-
-
-      /*
-       * HERO 01
-       */
 
       if (
         event.target.id ===
@@ -523,13 +397,8 @@ function setupDelegatedControls() {
         );
 
         return;
-
       }
 
-
-      /*
-       * HERO 02
-       */
 
       if (
         event.target.id ===
@@ -542,13 +411,8 @@ function setupDelegatedControls() {
         );
 
         return;
-
       }
 
-
-      /*
-       * MODULE IMAGE
-       */
 
       if (
         event.target.classList.contains(
@@ -560,7 +424,6 @@ function setupDelegatedControls() {
           event.target.closest(
             ".image-item"
           );
-
 
         if (item) {
 
@@ -575,12 +438,11 @@ function setupDelegatedControls() {
 
     }
   );
-
 }
 
 
 /* =========================================================
-   HELPERS
+   BASIC HELPERS
 ========================================================= */
 
 function value(id) {
@@ -588,14 +450,9 @@ function value(id) {
   const element =
     document.getElementById(id);
 
-
-  if (!element) {
-    return "";
-  }
-
-
-  return element.value.trim();
-
+  return element
+    ? element.value.trim()
+    : "";
 }
 
 
@@ -622,9 +479,7 @@ function escapeHtml(text) {
 
 
 function escapeAttribute(text) {
-
   return escapeHtml(text);
-
 }
 
 
@@ -634,45 +489,406 @@ function paragraph(text) {
     return "";
   }
 
-
   return (
     '<p style="' +
-
-    "font:17px/1.7 Garamond,Georgia,Times New Roman,serif;" +
-
-    "margin:0 0 24px;" +
-
-    "color:#151515;" +
-
+      "font:17px/1.7 Garamond,Georgia,Times New Roman,serif;" +
+      "margin:0 0 24px;" +
+      "color:#151515;" +
     '">' +
 
-    escapeHtml(
-      text
-    ).replace(
-      /\n/g,
-      "<br>"
-    ) +
+      escapeHtml(
+        text
+      ).replace(
+        /\n/g,
+        "<br>"
+      ) +
 
     "</p>"
   );
-
 }
 
 
 function setStatus(message) {
 
   const status =
-    document.getElementById(
-      "status"
+    document.getElementById("status");
+
+  if (status) {
+    status.textContent =
+      message;
+  }
+
+}
+
+
+/* =========================================================
+   DESKTOP IMAGE COMPRESSION
+========================================================= */
+
+function compressImage(
+  file,
+  callback
+) {
+
+  if (
+    !file ||
+    !file.type ||
+    !file.type.match(
+      /^image\/(jpeg|png|webp)$/
+    )
+  ) {
+
+    callback(
+      null,
+      new Error(
+        "Please choose a JPG, PNG, or WebP image."
+      )
+    );
+
+    return;
+  }
+
+
+  setStatus(
+    "Preparing image…"
+  );
+
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload =
+    function () {
+
+      const image =
+        new Image();
+
+
+      image.onload =
+        function () {
+
+          let width =
+            image.naturalWidth;
+
+          let height =
+            image.naturalHeight;
+
+
+          /*
+           * Scale down large camera images.
+           */
+          const scale =
+            Math.min(
+              1,
+              IMAGE_MAX_WIDTH / width,
+              IMAGE_MAX_HEIGHT / height
+            );
+
+
+          width =
+            Math.round(
+              width * scale
+            );
+
+          height =
+            Math.round(
+              height * scale
+            );
+
+
+          const canvas =
+            document.createElement(
+              "canvas"
+            );
+
+
+          canvas.width =
+            width;
+
+          canvas.height =
+            height;
+
+
+          const context =
+            canvas.getContext(
+              "2d"
+            );
+
+
+          context.drawImage(
+            image,
+            0,
+            0,
+            width,
+            height
+          );
+
+
+          /*
+           * JPEG is much more efficient for
+           * photographic material.
+           */
+          const outputType =
+            "image/jpeg";
+
+
+          canvas.toBlob(
+            function (blob) {
+
+              if (!blob) {
+
+                callback(
+                  null,
+                  new Error(
+                    "The image could not be compressed."
+                  )
+                );
+
+                return;
+              }
+
+
+              /*
+               * Keep quality conservative.
+               * If still oversized, progressively
+               * reduce quality.
+               */
+              compressBlobToLimit(
+                blob,
+                function (finalBlob) {
+
+                  blobToDataUrl(
+                    finalBlob,
+                    function (dataUrl) {
+
+                      callback(
+                        {
+                          blob:
+                            finalBlob,
+
+                          dataUrl:
+                            dataUrl,
+
+                          width:
+                            width,
+
+                          height:
+                            height
+                        },
+                        null
+                      );
+
+                    }
+                  );
+
+                }
+              );
+
+            },
+            outputType,
+            IMAGE_QUALITY
+          );
+
+        };
+
+
+      image.onerror =
+        function () {
+
+          callback(
+            null,
+            new Error(
+              "The image could not be decoded."
+            )
+          );
+
+        };
+
+
+      image.src =
+        reader.result;
+
+    };
+
+
+  reader.onerror =
+    function () {
+
+      callback(
+        null,
+        new Error(
+          "The selected image could not be read."
+        )
+      );
+
+    };
+
+
+  reader.readAsDataURL(
+    file
+  );
+
+}
+
+
+function compressBlobToLimit(
+  blob,
+  callback
+) {
+
+  /*
+   * Most normal photographs should
+   * already be below this threshold.
+   */
+  if (
+    blob.size <=
+    MAX_INLINE_IMAGE_BYTES
+  ) {
+
+    callback(
+      blob
+    );
+
+    return;
+  }
+
+
+  const image =
+    new Image();
+
+
+  const objectUrl =
+    URL.createObjectURL(
+      blob
     );
 
 
-  if (status) {
+  image.onload =
+    function () {
 
-    status.textContent =
-      message;
+      URL.revokeObjectURL(
+        objectUrl
+      );
 
-  }
+
+      const canvas =
+        document.createElement(
+          "canvas"
+        );
+
+
+      canvas.width =
+        Math.round(
+          image.naturalWidth *
+          0.75
+        );
+
+      canvas.height =
+        Math.round(
+          image.naturalHeight *
+          0.75
+        );
+
+
+      const context =
+        canvas.getContext(
+          "2d"
+        );
+
+
+      context.drawImage(
+        image,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+
+      canvas.toBlob(
+        function (smallerBlob) {
+
+          if (
+            !smallerBlob
+          ) {
+
+            callback(
+              blob
+            );
+
+            return;
+          }
+
+
+          if (
+            smallerBlob.size <
+            blob.size
+          ) {
+
+            compressBlobToLimit(
+              smallerBlob,
+              callback
+            );
+
+          } else {
+
+            callback(
+              blob
+            );
+
+          }
+
+        },
+        "image/jpeg",
+        0.72
+      );
+
+    };
+
+
+  image.onerror =
+    function () {
+
+      URL.revokeObjectURL(
+        objectUrl
+      );
+
+      callback(
+        blob
+      );
+
+    };
+
+
+  image.src =
+    objectUrl;
+
+}
+
+
+function blobToDataUrl(
+  blob,
+  callback
+) {
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload =
+    function () {
+
+      callback(
+        reader.result
+      );
+
+    };
+
+
+  reader.readAsDataURL(
+    blob
+  );
 
 }
 
@@ -681,13 +897,14 @@ function setStatus(message) {
    HERO IMAGES
 ========================================================= */
 
-function setupHero(key) {
+function setupHero(
+  key
+) {
 
   const fileInput =
     document.getElementById(
       key + "File"
     );
-
 
   const urlInput =
     document.getElementById(
@@ -705,34 +922,39 @@ function setupHero(key) {
           event.target.files &&
           event.target.files[0];
 
-
         if (!file) {
           return;
         }
 
 
-        handleLocalImage(
+        compressImage(
           file,
-          function (dataUrl) {
+          function (result, error) {
 
-            if (urlInput) {
+            if (error) {
 
-              urlInput.value =
-                dataUrl;
+              setStatus(
+                error.message
+              );
 
+              return;
             }
+
+
+            urlInput.value =
+              result.dataUrl;
 
 
             renderHeroPreview(
               key,
-              dataUrl
+              result.dataUrl
             );
 
 
             setStatus(
               key === "hero1"
-                ? "Hero Image 01 loaded."
-                : "Hero Image 02 loaded."
+                ? "Hero Image 01 optimized and ready."
+                : "Hero Image 02 optimized and ready."
             );
 
           }
@@ -759,58 +981,6 @@ function setupHero(key) {
     );
 
   }
-
-}
-
-
-function handleLocalImage(
-  file,
-  callback
-) {
-
-  if (
-    !file.type ||
-    !file.type.match(
-      /^image\/(jpeg|png|webp)$/
-    )
-  ) {
-
-    setStatus(
-      "Please choose a JPG, PNG, or WebP image."
-    );
-
-    return;
-
-  }
-
-
-  const reader =
-    new FileReader();
-
-
-  reader.onload =
-    function () {
-
-      callback(
-        reader.result
-      );
-
-    };
-
-
-  reader.onerror =
-    function () {
-
-      setStatus(
-        "The image could not be read."
-      );
-
-    };
-
-
-  reader.readAsDataURL(
-    file
-  );
 
 }
 
@@ -872,7 +1042,7 @@ function renderHeroPreview(
         "preview hero-preview error";
 
       box.textContent =
-        "This image could not be loaded. Please use a direct HTTPS image URL.";
+        "This image could not be loaded.";
 
     };
 
@@ -884,7 +1054,7 @@ function renderHeroPreview(
 
 
 /* =========================================================
-   FILE INPUTS
+   MODULAR IMAGE UPLOAD
 ========================================================= */
 
 function handleFileInput(
@@ -902,99 +1072,98 @@ function handleFileInput(
 
 
   /*
-   * HERO 01
+   * Hero 01
    */
-
   if (
     input.id ===
     "hero1File"
   ) {
 
-    handleLocalImage(
+    compressImage(
       file,
-      function (dataUrl) {
+      function (result, error) {
 
-        const url =
-          document.getElementById(
-            "hero1Url"
+        if (error) {
+
+          setStatus(
+            error.message
           );
 
-
-        if (url) {
-
-          url.value =
-            dataUrl;
-
+          return;
         }
+
+
+        document.getElementById(
+          "hero1Url"
+        ).value =
+          result.dataUrl;
 
 
         renderHeroPreview(
           "hero1",
-          dataUrl
+          result.dataUrl
         );
 
 
         setStatus(
-          "Hero Image 01 loaded."
+          "Hero Image 01 optimized and ready."
         );
 
       }
     );
 
     return;
-
   }
 
 
   /*
-   * HERO 02
+   * Hero 02
    */
-
   if (
     input.id ===
     "hero2File"
   ) {
 
-    handleLocalImage(
+    compressImage(
       file,
-      function (dataUrl) {
+      function (result, error) {
 
-        const url =
-          document.getElementById(
-            "hero2Url"
+        if (error) {
+
+          setStatus(
+            error.message
           );
 
-
-        if (url) {
-
-          url.value =
-            dataUrl;
-
+          return;
         }
+
+
+        document.getElementById(
+          "hero2Url"
+        ).value =
+          result.dataUrl;
 
 
         renderHeroPreview(
           "hero2",
-          dataUrl
+          result.dataUrl
         );
 
 
         setStatus(
-          "Hero Image 02 loaded."
+          "Hero Image 02 optimized and ready."
         );
 
       }
     );
 
     return;
-
   }
 
 
   /*
-   * MODULAR IMAGE
+   * Modular image
    */
-
   const item =
     input.closest(
       ".image-item"
@@ -1006,9 +1175,19 @@ function handleFileInput(
   }
 
 
-  handleLocalImage(
+  compressImage(
     file,
-    function (dataUrl) {
+    function (result, error) {
+
+      if (error) {
+
+        setStatus(
+          error.message
+        );
+
+        return;
+      }
+
 
       const url =
         item.querySelector(
@@ -1019,23 +1198,91 @@ function handleFileInput(
       if (url) {
 
         url.value =
-          dataUrl;
+          result.dataUrl;
 
       }
 
 
       renderModulePreview(
         item,
-        dataUrl
+        result.dataUrl
       );
 
 
       setStatus(
-        "Image loaded into module."
+        "Image optimized and loaded into module."
       );
 
     }
   );
+
+}
+
+
+function renderModulePreview(
+  item,
+  url
+) {
+
+  const preview =
+    item.querySelector(
+      ".module-preview"
+    );
+
+
+  if (!preview) {
+    return;
+  }
+
+
+  if (!url) {
+
+    preview.className =
+      "preview module-preview empty";
+
+    preview.textContent =
+      "No image selected";
+
+    return;
+
+  }
+
+
+  preview.className =
+    "preview module-preview";
+
+  preview.innerHTML =
+    "";
+
+
+  const image =
+    new Image();
+
+
+  image.onload =
+    function () {
+
+      preview.appendChild(
+        image
+      );
+
+    };
+
+
+  image.onerror =
+    function () {
+
+      preview.className =
+        "preview module-preview error";
+
+      preview.textContent =
+        "Image could not be loaded.";
+
+    };
+
+
+  image.src =
+    url;
 
 }
 
@@ -1072,6 +1319,7 @@ function addPleasureRow(
   row.className =
     "pleasure-row";
 
+
   row.dataset.id =
     String(
       pleasureCounter
@@ -1080,16 +1328,16 @@ function addPleasureRow(
 
   row.innerHTML =
     '<input class="pleasure-label" value="' +
-    escapeAttribute(
-      labelValue || ""
-    ) +
-    '" placeholder="Category">' +
+      escapeAttribute(
+        labelValue || ""
+      ) +
+      '" placeholder="Category">' +
 
     '<input class="pleasure-value" value="' +
-    escapeAttribute(
-      noteValue || ""
-    ) +
-    '" placeholder="What has held your attention?">' +
+      escapeAttribute(
+        noteValue || ""
+      ) +
+      '" placeholder="What has held your attention?">' +
 
     '<button type="button" aria-label="Remove pleasure note">×</button>';
 
@@ -1193,38 +1441,24 @@ function buildPleasureNotesHtml(
 
           "<tr>" +
 
-          '<td style="' +
+            '<td style="width:120px;vertical-align:top;padding:5px 18px 5px 0;' +
+            'font:10px Arial,Helvetica,sans-serif;letter-spacing:1px;' +
+            'text-transform:uppercase;color:#777;">' +
 
-          "width:120px;" +
-          "vertical-align:top;" +
-          "padding:5px 18px 5px 0;" +
-          "font:10px Arial,Helvetica,sans-serif;" +
-          "letter-spacing:1px;" +
-          "text-transform:uppercase;" +
-          "color:#777;" +
+              escapeHtml(
+                note.label
+              ) +
 
-          '">' +
+            "</td>" +
 
-          escapeHtml(
-            note.label
-          ) +
+            '<td style="vertical-align:top;padding:5px 0;' +
+            'font:16px/1.5 Garamond,Georgia,Times New Roman,serif;color:#151515;">' +
 
-          "</td>" +
+              escapeHtml(
+                note.value
+              ) +
 
-          '<td style="' +
-
-          "vertical-align:top;" +
-          "padding:5px 0;" +
-          "font:16px/1.5 Garamond,Georgia,Times New Roman,serif;" +
-          "color:#151515;" +
-
-          '">' +
-
-          escapeHtml(
-            note.value
-          ) +
-
-          "</td>" +
+            "</td>" +
 
           "</tr>"
 
@@ -1269,10 +1503,12 @@ function addImageBlock() {
   block.className =
     "image-block";
 
+
   block.dataset.id =
     String(
       blockCounter
     );
+
 
   block.dataset.layout =
     "full";
@@ -1360,42 +1596,38 @@ function getImageBlocks() {
 
 function renumberImageBlocks() {
 
-  const blocks =
-    getImageBlocks();
+  getImageBlocks()
+    .forEach(
+      function (
+        block,
+        index
+      ) {
+
+        const number =
+          block.querySelector(
+            ".block-number"
+          );
 
 
-  blocks.forEach(
-    function (block, index) {
+        if (number) {
 
-      const number =
-        block.querySelector(
-          ".block-number"
-        );
+          number.textContent =
+            "Image Module " +
+            (index + 1);
+
+        }
 
 
-      if (number) {
-
-        number.textContent =
-          "Image Module " +
-          (index + 1);
+        block.dataset.position =
+          String(
+            index + 1
+          );
 
       }
-
-
-      block.dataset.position =
-        String(
-          index + 1
-        );
-
-    }
-  );
+    );
 
 }
 
-
-/* =========================================================
-   MOVE
-========================================================= */
 
 function moveImageBlock(
   block,
@@ -1432,7 +1664,9 @@ function moveImageBlock(
     );
 
 
-  if (index === -1) {
+  if (
+    index === -1
+  ) {
 
     setStatus(
       "Unable to find image module."
@@ -1446,10 +1680,6 @@ function moveImageBlock(
   const targetIndex =
     index + direction;
 
-
-  /*
-   * Already at edge.
-   */
 
   if (
     targetIndex < 0 ||
@@ -1501,10 +1731,6 @@ function moveImageBlock(
 }
 
 
-/* =========================================================
-   LAYOUT
-========================================================= */
-
 function syncImageInputs(
   block
 ) {
@@ -1514,20 +1740,30 @@ function syncImageInputs(
     "full";
 
 
-  let count = 1;
+  let count =
+    1;
 
 
-  if (layout === "two") {
+  if (
+    layout ===
+    "two"
+  ) {
     count = 2;
   }
 
 
-  if (layout === "three") {
+  if (
+    layout ===
+    "three"
+  ) {
     count = 3;
   }
 
 
-  if (layout === "four") {
+  if (
+    layout ===
+    "four"
+  ) {
     count = 4;
   }
 
@@ -1546,7 +1782,8 @@ function syncImageInputs(
   wrap.className =
     "image-items " +
     (
-      layout === "full"
+      layout ===
+      "full"
         ? "one"
         : layout
     );
@@ -1582,10 +1819,6 @@ function syncImageInputs(
 
 }
 
-
-/* =========================================================
-   IMAGE ITEMS
-========================================================= */
 
 function addImageItem(
   wrap,
@@ -1624,7 +1857,8 @@ function addImageItem(
 
     '<input class="module-url source-url" value="' +
       escapeAttribute(
-        preset.url || ""
+        preset.url ||
+        ""
       ) +
       '" placeholder="Paste direct image URL">' +
 
@@ -1634,7 +1868,8 @@ function addImageItem(
 
     '<input class="module-caption" value="' +
       escapeAttribute(
-        preset.caption || ""
+        preset.caption ||
+        ""
       ) +
       '" placeholder="Caption">' +
 
@@ -1662,74 +1897,6 @@ function addImageItem(
 }
 
 
-function renderModulePreview(
-  item,
-  url
-) {
-
-  const preview =
-    item.querySelector(
-      ".module-preview"
-    );
-
-
-  if (!preview) {
-    return;
-  }
-
-
-  if (!url) {
-
-    preview.className =
-      "preview module-preview empty";
-
-    preview.textContent =
-      "No image selected";
-
-    return;
-
-  }
-
-
-  preview.className =
-    "preview module-preview";
-
-  preview.innerHTML =
-    "";
-
-
-  const image =
-    new Image();
-
-
-  image.onload =
-    function () {
-
-      preview.appendChild(
-        image
-      );
-
-    };
-
-
-  image.onerror =
-    function () {
-
-      preview.className =
-        "preview module-preview error";
-
-      preview.textContent =
-        "Image could not be loaded. Please use a direct HTTPS image URL.";
-
-    };
-
-
-  image.src =
-    url;
-
-}
-
-
 function renumberImageItems(
   wrap
 ) {
@@ -1737,7 +1904,10 @@ function renumberImageItems(
   Array.from(
     wrap.children
   ).forEach(
-    function (item, index) {
+    function (
+      item,
+      index
+    ) {
 
       const label =
         item.querySelector(
@@ -1772,7 +1942,9 @@ function removeImageItem(
     item.parentElement;
 
 
-  if (!wrap) {
+  if (
+    !wrap
+  ) {
 
     item.remove();
 
@@ -1780,11 +1952,6 @@ function removeImageItem(
 
   }
 
-
-  /*
-   * Don't allow an image module
-   * to become completely empty.
-   */
 
   if (
     wrap.children.length ===
@@ -1822,7 +1989,6 @@ function removeImageItem(
     setStatus(
       "Image removed."
     );
-
 
     return;
 
@@ -1867,7 +2033,8 @@ function duplicateBlock(
       block.querySelectorAll(
         ".image-item"
       )
-    ).map(
+    )
+    .map(
       function (item) {
 
         const url =
@@ -1976,23 +2143,27 @@ function duplicateBlock(
     );
 
 
-  const count =
-    layout === "full"
-      ? 1
-      : layout === "two"
-        ? 2
-        : layout === "three"
-          ? 3
-          : 4;
-
-
   wrap.className =
     "image-items " +
     (
-      layout === "full"
+      layout ===
+      "full"
         ? "one"
         : layout
     );
+
+
+  const count =
+    layout ===
+    "full"
+      ? 1
+      : layout ===
+        "two"
+          ? 2
+          : layout ===
+            "three"
+              ? 3
+              : 4;
 
 
   for (
@@ -2004,7 +2175,8 @@ function duplicateBlock(
     addImageItem(
       wrap,
       i + 1,
-      sourceItems[i] || {}
+      sourceItems[i] ||
+      {}
     );
 
   }
@@ -2033,7 +2205,7 @@ function duplicateBlock(
 
 
 /* =========================================================
-   COLLECT IMAGE MODULES
+   COLLECT MODULES
 ========================================================= */
 
 function collectImageBlocks() {
@@ -2053,7 +2225,8 @@ function collectImageBlocks() {
               block.querySelectorAll(
                 ".image-item"
               )
-            ).map(
+            )
+            .map(
               function (item) {
 
                 const url =
@@ -2083,7 +2256,8 @@ function collectImageBlocks() {
                 };
 
               }
-            ).filter(
+            )
+            .filter(
               function (item) {
 
                 return (
@@ -2112,7 +2286,7 @@ function collectImageBlocks() {
 
 
 /* =========================================================
-   EMAIL IMAGE BLOCKS
+   EMAIL IMAGE BUILDERS
 ========================================================= */
 
 function buildFullWidthImage(
@@ -2123,16 +2297,13 @@ function buildFullWidthImage(
     !item ||
     !item.url
   ) {
-
     return "";
-
   }
 
 
   return (
 
     '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" ' +
-
     'style="border-collapse:collapse;margin:30px 0;">' +
 
       "<tr>" +
@@ -2181,7 +2352,8 @@ function buildImageRow(
 
   const width =
     Math.floor(
-      100 / columns
+      100 /
+      columns
     );
 
 
@@ -2193,7 +2365,9 @@ function buildImageRow(
 
           '<td width="' +
           width +
-          '%" valign="top" style="padding:3px;vertical-align:top;">' +
+          '%" valign="top" style="width:' +
+          width +
+          '%;padding:3px;vertical-align:top;">' +
 
             (
               item.url
@@ -2226,8 +2400,7 @@ function buildImageRow(
   return (
 
     '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" ' +
-
-    'style="border-collapse:collapse;margin:28px 0;table-layout:fixed;">' +
+    'style="border-collapse:collapse;table-layout:fixed;margin:28px 0;">' +
 
       "<tr>" +
 
@@ -2242,6 +2415,13 @@ function buildImageRow(
 }
 
 
+/*
+ * Four Up ALWAYS means:
+ *
+ * [ IMG 1 ] [ IMG 2 ] [ IMG 3 ] [ IMG 4 ]
+ *
+ * one single horizontal row.
+ */
 function buildFourImageRow(
   items
 ) {
@@ -2292,13 +2472,10 @@ function buildFourImageRow(
   return (
 
     '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" ' +
-
     'style="border-collapse:collapse;table-layout:fixed;margin:28px 0;">' +
 
       "<tr>" +
-
         cells +
-
       "</tr>" +
 
     "</table>"
@@ -2379,280 +2556,235 @@ function buildImageModuleHtml(
 
 
 /* =========================================================
-   NEWSLETTER HTML
+   CONVERT DESKTOP DATA URLS TO INLINE CID IMAGES
 ========================================================= */
 
-function buildNewsletterHtml() {
+function findInlineDataUrls(
+  html
+) {
 
-  const edition =
-    value("edition");
-
-  const date =
-    value("date");
-
-  const title =
-    value("title");
-
-  const subtitle =
-    value("subtitle");
+  const regex =
+    /data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+/g;
 
 
-  const hero1 =
-    value("hero1Url");
-
-  const hero2 =
-    value("hero2Url");
-
-
-  const hero1Caption =
-    value("hero1Caption");
-
-  const hero2Caption =
-    value("hero2Caption");
+  const matches =
+    html.match(
+      regex
+    ) || [];
 
 
-  const notes =
-    collectPleasureNotes();
+  /*
+   * Preserve order and remove duplicates.
+   */
+  return matches.filter(
+    function (
+      url,
+      index,
+      array
+    ) {
+
+      return (
+        array.indexOf(url) ===
+        index
+      );
+
+    }
+  );
+
+}
 
 
-  const blocks =
-    collectImageBlocks();
+function parseDataUrl(
+  dataUrl
+) {
+
+  const match =
+    dataUrl.match(
+      /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
+    );
 
 
-  const hero1Html =
-    hero1
-      ? '<img src="' +
-        escapeAttribute(
-          hero1
-        ) +
-        '" alt="" style="display:block;width:100%;height:auto;border:0;margin:0 0 10px;">' +
-
-        (
-          hero1Caption
-            ? '<div style="font:12px/1.45 Arial,Helvetica,sans-serif;color:#777;margin:0 0 32px;">' +
-              escapeHtml(
-                hero1Caption
-              ) +
-              "</div>"
-            : ""
-        )
-      : "";
+  if (!match) {
+    return null;
+  }
 
 
-  const hero2Html =
-    hero2
-      ? '<img src="' +
-        escapeAttribute(
-          hero2
-        ) +
-        '" alt="" style="display:block;width:100%;height:auto;border:0;margin:0 0 10px;">' +
+  return {
 
-        (
-          hero2Caption
-            ? '<div style="font:12px/1.45 Arial,Helvetica,sans-serif;color:#777;margin:0 0 32px;">' +
-              escapeHtml(
-                hero2Caption
-              ) +
-              "</div>"
-            : ""
-        )
-      : "";
+    mimeType:
+      match[1],
+
+    base64:
+      match[2]
+
+  };
+
+}
 
 
-  let invitationHtml =
-    "";
+function getImageExtension(
+  mimeType
+) {
 
-
-  if (
-    value("inviteTitle") ||
-    value("inviteText") ||
-    value("ctaUrl")
+  switch (
+    mimeType.toLowerCase()
   ) {
 
-    invitationHtml =
+    case "image/png":
+      return "png";
 
-      '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:40px 0 11px;">' +
+    case "image/webp":
+      return "webp";
 
-        "05 — AN INVITATION" +
+    case "image/jpeg":
+    case "image/jpg":
+    default:
+      return "jpg";
 
-      "</div>" +
+  }
 
-      (
-        value("inviteTitle")
-          ? '<div style="font:27px/1.15 Garamond,Georgia,Times New Roman,serif;margin:0 0 10px;">' +
-            escapeHtml(
-              value("inviteTitle")
-            ) +
-            "</div>"
-          : ""
-      ) +
+}
 
-      paragraph(
-        value("inviteText")
-      ) +
 
-      (
-        value("ctaUrl")
-          ? '<div style="padding:0 0 25px;">' +
+/*
+ * Outlook's documented inline attachment
+ * pattern uses the filename as the CID:
+ *
+ * <img src="cid:sample.png">
+ */
+function addInlineImages(
+  item,
+  html,
+  dataUrls,
+  index,
+  completed
+) {
 
-            '<a href="' +
-            escapeAttribute(
-              value("ctaUrl")
-            ) +
-            '" style="display:inline-block;background:#151515;color:#fff;text-decoration:none;padding:12px 18px;font:10px Arial,Helvetica,sans-serif;letter-spacing:1.2px;">' +
+  if (
+    index >=
+    dataUrls.length
+  ) {
 
-            escapeHtml(
-              value("ctaLabel") ||
-              "INQUIRE"
-            ) +
+    completed(
+      null,
+      html
+    );
 
-            "</a>" +
-
-          "</div>"
-          : ""
-      );
+    return;
 
   }
 
 
-  const dateLine =
-    [edition, date, title]
-      .filter(Boolean)
-      .map(escapeHtml)
-      .join(" · ");
+  const dataUrl =
+    dataUrls[index];
 
 
-  return (
+  const parsed =
+    parseDataUrl(
+      dataUrl
+    );
 
-    '<div style="margin:0;padding:0;background:#f4f0e8;color:#151515;">' +
 
-      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;background:#f4f0e8;">' +
+  if (!parsed) {
 
-        "<tr>" +
+    addInlineImages(
+      item,
+      html,
+      dataUrls,
+      index + 1,
+      completed
+    );
 
-          '<td align="center" style="padding:28px 12px;">' +
+    return;
 
-            '<table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;max-width:680px;background:#fffdf8;">' +
+  }
 
-              "<tr>" +
 
-                '<td style="padding:42px 42px 20px;">' +
+  const extension =
+    getImageExtension(
+      parsed.mimeType
+    );
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:2px;">FLRS GLOBAL</div>' +
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.4px;color:#777;margin-top:8px;">FROM THE STUDIO OF FREDDIE L. RANKIN II</div>' +
+  const attachmentName =
+    "pleasure-dispatch-image-" +
+    (index + 1) +
+    "-" +
+    Date.now() +
+    "." +
+    extension;
 
-                  '<h1 style="font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;margin:20px 0 10px;">The Pleasure Dispatch</h1>' +
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.3px;color:#777;border-bottom:1px solid #151515;padding-bottom:20px;">' +
+  setStatus(
+    "Embedding image " +
+    (index + 1) +
+    " of " +
+    dataUrls.length +
+    " in Outlook…"
+  );
 
-                    dateLine +
 
-                  "</div>" +
+  item.addFileAttachmentFromBase64Async(
+    parsed.base64,
+    attachmentName,
+    {
+      isInline: true
+    },
+    function (result) {
 
-                  (
-                    subtitle
-                      ? '<div style="font:18px/1.45 Garamond,Georgia,Times New Roman,serif;margin-top:20px;">' +
-                        escapeHtml(
-                          subtitle
-                        ) +
-                        "</div>"
-                      : ""
-                  ) +
+      if (
+        result.status ===
+        Office.AsyncResultStatus.Failed
+      ) {
 
-                "</td>" +
+        completed(
+          new Error(
+            "Outlook could not embed image " +
+            (index + 1) +
+            ": " +
+            (
+              result.error
+                ? result.error.message
+                : "Unknown attachment error."
+            )
+          ),
+          null
+        );
 
-              "</tr>" +
+        return;
 
-              "<tr>" +
+      }
 
-                '<td style="padding:0 42px;">' +
 
-                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:0 0 20px;">◒</div>' +
+      /*
+       * Replace the Base64 data URL with
+       * the inline attachment CID.
+       */
+      html =
+        html.split(
+          dataUrl
+        ).join(
+          "cid:" +
+          attachmentName
+        );
 
-                  hero1Html +
 
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:30px 0 11px;">01 — A REFLECTION</div>' +
+      addInlineImages(
+        item,
+        html,
+        dataUrls,
+        index + 1,
+        completed
+      );
 
-                  paragraph(
-                    value("reflection")
-                  ) +
-
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">02 — THE WORK</div>' +
-
-                  paragraph(
-                    value("workText")
-                  ) +
-
-                  blocks
-                    .map(function (block) {
-                      return buildImageModuleHtml(
-                        block
-                      );
-                    })
-                    .join("") +
-
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">03 — STUDIO NOTES</div>' +
-
-                  paragraph(
-                    value("studioText")
-                  ) +
-
-                  hero2Html +
-
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">04 — PLEASURE NOTES</div>' +
-
-                  '<div style="font:19px/1.4 Garamond,Georgia,Times New Roman,serif;margin:0 0 8px;">An offering of what has held my attention.</div>' +
-
-                  buildPleasureNotesHtml(
-                    notes
-                  ) +
-
-                  invitationHtml +
-
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#777;margin:38px 0 11px;">06 — A QUESTION</div>' +
-
-                  '<div style="font:25px/1.35 Garamond,Georgia,Times New Roman,serif;margin:0 0 36px;">' +
-
-                    escapeHtml(
-                      value("question")
-                    ) +
-
-                  "</div>" +
-
-                  '<div style="text-align:center;font:27px Garamond,Georgia,serif;margin:20px 0 32px;">◒</div>' +
-
-                "</td>" +
-
-              "</tr>" +
-
-              '<tr>' +
-
-                '<td style="padding:18px 42px 34px;border-top:1px solid #151515;">' +
-
-                  '<div style="font:10px Arial,Helvetica,sans-serif;letter-spacing:1.1px;color:#777;">THE PLEASURE DISPATCH · BY FLRS GLOBAL</div>' +
-
-                "</td>" +
-
-              "</tr>" +
-
-            "</table>" +
-
-          "</td>" +
-
-        "</tr>" +
-
-      "</table>" +
-
-    "</div>"
-
+    }
   );
 
 }
 
 
 /* =========================================================
-   OUTLOOK
+   BUILD IN OUTLOOK
 ========================================================= */
 
 function buildSubject() {
@@ -2681,22 +2813,20 @@ function buildSubject() {
 function buildInOutlook() {
 
   setStatus(
-    "Building The Pleasure Dispatch in Outlook…"
+    "Preparing The Pleasure Dispatch…"
   );
 
 
   /*
-   * Make sure Office.js is actually
-   * available.
+   * Confirm Office.js.
    */
-
   if (
     typeof Office ===
     "undefined"
   ) {
 
     setStatus(
-      "Office.js is not available. Reload the Outlook add-in."
+      "Office.js is not available. Reload the add-in."
     );
 
     return;
@@ -2704,6 +2834,9 @@ function buildInOutlook() {
   }
 
 
+  /*
+   * Confirm compose context.
+   */
   if (
     !Office.context ||
     !Office.context.mailbox ||
@@ -2725,6 +2858,8 @@ function buildInOutlook() {
 
   if (
     !item.body ||
+    typeof item.body.getAsync !==
+      "function" ||
     typeof item.body.setAsync !==
       "function"
   ) {
@@ -2738,17 +2873,156 @@ function buildInOutlook() {
   }
 
 
+  /*
+   * Build the HTML.
+   */
+  let html;
+
+  try {
+
+    html =
+      buildNewsletterHtml();
+
+  } catch (error) {
+
+    setStatus(
+      "Newsletter build error: " +
+      error.message
+    );
+
+    return;
+
+  }
+
+
   const subject =
     buildSubject();
 
 
-  const html =
-    buildNewsletterHtml();
-
-
   /*
-   * Set subject.
+   * IMPORTANT:
+   *
+   * Microsoft recommends getting the current body
+   * before inserting Base64 inline images.
    */
+  item.body.getAsync(
+    Office.CoercionType.Html,
+    function (bodyResult) {
+
+      if (
+        bodyResult &&
+        bodyResult.status !==
+          Office.AsyncResultStatus.Succeeded
+      ) {
+
+        setStatus(
+          "Could not read the Outlook body: " +
+          getAsyncError(
+            bodyResult
+          )
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Find any desktop-uploaded data URLs.
+       */
+      const dataUrls =
+        findInlineDataUrls(
+          html
+        );
+
+
+      /*
+       * No local images.
+       */
+      if (
+        dataUrls.length ===
+        0
+      ) {
+
+        writeNewsletter(
+          item,
+          subject,
+          html
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Local images need to be added
+       * as inline Outlook attachments.
+       */
+      setStatus(
+        "Preparing " +
+        dataUrls.length +
+        " uploaded image" +
+        (
+          dataUrls.length ===
+          1
+            ? ""
+            : "s"
+        ) +
+        "…"
+      );
+
+
+      addInlineImages(
+        item,
+        html,
+        dataUrls,
+        0,
+        function (
+          error,
+          finalHtml
+        ) {
+
+          if (error) {
+
+            setStatus(
+              error.message
+            );
+
+            return;
+
+          }
+
+
+          writeNewsletter(
+            item,
+            subject,
+            finalHtml
+          );
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   WRITE NEWSLETTER
+========================================================= */
+
+function writeNewsletter(
+  item,
+  subject,
+  html
+) {
+
+  setStatus(
+    "Writing The Pleasure Dispatch into Outlook…"
+  );
+
 
   item.subject.setAsync(
     subject,
@@ -2771,10 +3045,6 @@ function buildInOutlook() {
 
       }
 
-
-      /*
-       * Set HTML body.
-       */
 
       item.body.setAsync(
         html,
@@ -2827,6 +3097,7 @@ function getAsyncError(
     return result.error.message;
 
   }
+
 
   return "Unknown Outlook error.";
 
