@@ -1,12 +1,12 @@
-```javascript
 /* =========================================================
    THE PLEASURE DISPATCH
    taskpane.js
-   Outlook-safe production version
+   Stable Production Version
+   Outlook-safe body insertion
 ========================================================= */
 
 const DRIVE_API_URL =
-  "https://script.google.com/macros/s/AKfycbyTLvYbe1O_BbzsH09UMSZdbY9_XZXga-TbSPkR3UclT3Qhlaj7gy5yhXPA_UpE6Fu7tw/exec";
+  "https://script.google.com/macros/s/AKfycbyTLvYBe1O_BbzsH09UMSZdbY9_XZXga-TbSPkR3UclT3Qhlaj7gy5yhXPA_UpE6Fu7tw/exec";
 
 const LOOP_ASSET_URL =
   "https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/pleasure-loop.svg";
@@ -38,7 +38,13 @@ let initialized = false;
 ========================================================= */
 
 Office.onReady(function () {
+
+  console.log(
+    "[Pleasure Dispatch] Office.js ready."
+  );
+
   initializeDispatch();
+
 });
 
 
@@ -49,6 +55,10 @@ function initializeDispatch() {
   }
 
   initialized = true;
+
+  console.log(
+    "[Pleasure Dispatch] Initializing UI..."
+  );
 
   bindStaticControls();
   bindDelegatedControls();
@@ -63,10 +73,13 @@ function initializeDispatch() {
     pleasureRows &&
     pleasureRows.children.length === 0
   ) {
+
     addPleasureRow("Coffee", "");
     addPleasureRow("Art", "");
     addPleasureRow("Object", "");
+
   }
+
 
   const imageBlocks =
     document.getElementById("imageBlocks");
@@ -75,12 +88,16 @@ function initializeDispatch() {
     imageBlocks &&
     imageBlocks.children.length === 0
   ) {
+
     addImageBlock();
+
   }
+
 
   setStatus(
     "The Pleasure Dispatch is ready."
   );
+
 }
 
 
@@ -141,10 +158,10 @@ function paragraph(text) {
 
   return (
     '<p style="' +
-      "margin:0 0 24px;" +
-      "font-family:Georgia,'Times New Roman',serif;" +
       "font-size:17px;" +
       "line-height:1.7;" +
+      "font-family:Georgia,Times New Roman,serif;" +
+      "margin:0 0 24px;" +
       "color:" +
         COLORS.text +
       ";" +
@@ -184,6 +201,11 @@ function setStatus(message) {
 
 function bindStaticControls() {
 
+  console.log(
+    "[Pleasure Dispatch] Binding static controls."
+  );
+
+
   const previewButton =
     document.getElementById("previewBtn");
 
@@ -205,9 +227,19 @@ function bindStaticControls() {
         event.preventDefault();
         event.stopPropagation();
 
+        console.log(
+          "Preview clicked."
+        );
+
         previewNewsletter();
 
       };
+
+  } else {
+
+    console.error(
+      "previewBtn not found."
+    );
 
   }
 
@@ -220,9 +252,19 @@ function bindStaticControls() {
         event.preventDefault();
         event.stopPropagation();
 
+        console.log(
+          "Build clicked."
+        );
+
         buildInOutlook();
 
       };
+
+  } else {
+
+    console.error(
+      "insertBtn not found."
+    );
 
   }
 
@@ -235,7 +277,10 @@ function bindStaticControls() {
         event.preventDefault();
         event.stopPropagation();
 
-        addPleasureRow("", "");
+        addPleasureRow(
+          "",
+          ""
+        );
 
         setStatus(
           "Pleasure Note added."
@@ -299,6 +344,12 @@ function bindStaticControls() {
 
       };
 
+  } else {
+
+    console.error(
+      "Add Image Block control not found."
+    );
+
   }
 
 }
@@ -331,9 +382,13 @@ function bindDelegatedControls() {
         button.id === "addImageBlock" ||
         button.id === "addPleasure"
       ) {
+
         return;
+
       }
 
+
+      /* MOVE UP */
 
       if (
         button.classList.contains(
@@ -349,12 +404,20 @@ function bindDelegatedControls() {
           );
 
         if (block) {
-          moveImageBlock(block, -1);
+
+          moveImageBlock(
+            block,
+            -1
+          );
+
         }
 
         return;
+
       }
 
+
+      /* MOVE DOWN */
 
       if (
         button.classList.contains(
@@ -370,12 +433,20 @@ function bindDelegatedControls() {
           );
 
         if (block) {
-          moveImageBlock(block, 1);
+
+          moveImageBlock(
+            block,
+            1
+          );
+
         }
 
         return;
+
       }
 
+
+      /* DUPLICATE */
 
       if (
         button.classList.contains(
@@ -391,12 +462,19 @@ function bindDelegatedControls() {
           );
 
         if (block) {
-          duplicateBlock(block);
+
+          duplicateBlock(
+            block
+          );
+
         }
 
         return;
+
       }
 
+
+      /* REMOVE MODULE */
 
       if (
         button.classList.contains(
@@ -424,8 +502,11 @@ function bindDelegatedControls() {
         }
 
         return;
+
       }
 
+
+      /* REMOVE IMAGE */
 
       if (
         button.classList.contains(
@@ -442,8 +523,11 @@ function bindDelegatedControls() {
         );
 
         return;
+
       }
 
+
+      /* URL BUTTON */
 
       if (
         button.classList.contains(
@@ -478,11 +562,14 @@ function bindDelegatedControls() {
         }
 
         return;
+
       }
 
     }
   );
 
+
+  /* CHANGE */
 
   document.addEventListener(
     "change",
@@ -508,7 +595,9 @@ function bindDelegatedControls() {
         block.dataset.layout =
           layout.value;
 
-        syncImageInputs(block);
+        syncImageInputs(
+          block
+        );
 
         setStatus(
           "Layout changed to " +
@@ -519,6 +608,7 @@ function bindDelegatedControls() {
         );
 
         return;
+
       }
 
 
@@ -549,12 +639,13 @@ function bindDelegatedControls() {
 
         }
 
-        return;
       }
 
     }
   );
 
+
+  /* INPUT */
 
   document.addEventListener(
     "input",
@@ -565,7 +656,17 @@ function bindDelegatedControls() {
         "hero1Url"
       ) {
 
-        clearHeroDriveData("hero1");
+        const preview =
+          document.getElementById(
+            "hero1Preview"
+          );
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+          delete preview.dataset.fileId;
+
+        }
 
         renderHeroPreview(
           "hero1",
@@ -573,6 +674,7 @@ function bindDelegatedControls() {
         );
 
         return;
+
       }
 
 
@@ -581,7 +683,17 @@ function bindDelegatedControls() {
         "hero2Url"
       ) {
 
-        clearHeroDriveData("hero2");
+        const preview =
+          document.getElementById(
+            "hero2Preview"
+          );
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+          delete preview.dataset.fileId;
+
+        }
 
         renderHeroPreview(
           "hero2",
@@ -589,6 +701,7 @@ function bindDelegatedControls() {
         );
 
         return;
+
       }
 
 
@@ -625,7 +738,7 @@ function bindDelegatedControls() {
 
 
 /* =========================================================
-   DRIVE URL HELPERS
+   DRIVE URLS
 ========================================================= */
 
 function buildDriveImageUrl(fileId) {
@@ -651,24 +764,6 @@ function buildDriveClickUrl(fileId) {
 }
 
 
-function clearHeroDriveData(key) {
-
-  const preview =
-    document.getElementById(
-      key +
-      "Preview"
-    );
-
-  if (!preview) {
-    return;
-  }
-
-  delete preview.dataset.fullUrl;
-  delete preview.dataset.fileId;
-
-}
-
-
 /* =========================================================
    IMAGE COMPRESSION
 ========================================================= */
@@ -688,6 +783,7 @@ function compressImage(
     );
 
     return;
+
   }
 
 
@@ -711,13 +807,14 @@ function compressImage(
     );
 
     return;
+
   }
 
 
   if (
     !file.type ||
-    !/^image\/(jpeg|jpg|png|webp)$/i.test(
-      file.type
+    !file.type.match(
+      /^image\/(jpeg|jpg|png|webp)$/i
     )
   ) {
 
@@ -729,6 +826,7 @@ function compressImage(
     );
 
     return;
+
   }
 
 
@@ -763,19 +861,23 @@ function compressImage(
           const scale =
             Math.min(
               1,
-              IMAGE_MAX_WIDTH / width,
-              IMAGE_MAX_HEIGHT / height
+              IMAGE_MAX_WIDTH /
+                width,
+              IMAGE_MAX_HEIGHT /
+                height
             );
 
 
           width =
             Math.round(
-              width * scale
+              width *
+              scale
             );
 
           height =
             Math.round(
-              height * scale
+              height *
+              scale
             );
 
 
@@ -831,25 +933,13 @@ function compressImage(
                 );
 
                 return;
+
               }
 
 
               blobToDataUrl(
                 blob,
                 function (dataUrl) {
-
-                  if (!dataUrl) {
-
-                    callback(
-                      null,
-                      new Error(
-                        "Could not convert image."
-                      )
-                    );
-
-                    return;
-                  }
-
 
                   callback(
                     {
@@ -981,8 +1071,7 @@ async function uploadToDrive(
       "_" +
       cleanFileName(
         originalFileName
-      ) +
-      ".jpg",
+      ),
 
     mimeType:
       "image/jpeg",
@@ -993,6 +1082,12 @@ async function uploadToDrive(
       )
 
   };
+
+
+  console.log(
+    "Drive upload payload size:",
+    payload.fileContent.length
+  );
 
 
   let response;
@@ -1007,10 +1102,11 @@ async function uploadToDrive(
           method:
             "POST",
 
-          headers: {
-            "Content-Type":
-              "text/plain;charset=utf-8"
-          },
+          headers:
+            {
+              "Content-Type":
+                "text/plain;charset=utf-8"
+            },
 
           body:
             JSON.stringify(
@@ -1098,8 +1194,13 @@ function stripDataUrlPrefix(
     dataUrl.indexOf(",");
 
 
-  if (comma === -1) {
+  if (
+    comma ===
+    -1
+  ) {
+
     return dataUrl;
+
   }
 
 
@@ -1153,7 +1254,7 @@ function getEditionSafeName() {
 
 
 /* =========================================================
-   HERO IMAGE HANDLING
+   HERO HANDLING
 ========================================================= */
 
 function setupHero(key) {
@@ -1163,6 +1264,7 @@ function setupHero(key) {
       key +
       "File"
     );
+
 
   const urlInput =
     document.getElementById(
@@ -1202,7 +1304,18 @@ function setupHero(key) {
       "input",
       function () {
 
-        clearHeroDriveData(key);
+        const preview =
+          document.getElementById(
+            key +
+            "Preview"
+          );
+
+        if (preview) {
+
+          delete preview.dataset.fullUrl;
+          delete preview.dataset.fileId;
+
+        }
 
         renderHeroPreview(
           key,
@@ -1236,6 +1349,7 @@ function handleHeroUpload(
         );
 
         return;
+
       }
 
 
@@ -1245,6 +1359,7 @@ function handleHeroUpload(
           "Url"
         );
 
+
       const preview =
         document.getElementById(
           key +
@@ -1252,11 +1367,24 @@ function handleHeroUpload(
         );
 
 
+      if (!input) {
+
+        setStatus(
+          "Hero URL field not found."
+        );
+
+        return;
+
+      }
+
+
       /*
        * Local preview first.
        */
+
       input.value =
         result.dataUrl;
+
 
       renderHeroPreview(
         key,
@@ -1300,16 +1428,18 @@ function handleHeroUpload(
             : "✓ Hero Image 02 saved to Drive."
         );
 
+
       } catch (error) {
+
+        console.error(
+          "Hero upload failed:",
+          error
+        );
+
 
         setStatus(
           "Preview ready. Drive upload failed: " +
           error.message
-        );
-
-        console.error(
-          "Hero upload error:",
-          error
         );
 
       }
@@ -1346,6 +1476,7 @@ function renderHeroPreview(
       "No hero image selected";
 
     return;
+
   }
 
 
@@ -1397,13 +1528,17 @@ function handleModuleUpload(
   file
 ) {
 
-  if (!item || !file) {
+  if (
+    !item ||
+    !file
+  ) {
 
     setStatus(
       "No modular image selected."
     );
 
     return;
+
   }
 
 
@@ -1421,6 +1556,7 @@ function handleModuleUpload(
         );
 
         return;
+
       }
 
 
@@ -1437,6 +1573,7 @@ function handleModuleUpload(
         );
 
         return;
+
       }
 
 
@@ -1486,16 +1623,18 @@ function handleModuleUpload(
           "✓ Modular image saved to Drive."
         );
 
-      } catch (error) {
 
-        setStatus(
-          "Preview ready. Drive upload failed: " +
-          error.message
-        );
+      } catch (error) {
 
         console.error(
           "Modular upload error:",
           error
+        );
+
+
+        setStatus(
+          "Preview ready. Drive upload failed: " +
+          error.message
         );
 
       }
@@ -1531,6 +1670,7 @@ function renderModulePreview(
       "No image selected";
 
     return;
+
   }
 
 
@@ -1620,6 +1760,7 @@ function addImageBlock() {
     );
 
     return;
+
   }
 
 
@@ -1635,8 +1776,12 @@ function addImageBlock() {
   block.className =
     "image-block";
 
+
   block.dataset.id =
-    String(blockCounter);
+    String(
+      blockCounter
+    );
+
 
   block.dataset.layout =
     "full";
@@ -1654,8 +1799,11 @@ function addImageBlock() {
       '<select class="layout-select" aria-label="Image layout">' +
 
         '<option value="full">Full Width</option>' +
+
         '<option value="two">Two Up</option>' +
+
         '<option value="three">Three Up</option>' +
+
         '<option value="four">Four Up</option>' +
 
       "</select>" +
@@ -1667,8 +1815,11 @@ function addImageBlock() {
     '<div class="block-actions">' +
 
       '<button type="button" class="move-up">↑ Move Up</button>' +
+
       '<button type="button" class="move-down">↓ Move Down</button>' +
+
       '<button type="button" class="duplicate">Duplicate</button>' +
+
       '<button type="button" class="remove">Remove</button>' +
 
     "</div>";
@@ -1682,6 +1833,7 @@ function addImageBlock() {
   syncImageInputs(
     block
   );
+
 
   renumberImageBlocks();
 
@@ -1707,6 +1859,7 @@ function renumberImageBlocks() {
             ".block-number"
           );
 
+
         if (number) {
 
           number.textContent =
@@ -1715,8 +1868,11 @@ function renumberImageBlocks() {
 
         }
 
+
         block.dataset.position =
-          String(index + 1);
+          String(
+            index + 1
+          );
 
       }
     );
@@ -1734,22 +1890,25 @@ function moveImageBlock(
       "imageBlocks"
     );
 
+
   const blocks =
     getImageBlocks();
 
 
-  if (!container || !block) {
-
-    setStatus(
-      "Unable to move image module."
-    );
+  if (
+    !container ||
+    !block
+  ) {
 
     return;
+
   }
 
 
   const index =
-    blocks.indexOf(block);
+    blocks.indexOf(
+      block
+    );
 
 
   if (index === -1) {
@@ -1758,7 +1917,8 @@ function moveImageBlock(
 
 
   const targetIndex =
-    index + direction;
+    index +
+    direction;
 
 
   if (
@@ -1773,6 +1933,7 @@ function moveImageBlock(
     );
 
     return;
+
   }
 
 
@@ -1780,7 +1941,9 @@ function moveImageBlock(
     blocks[targetIndex];
 
 
-  if (direction < 0) {
+  if (
+    direction < 0
+  ) {
 
     container.insertBefore(
       block,
@@ -1822,16 +1985,33 @@ function syncImageInputs(
     1;
 
 
-  if (layout === "two") {
+  if (
+    layout ===
+    "two"
+  ) {
+
     count = 2;
+
   }
 
-  if (layout === "three") {
+
+  if (
+    layout ===
+    "three"
+  ) {
+
     count = 3;
+
   }
 
-  if (layout === "four") {
+
+  if (
+    layout ===
+    "four"
+  ) {
+
     count = 4;
+
   }
 
 
@@ -1849,7 +2029,8 @@ function syncImageInputs(
   wrap.className =
     "image-items " +
     (
-      layout === "full"
+      layout ===
+      "full"
         ? "one"
         : layout
     );
@@ -1914,32 +2095,47 @@ function addImageItem(
     "</label>" +
 
     '<label class="upload-button">' +
+
       "Upload" +
+
       '<input type="file" class="module-file-input" accept="image/jpeg,image/png,image/webp">' +
+
     "</label>" +
 
     '<button type="button" class="secondary url-item">' +
+
       "Image URL" +
+
     "</button>" +
 
     '<input class="module-url source-url" value="' +
+
       escapeAttribute(
-        preset.url || ""
+        preset.url ||
+        ""
       ) +
+
     '" placeholder="Paste direct image URL">' +
 
     '<div class="preview module-preview empty">' +
+
       "No image selected" +
+
     "</div>" +
 
     '<input class="module-caption" value="' +
+
       escapeAttribute(
-        preset.caption || ""
+        preset.caption ||
+        ""
       ) +
+
     '" placeholder="Caption">' +
 
     '<button type="button" class="remove-image">' +
+
       "Remove image" +
+
     "</button>";
 
 
@@ -1948,7 +2144,9 @@ function addImageItem(
   );
 
 
-  if (preset.clickUrl) {
+  if (
+    preset.clickUrl
+  ) {
 
     item.dataset.fullUrl =
       preset.clickUrl;
@@ -1956,7 +2154,9 @@ function addImageItem(
   }
 
 
-  if (preset.url) {
+  if (
+    preset.url
+  ) {
 
     renderModulePreview(
       item,
@@ -1986,6 +2186,7 @@ function renumberImageItems(
           "label"
         );
 
+
       if (label) {
 
         label.textContent =
@@ -2013,9 +2214,18 @@ function removeImageItem(
     item.parentElement;
 
 
+  if (!wrap) {
+
+    item.remove();
+
+    return;
+
+  }
+
+
   if (
-    wrap &&
-    wrap.children.length === 1
+    wrap.children.length ===
+    1
   ) {
 
     const url =
@@ -2053,16 +2263,18 @@ function removeImageItem(
       "Image removed."
     );
 
+
     return;
+
   }
 
 
   item.remove();
 
 
-  if (wrap) {
-    renumberImageItems(wrap);
-  }
+  renumberImageItems(
+    wrap
+  );
 
 
   setStatus(
@@ -2073,7 +2285,7 @@ function removeImageItem(
 
 
 /* =========================================================
-   DUPLICATE MODULE
+   DUPLICATE
 ========================================================= */
 
 function duplicateBlock(
@@ -2145,8 +2357,12 @@ function duplicateBlock(
   clone.className =
     "image-block";
 
+
   clone.dataset.id =
-    String(blockCounter);
+    String(
+      blockCounter
+    );
+
 
   clone.dataset.layout =
     layout;
@@ -2156,7 +2372,9 @@ function duplicateBlock(
 
     '<div class="block-top">' +
 
-      '<span class="block-number">Image Module</span>' +
+      '<span class="block-number">' +
+        "Image Module" +
+      "</span>" +
 
       '<select class="layout-select" aria-label="Image layout">' +
 
@@ -2174,8 +2392,11 @@ function duplicateBlock(
     '<div class="block-actions">' +
 
       '<button type="button" class="move-up">↑ Move Up</button>' +
+
       '<button type="button" class="move-down">↓ Move Down</button>' +
+
       '<button type="button" class="duplicate">Duplicate</button>' +
+
       '<button type="button" class="remove">Remove</button>' +
 
     "</div>";
@@ -2216,7 +2437,8 @@ function duplicateBlock(
     addImageItem(
       wrap,
       i + 1,
-      sourceItems[i] || {}
+      sourceItems[i] ||
+      {}
     );
 
   }
@@ -2336,13 +2558,15 @@ function addPleasureRow(
 
     '<input class="pleasure-label" value="' +
       escapeAttribute(
-        labelValue || ""
+        labelValue ||
+        ""
       ) +
     '" placeholder="Category">' +
 
     '<input class="pleasure-value" value="' +
       escapeAttribute(
-        noteValue || ""
+        noteValue ||
+        ""
       ) +
     '" placeholder="What has held your attention?">' +
 
@@ -2372,6 +2596,10 @@ function addPleasureRow(
 }
 
 
+/* =========================================================
+   PLEASURE NOTES HTML
+========================================================= */
+
 function buildPleasureNotesHtml(
   notes
 ) {
@@ -2386,66 +2614,65 @@ function buildPleasureNotesHtml(
   }
 
 
-  return (
+  let html =
+    '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:4px 0 30px;">';
 
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
-      "border-collapse:collapse;" +
-      "width:100%;" +
-      "margin:4px 0 30px;" +
-    '">' +
 
-      notes.map(
-        function (note) {
+  notes.forEach(
+    function (note) {
 
-          return (
+      html +=
 
-            "<tr>" +
+        "<tr>" +
 
-              '<td valign="top" style="' +
-                "width:120px;" +
-                "padding:5px 18px 5px 0;" +
-                "font-family:Arial,Helvetica,sans-serif;" +
-                "font-size:10px;" +
-                "line-height:1.4;" +
-                "letter-spacing:1px;" +
-                "text-transform:uppercase;" +
-                "color:" +
-                  COLORS.secondary +
-                ";" +
-              '">' +
+          '<td width="120" valign="top" style="' +
+            "width:120px;" +
+            "padding:5px 18px 5px 0;" +
+            "vertical-align:top;" +
+            "font-family:Arial,Helvetica,sans-serif;" +
+            "font-size:10px;" +
+            "line-height:14px;" +
+            "letter-spacing:1px;" +
+            "text-transform:uppercase;" +
+            "color:" +
+              COLORS.secondary +
+            ";" +
+          '">' +
 
-                escapeHtml(
-                  note.label
-                ) +
+            escapeHtml(
+              note.label
+            ) +
 
-              "</td>" +
+          "</td>" +
 
-              '<td valign="top" style="' +
-                "padding:5px 0;" +
-                "font-family:Georgia,'Times New Roman',serif;" +
-                "font-size:16px;" +
-                "line-height:1.5;" +
-                "color:" +
-                  COLORS.text +
-                ";" +
-              '">' +
+          '<td valign="top" style="' +
+            "padding:5px 0;" +
+            "vertical-align:top;" +
+            "font-family:Georgia,Times New Roman,serif;" +
+            "font-size:16px;" +
+            "line-height:24px;" +
+            "color:" +
+              COLORS.text +
+            ";" +
+          '">' +
 
-                escapeHtml(
-                  note.value
-                ) +
+            escapeHtml(
+              note.value
+            ) +
 
-              "</td>" +
+          "</td>" +
 
-            "</tr>"
+        "</tr>";
 
-          );
-
-        }
-      ).join("") +
-
-    "</table>"
-
+    }
   );
+
+
+  html +=
+    "</table>";
+
+
+  return html;
 
 }
 
@@ -2508,11 +2735,11 @@ function collectImageBlocks() {
               }
             )
             .filter(
-              function (item) {
+              function (image) {
 
                 return (
-                  item.url ||
-                  item.caption
+                  image.url ||
+                  image.caption
                 );
 
               }
@@ -2525,7 +2752,9 @@ function collectImageBlocks() {
     .filter(
       function (block) {
 
-        return block.items.length;
+        return (
+          block.items.length > 0
+        );
 
       }
     );
@@ -2535,8 +2764,6 @@ function collectImageBlocks() {
 
 /* =========================================================
    EMAIL IMAGE
-   IMPORTANT:
-   Conservative HTML only.
 ========================================================= */
 
 function buildEmailImage(
@@ -2557,59 +2784,45 @@ function buildEmailImage(
 
   let html =
 
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">' +
+    '<a href="' +
+      escapeAttribute(
+        destination
+      ) +
+      '" style="text-decoration:none;">' +
 
-      "<tr>" +
+      '<img src="' +
+        escapeAttribute(
+          imageUrl
+        ) +
+        '" alt="" width="100%" style="' +
+          "display:block;" +
+          "width:100%;" +
+          "height:auto;" +
+          "border:0;" +
+        '">' +
 
-        '<td style="padding:0;">' +
-
-          '<a href="' +
-            escapeAttribute(
-              destination
-            ) +
-          '">' +
-
-            '<img src="' +
-              escapeAttribute(
-                imageUrl
-              ) +
-              '" alt="" width="100%" style="' +
-                "display:block;" +
-                "width:100%;" +
-                "height:auto;" +
-                "border:0;" +
-                "outline:none;" +
-                "text-decoration:none;" +
-              '">' +
-
-          "</a>" +
-
-        "</td>" +
-
-      "</tr>" +
-
-    "</table>";
+    "</a>";
 
 
   if (caption) {
 
     html +=
 
-      '<p style="' +
-        "margin:7px 0 0;" +
+      '<div style="' +
         "font-family:Arial,Helvetica,sans-serif;" +
         "font-size:12px;" +
-        "line-height:1.45;" +
+        "line-height:17px;" +
         "color:" +
           COLORS.secondary +
         ";" +
+        "padding-top:7px;" +
       '">' +
 
         escapeHtml(
           caption
         ) +
 
-      "</p>";
+      "</div>";
 
   }
 
@@ -2639,13 +2852,9 @@ function buildFullWidthImage(
 
   return (
 
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
-      "border-collapse:collapse;" +
-      "margin:30px 0;" +
-      "background:" +
-        COLORS.surface +
-      ";" +
-    '">' +
+    '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:30px 0;background:' +
+      COLORS.surface +
+    ';">' +
 
       "<tr>" +
 
@@ -2670,7 +2879,7 @@ function buildFullWidthImage(
 
 
 /* =========================================================
-   MULTI IMAGE ROW
+   IMAGE ROW
 ========================================================= */
 
 function buildImageRow(
@@ -2678,21 +2887,16 @@ function buildImageRow(
   columns
 ) {
 
-  if (
-    !items ||
-    !items.length
-  ) {
-
-    return "";
-
-  }
-
-
   const usable =
     items.slice(
       0,
       columns
     );
+
+
+  if (!usable.length) {
+    return "";
+  }
 
 
   const width =
@@ -2702,13 +2906,17 @@ function buildImageRow(
     );
 
 
-  let cells = "";
+  let html =
+
+    '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:28px 0;">' +
+
+      "<tr>";
 
 
   usable.forEach(
     function (item) {
 
-      cells +=
+      html +=
 
         '<td width="' +
           width +
@@ -2736,26 +2944,33 @@ function buildImageRow(
   );
 
 
-  return (
-
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
-      "border-collapse:collapse;" +
-      "table-layout:fixed;" +
-      "margin:28px 0;" +
-    '">' +
-
-      "<tr>" +
-
-        cells +
+  html +=
 
       "</tr>" +
 
-    "</table>"
+    "</table>";
 
+
+  return html;
+
+}
+
+
+function buildFourImageRow(
+  items
+) {
+
+  return buildImageRow(
+    items,
+    4
   );
 
 }
 
+
+/* =========================================================
+   IMAGE MODULE HTML
+========================================================= */
 
 function buildImageModuleHtml(
   block
@@ -2815,9 +3030,8 @@ function buildImageModuleHtml(
     "four"
   ) {
 
-    return buildImageRow(
-      block.items,
-      4
+    return buildFourImageRow(
+      block.items
     );
 
   }
@@ -2829,42 +3043,28 @@ function buildImageModuleHtml(
 
 
 /* =========================================================
-   SECTION LABEL
+   OUTLOOK-SAFE NEWSLETTER HTML
 ========================================================= */
 
-function sectionLabel(
-  number,
-  title
-) {
-
-  return (
-
-    '<p style="' +
-      "margin:38px 0 11px;" +
-      "font-family:Arial,Helvetica,sans-serif;" +
-      "font-size:10px;" +
-      "line-height:1.4;" +
-      "letter-spacing:1.5px;" +
-      "color:" +
-        COLORS.secondary +
-      ";" +
-    '">' +
-
-      number +
-      " — " +
-      escapeHtml(title) +
-
-    "</p>"
-
-  );
-
-}
-
-
-/* =========================================================
-   NEWSLETTER HTML
-   OUTLOOK-SAFE VERSION
-========================================================= */
+/*
+ * IMPORTANT:
+ *
+ * This function intentionally uses conservative HTML.
+ *
+ * Outlook's body.setAsync() is much less forgiving than a
+ * browser. We therefore avoid:
+ *
+ * - CSS classes
+ * - style blocks
+ * - flexbox
+ * - grid
+ * - SVG inside the newsletter
+ * - JavaScript
+ * - <div> as structural containers where tables work
+ * - unsupported CSS
+ *
+ * All important styling is inline.
+ */
 
 function buildNewsletterHtml() {
 
@@ -2924,10 +3124,6 @@ function buildNewsletterHtml() {
     collectImageBlocks();
 
 
-  /*
-   * HERO DESTINATIONS
-   */
-
   const hero1Preview =
     document.getElementById(
       "hero1Preview"
@@ -2945,6 +3141,7 @@ function buildNewsletterHtml() {
       ? hero1Preview.dataset.fullUrl
       : hero1;
 
+
   const hero2Click =
     hero2Preview &&
     hero2Preview.dataset.fullUrl
@@ -2952,34 +3149,8 @@ function buildNewsletterHtml() {
       : hero2;
 
 
-  /*
-   * HERO HTML
-   */
-
-  const hero1Html =
-    hero1
-      ? buildEmailImage(
-          hero1,
-          hero1Click,
-          hero1Caption
-        )
-      : "";
-
-  const hero2Html =
-    hero2
-      ? buildEmailImage(
-          hero2,
-          hero2Click,
-          hero2Caption
-        )
-      : "";
-
-
-  /*
-   * MODULE HTML
-   */
-
-  let modulesHtml = "";
+  let modulesHtml =
+    "";
 
 
   modules.forEach(
@@ -2994,11 +3165,8 @@ function buildNewsletterHtml() {
   );
 
 
-  /*
-   * INVITATION
-   */
-
-  let invitationHtml = "";
+  let invitationHtml =
+    "";
 
 
   if (
@@ -3008,55 +3176,91 @@ function buildNewsletterHtml() {
   ) {
 
     invitationHtml =
-      sectionLabel(
-        "05",
-        "AN INVITATION"
-      );
+
+      '<tr>' +
+
+        '<td style="padding:30px 0 10px;">' +
+
+          '<div style="' +
+            "font-family:Arial,Helvetica,sans-serif;" +
+            "font-size:10px;" +
+            "line-height:14px;" +
+            "letter-spacing:1.5px;" +
+            "color:" +
+              COLORS.secondary +
+            ";" +
+          '">' +
+
+            "05 — AN INVITATION" +
+
+          "</div>" +
+
+        "</td>" +
+
+      "</tr>";
 
 
     if (inviteTitle) {
 
       invitationHtml +=
 
-        '<p style="' +
-          "margin:0 0 10px;" +
-          "font-family:Georgia,'Times New Roman',serif;" +
-          "font-size:27px;" +
-          "line-height:1.15;" +
-          "color:" +
-            COLORS.text +
-          ";" +
-        '">' +
+        "<tr>" +
 
-          escapeHtml(
-            inviteTitle
-          ) +
+          '<td style="padding:0 0 10px;">' +
 
-        "</p>";
+            '<div style="' +
+              "font-family:Georgia,Times New Roman,serif;" +
+              "font-size:27px;" +
+              "line-height:32px;" +
+              "color:" +
+                COLORS.text +
+              ";" +
+            '">' +
+
+              escapeHtml(
+                inviteTitle
+              ) +
+
+            "</div>" +
+
+          "</td>" +
+
+        "</tr>";
 
     }
 
 
-    invitationHtml +=
-      paragraph(
-        inviteText
-      );
+    if (inviteText) {
+
+      invitationHtml +=
+
+        "<tr>" +
+
+          '<td style="padding:0 0 10px;">' +
+
+            paragraph(
+              inviteText
+            ) +
+
+          "</td>" +
+
+        "</tr>";
+
+    }
 
 
     if (ctaUrl) {
 
       invitationHtml +=
 
-        '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;margin:0 0 25px;">' +
+        "<tr>" +
 
-          "<tr>" +
+          '<td style="padding:0 0 25px;">' +
 
-            "<td>" +
-
-              '<a href="' +
-                escapeAttribute(
-                  ctaUrl
-                ) +
+            '<a href="' +
+              escapeAttribute(
+                ctaUrl
+              ) +
               '" style="' +
                 "display:inline-block;" +
                 "background:" +
@@ -3069,30 +3273,24 @@ function buildNewsletterHtml() {
                 "padding:12px 18px;" +
                 "font-family:Arial,Helvetica,sans-serif;" +
                 "font-size:10px;" +
-                "line-height:1;" +
+                "line-height:14px;" +
                 "letter-spacing:1.2px;" +
               '">' +
 
-                escapeHtml(
-                  ctaLabel
-                ) +
+              escapeHtml(
+                ctaLabel
+              ) +
 
-              "</a>" +
+            "</a>" +
 
-            "</td>" +
+          "</td>" +
 
-          "</tr>" +
-
-        "</table>";
+        "</tr>";
 
     }
 
   }
 
-
-  /*
-   * DATE LINE
-   */
 
   const dateLine =
     [
@@ -3110,420 +3308,563 @@ function buildNewsletterHtml() {
 
       }
     )
-    .join(
-      " · "
-    );
+    .join(" · ");
+
+
+  let html = "";
 
 
   /*
-   * LOOP
-   *
-   * Kept as an external image.
-   * If Outlook rejects the SVG, the newsletter
-   * itself can still be tested by temporarily
-   * removing this one image.
+   * OUTER TABLE
    */
 
-  const loopTop =
+  html +=
 
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">' +
-
-      "<tr>" +
-
-        '<td align="center" style="padding:0 0 28px;">' +
-
-          '<img src="' +
-            escapeAttribute(
-              LOOP_ASSET_URL
-            ) +
-          '" alt="The Loop" width="92" style="' +
-            "display:block;" +
-            "width:92px;" +
-            "height:auto;" +
-            "border:0;" +
-          '">' +
-
-        "</td>" +
-
-      "</tr>" +
-
-    "</table>";
-
-
-  const loopBottom =
-
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">' +
+    '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:' +
+      COLORS.background +
+    ';">' +
 
       "<tr>" +
 
-        '<td align="center" style="padding:30px 0 18px;">' +
+        '<td align="center" style="padding:20px 10px;">' +
 
-          '<img src="' +
-            escapeAttribute(
-              LOOP_ASSET_URL
-            ) +
-          '" alt="The Loop" width="66" style="' +
-            "display:block;" +
-            "width:66px;" +
-            "height:auto;" +
-            "border:0;" +
-          '">' +
-
-        "</td>" +
-
-      "</tr>" +
-
-    "</table>";
+          '<table cellpadding="0" cellspacing="0" border="0" width="680" style="border-collapse:collapse;width:100%;max-width:680px;background:' +
+            COLORS.background +
+          ';">';
 
 
   /*
-   * MAIN CONTENT
+   * HEADER
    */
 
-  let content = "";
+  html +=
+
+    "<tr>" +
+
+      '<td style="padding:38px 32px 24px;border-bottom:1px solid ' +
+        COLORS.rule +
+      ';">' +
+
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:2px;" +
+          "color:" +
+            COLORS.text +
+          ";" +
+        '">' +
+
+          "FLRS GLOBAL" +
+
+        "</div>" +
+
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:1.4px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+          "padding-top:8px;" +
+        '">' +
+
+          "FROM THE STUDIO OF FREDDIE L. RANKIN II" +
+
+        "</div>" +
+
+        '<div style="' +
+          "font-family:Georgia,Times New Roman,serif;" +
+          "font-size:46px;" +
+          "line-height:48px;" +
+          "font-weight:normal;" +
+          "color:" +
+            COLORS.text +
+          ";" +
+          "padding-top:20px;" +
+        '">' +
+
+          "The Pleasure Dispatch" +
+
+        "</div>" +
+
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:1.3px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+          "padding-top:10px;" +
+        '">' +
+
+          dateLine +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>";
 
 
-  content += loopTop;
+  /*
+   * CONTENT TABLE
+   */
 
+  html +=
+
+    "<tr>" +
+
+      '<td style="padding:26px 32px 40px;">' +
+
+        '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">';
+
+
+  /*
+   * SUBTITLE
+   */
 
   if (subtitle) {
 
-    content +=
-
-      '<p style="' +
-        "margin:0 0 28px;" +
-        "font-family:Georgia,'Times New Roman',serif;" +
-        "font-size:18px;" +
-        "line-height:1.45;" +
-        "color:" +
-          COLORS.secondary +
-        ";" +
-      '">' +
-
-        escapeHtml(
-          subtitle
-        ) +
-
-      "</p>";
-
-  }
-
-
-  if (hero1Html) {
-
-    content +=
-
-      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;margin:0 0 8px;">' +
-
-        "<tr>" +
-
-          '<td style="padding:0;">' +
-
-            hero1Html +
-
-          "</td>" +
-
-        "</tr>" +
-
-      "</table>";
-
-  }
-
-
-  content +=
-    sectionLabel(
-      "01",
-      "A REFLECTION"
-    );
-
-  content +=
-    paragraph(
-      reflection
-    );
-
-
-  content +=
-    sectionLabel(
-      "02",
-      "THE WORK"
-    );
-
-  content +=
-    paragraph(
-      workText
-    );
-
-
-  content +=
-    modulesHtml;
-
-
-  content +=
-    sectionLabel(
-      "03",
-      "STUDIO NOTES"
-    );
-
-  content +=
-    paragraph(
-      studioText
-    );
-
-
-  if (hero2Html) {
-
-    content +=
-
-      '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;margin:8px 0 0;">' +
-
-        "<tr>" +
-
-          '<td style="padding:0;">' +
-
-            hero2Html +
-
-          "</td>" +
-
-        "</tr>" +
-
-      "</table>";
-
-  }
-
-
-  content +=
-    sectionLabel(
-      "04",
-      "PLEASURE NOTES"
-    );
-
-
-  content +=
-
-    '<p style="' +
-      "margin:0 0 8px;" +
-      "font-family:Georgia,'Times New Roman',serif;" +
-      "font-size:19px;" +
-      "line-height:1.4;" +
-      "color:" +
-        COLORS.text +
-      ";" +
-    '">' +
-
-      "An offering of what has held my attention." +
-
-    "</p>";
-
-
-  content +=
-    buildPleasureNotesHtml(
-      notes
-    );
-
-
-  content +=
-    invitationHtml;
-
-
-  content +=
-    sectionLabel(
-      "06",
-      "A QUESTION"
-    );
-
-
-  content +=
-
-    '<p style="' +
-      "margin:0 0 36px;" +
-      "font-family:Georgia,'Times New Roman',serif;" +
-      "font-size:25px;" +
-      "line-height:1.35;" +
-      "color:" +
-        COLORS.text +
-      ";" +
-    '">' +
-
-      escapeHtml(
-        question
-      ) +
-
-    "</p>";
-
-
-  content +=
-    loopBottom;
-
-
-  content +=
-
-    '<p align="center" style="' +
-      "margin:0 0 10px;" +
-      "font-family:Georgia,'Times New Roman',serif;" +
-      "font-size:15px;" +
-      "line-height:1.4;" +
-      "font-style:italic;" +
-      "color:" +
-        COLORS.secondary +
-      ";" +
-    '">' +
-
-      "Pleasure is the desire to return." +
-
-    "</p>";
-
-
-  /*
-   * COMPLETE EMAIL
-   */
-
-  const html =
-
-    '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="' +
-      "border-collapse:collapse;" +
-      "width:100%;" +
-      "background:" +
-        COLORS.background +
-      ";" +
-    '">' +
+    html +=
 
       "<tr>" +
 
-        '<td align="center" style="padding:28px 12px;">' +
+        '<td style="padding:0 0 28px;">' +
 
-          '<table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="' +
-            "border-collapse:collapse;" +
-            "width:100%;" +
-            "max-width:680px;" +
-            "background:" +
-              COLORS.background +
+          '<div style="' +
+            "font-family:Georgia,Times New Roman,serif;" +
+            "font-size:18px;" +
+            "line-height:26px;" +
+            "color:" +
+              COLORS.secondary +
             ";" +
           '">' +
 
-            /*
-             * HEADER
-             */
+            escapeHtml(
+              subtitle
+            ) +
 
-            "<tr>" +
+          "</div>" +
 
-              '<td style="' +
-                "padding:42px 42px 24px;" +
-                "border-bottom:1px solid " +
-                  COLORS.rule +
-                ";" +
-              '">' +
+        "</td>" +
 
-                '<p style="' +
-                  "margin:0;" +
-                  "font-family:Arial,Helvetica,sans-serif;" +
-                  "font-size:10px;" +
-                  "line-height:1.4;" +
-                  "letter-spacing:2px;" +
-                  "color:" +
-                    COLORS.text +
-                  ";" +
-                '">' +
+      "</tr>";
 
-                  "FLRS GLOBAL" +
-
-                "</p>" +
-
-                '<p style="' +
-                  "margin:8px 0 0;" +
-                  "font-family:Arial,Helvetica,sans-serif;" +
-                  "font-size:10px;" +
-                  "line-height:1.4;" +
-                  "letter-spacing:1.4px;" +
-                  "color:" +
-                    COLORS.secondary +
-                  ";" +
-                '">' +
-
-                  "FROM THE STUDIO OF FREDDIE L. RANKIN II" +
-
-                "</p>" +
-
-                '<h1 style="' +
-                  "margin:20px 0 10px;" +
-                  "font-family:Georgia,'Times New Roman',serif;" +
-                  "font-size:50px;" +
-                  "font-weight:normal;" +
-                  "line-height:1;" +
-                  "color:" +
-                    COLORS.text +
-                  ";" +
-                '">' +
-
-                  "The Pleasure Dispatch" +
-
-                "</h1>" +
-
-                '<p style="' +
-                  "margin:0;" +
-                  "font-family:Arial,Helvetica,sans-serif;" +
-                  "font-size:10px;" +
-                  "line-height:1.4;" +
-                  "letter-spacing:1.3px;" +
-                  "color:" +
-                    COLORS.secondary +
-                  ";" +
-                '">' +
-
-                  dateLine +
-
-                "</p>" +
-
-              "</td>" +
-
-            "</tr>" +
+  }
 
 
-            /*
-             * CONTENT
-             */
+  /*
+   * HERO 01
+   */
 
-            "<tr>" +
+  if (hero1) {
 
-              '<td style="padding:26px 42px 42px;">' +
+    html +=
 
-                content +
+      "<tr>" +
 
-              "</td>" +
+        '<td style="padding:0 0 8px;">' +
 
-            "</tr>" +
+          buildEmailImage(
+            hero1,
+            hero1Click,
+            hero1Caption
+          ) +
+
+        "</td>" +
+
+      "</tr>";
+
+  }
 
 
-            /*
-             * FOOTER
-             */
+  /*
+   * REFLECTION
+   */
 
-            "<tr>" +
+  html +=
 
-              '<td style="' +
-                "padding:18px 42px 34px;" +
-                "border-top:1px solid " +
-                  COLORS.rule +
-                ";" +
-              '">' +
+    "<tr>" +
 
-                '<p style="' +
-                  "margin:0;" +
-                  "font-family:Arial,Helvetica,sans-serif;" +
-                  "font-size:10px;" +
-                  "line-height:1.4;" +
-                  "letter-spacing:1.1px;" +
-                  "color:" +
-                    COLORS.secondary +
-                  ";" +
-                '">' +
+      '<td style="padding:30px 0 11px;">' +
 
-                  "THE PLEASURE DISPATCH · BY FLRS GLOBAL" +
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:1.5px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+        '">' +
 
-                "</p>" +
+          "01 — A REFLECTION" +
 
-              "</td>" +
+        "</div>" +
 
-            "</tr>" +
+      "</td>" +
+
+    "</tr>" +
+
+    "<tr>" +
+
+      '<td>' +
+
+        paragraph(
+          reflection
+        ) +
+
+      "</td>" +
+
+    "</tr>";
+
+
+  /*
+   * THE WORK
+   */
+
+  html +=
+
+    "<tr>" +
+
+      '<td style="padding:14px 0 11px;">' +
+
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:1.5px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+        '">' +
+
+          "02 — THE WORK" +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>" +
+
+    "<tr>" +
+
+      '<td>' +
+
+        paragraph(
+          workText
+        ) +
+
+      "</td>" +
+
+    "</tr>";
+
+
+  /*
+   * MODULAR IMAGES
+   */
+
+  if (modulesHtml) {
+
+    html +=
+
+      "<tr>" +
+
+        '<td>' +
+
+          modulesHtml +
+
+        "</td>" +
+
+      "</tr>";
+
+  }
+
+
+  /*
+   * STUDIO NOTES
+   */
+
+  html +=
+
+    "<tr>" +
+
+      '<td style="padding:14px 0 11px;">' +
+
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:1.5px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+        '">' +
+
+          "03 — STUDIO NOTES" +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>" +
+
+    "<tr>" +
+
+      '<td>' +
+
+        paragraph(
+          studioText
+        ) +
+
+      "</td>" +
+
+    "</tr>";
+
+
+  /*
+   * HERO 02
+   */
+
+  if (hero2) {
+
+    html +=
+
+      "<tr>" +
+
+        '<td style="padding:8px 0 0;">' +
+
+          buildEmailImage(
+            hero2,
+            hero2Click,
+            hero2Caption
+          ) +
+
+        "</td>" +
+
+      "</tr>";
+
+  }
+
+
+  /*
+   * PLEASURE NOTES
+   */
+
+  html +=
+
+    "<tr>" +
+
+      '<td style="padding:38px 0 11px;">' +
+
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:1.5px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+        '">' +
+
+          "04 — PLEASURE NOTES" +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>" +
+
+    "<tr>" +
+
+      '<td style="padding:0 0 8px;">' +
+
+        '<div style="' +
+          "font-family:Georgia,Times New Roman,serif;" +
+          "font-size:19px;" +
+          "line-height:27px;" +
+          "color:" +
+            COLORS.text +
+          ";" +
+        '">' +
+
+          "An offering of what has held my attention." +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>" +
+
+    "<tr>" +
+
+      "<td>" +
+
+        buildPleasureNotesHtml(
+          notes
+        ) +
+
+      "</td>" +
+
+    "</tr>";
+
+
+  /*
+   * INVITATION
+   */
+
+  html +=
+    invitationHtml;
+
+
+  /*
+   * QUESTION
+   */
+
+  html +=
+
+    "<tr>" +
+
+      '<td style="padding:38px 0 11px;">' +
+
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:1.5px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+        '">' +
+
+          "06 — A QUESTION" +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>" +
+
+    "<tr>" +
+
+      '<td style="padding:0 0 36px;">' +
+
+        '<div style="' +
+          "font-family:Georgia,Times New Roman,serif;" +
+          "font-size:25px;" +
+          "line-height:34px;" +
+          "color:" +
+            COLORS.text +
+          ";" +
+        '">' +
+
+          escapeHtml(
+            question
+          ) +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>";
+
+
+  /*
+   * CLOSING
+   *
+   * SVG intentionally removed from Outlook build.
+   */
+
+  html +=
+
+    "<tr>" +
+
+      '<td align="center" style="padding:30px 0 18px;">' +
+
+        '<div style="' +
+          "font-family:Georgia,Times New Roman,serif;" +
+          "font-size:24px;" +
+          "line-height:30px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+        '">' +
+
+          "◌" +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>" +
+
+    "<tr>" +
+
+      '<td align="center" style="padding:0 0 10px;">' +
+
+        '<div style="' +
+          "font-family:Georgia,Times New Roman,serif;" +
+          "font-size:15px;" +
+          "line-height:21px;" +
+          "font-style:italic;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+        '">' +
+
+          "Pleasure is the desire to return." +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>";
+
+
+  html +=
+
+          "</table>" +
+
+        "</td>" +
+
+      "</tr>";
+
+
+  /*
+   * FOOTER
+   */
+
+  html +=
+
+    "<tr>" +
+
+      '<td style="padding:18px 32px 34px;border-top:1px solid ' +
+        COLORS.rule +
+      ';">' +
+
+        '<div style="' +
+          "font-family:Arial,Helvetica,sans-serif;" +
+          "font-size:10px;" +
+          "line-height:14px;" +
+          "letter-spacing:1.1px;" +
+          "color:" +
+            COLORS.secondary +
+          ";" +
+        '">' +
+
+          "THE PLEASURE DISPATCH · BY FLRS GLOBAL" +
+
+        "</div>" +
+
+      "</td>" +
+
+    "</tr>";
+
+
+  html +=
 
           "</table>" +
 
@@ -3540,27 +3881,18 @@ function buildNewsletterHtml() {
 
 
 /* =========================================================
-   BUILD SUBJECT
+   BUILD PROGRESS
 ========================================================= */
 
-function buildSubject() {
+function updateBuildProgress(
+  current,
+  label
+) {
 
-  return (
-
-    "The Pleasure Dispatch — " +
-
-    (
-      value("edition") ||
-      "No. 001"
-    ) +
-
-    ": " +
-
-    (
-      value("title") ||
-      "A Note on Pleasure"
-    )
-
+  setStatus(
+    current +
+    " / 4  " +
+    label
   );
 
 }
@@ -3587,6 +3919,7 @@ function getAsyncError(
 
     }
 
+
     if (
       result.error.name
     ) {
@@ -3605,7 +3938,6 @@ function getAsyncError(
 
 /* =========================================================
    HTML VALIDATION
-   This is intentionally conservative.
 ========================================================= */
 
 function validateNewsletterHtml(
@@ -3617,45 +3949,76 @@ function validateNewsletterHtml(
     typeof html !== "string"
   ) {
 
-    throw new Error(
-      "Newsletter HTML is empty."
-    );
+    return {
+      valid: false,
+      message: "Newsletter HTML is empty."
+    };
 
   }
 
 
-  if (
-    html.length >
-    500000
+  const checks = [
+
+    {
+      name: "script",
+      pattern: /<script\b/i,
+      message: "HTML contains a script tag."
+    },
+
+    {
+      name: "svg",
+      pattern: /<svg\b/i,
+      message: "HTML contains SVG markup."
+    },
+
+    {
+      name: "style",
+      pattern: /<style\b/i,
+      message: "HTML contains a style block."
+    },
+
+    {
+      name: "javascript",
+      pattern: /javascript:/i,
+      message: "HTML contains JavaScript."
+    },
+
+    {
+      name: "data-image",
+      pattern: /data:image\//i,
+      message: "HTML contains an embedded data image."
+    }
+
+  ];
+
+
+  for (
+    let i = 0;
+    i < checks.length;
+    i++
   ) {
 
-    throw new Error(
-      "Newsletter HTML is unusually large (" +
-      html.length +
-      " characters)."
-    );
+    if (
+      checks[i].pattern.test(
+        html
+      )
+    ) {
+
+      return {
+        valid: false,
+        message:
+          checks[i].message
+      };
+
+    }
 
   }
 
 
-  /*
-   * Catch accidental JavaScript/data URL
-   * injection into the email body.
-   */
-
-  if (
-    /<script\b/i.test(html) ||
-    /javascript:/i.test(html)
-  ) {
-
-    throw new Error(
-      "Unsafe content was detected in the newsletter HTML."
-    );
-
-  }
-
-
-  return true;
+  return {
+    valid: true,
+    message: "HTML passed Outlook safety checks."
+  };
 
 }
 
@@ -3666,14 +4029,24 @@ function validateNewsletterHtml(
 
 function buildInOutlook() {
 
-  setStatus(
-    "Starting Dispatch build…"
+  console.log(
+    "===================================="
+  );
+
+  console.log(
+    "THE PLEASURE DISPATCH BUILD"
+  );
+
+  console.log(
+    "===================================="
   );
 
 
-  /*
-   * OFFICE CHECK
-   */
+  updateBuildProgress(
+    0,
+    "Starting…"
+  );
+
 
   if (
     typeof Office ===
@@ -3688,10 +4061,6 @@ function buildInOutlook() {
 
   }
 
-
-  /*
-   * MAILBOX CHECK
-   */
 
   if (
     !Office.context ||
@@ -3712,10 +4081,6 @@ function buildInOutlook() {
     Office.context.mailbox.item;
 
 
-  /*
-   * BODY CHECK
-   */
-
   if (
     !item.body ||
     typeof item.body.setAsync !==
@@ -3731,12 +4096,13 @@ function buildInOutlook() {
   }
 
 
-  /*
-   * STEP 1
-   */
+  /* =======================================================
+     STEP 1
+  ======================================================= */
 
-  setStatus(
-    "1 / 4  Generating newsletter…"
+  updateBuildProgress(
+    1,
+    "Generating newsletter…"
   );
 
 
@@ -3748,16 +4114,13 @@ function buildInOutlook() {
     html =
       buildNewsletterHtml();
 
-    validateNewsletterHtml(
-      html
-    );
-
   } catch (error) {
 
     console.error(
-      "Newsletter generation error:",
+      "Newsletter build error:",
       error
     );
+
 
     setStatus(
       "Build failed generating newsletter: " +
@@ -3775,12 +4138,43 @@ function buildInOutlook() {
   );
 
 
-  /*
-   * STEP 2
-   */
+  /* =======================================================
+     VALIDATE HTML
+  ======================================================= */
 
-  setStatus(
-    "2 / 4  Checking image sources…"
+  const validation =
+    validateNewsletterHtml(
+      html
+    );
+
+
+  console.log(
+    "HTML validation:",
+    validation
+  );
+
+
+  if (
+    !validation.valid
+  ) {
+
+    setStatus(
+      "Build stopped — " +
+      validation.message
+    );
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     STEP 2
+  ======================================================= */
+
+  updateBuildProgress(
+    2,
+    "Checking image sources…"
   );
 
 
@@ -3788,47 +4182,83 @@ function buildInOutlook() {
     collectImageBlocks();
 
 
-  let imageCount =
+  let modularCount =
     0;
 
 
   modules.forEach(
     function (block) {
 
-      imageCount +=
+      modularCount +=
         block.items.length;
 
     }
   );
 
 
-  if (value("hero1Url")) {
-    imageCount++;
+  let heroCount =
+    0;
+
+
+  if (
+    value("hero1Url")
+  ) {
+
+    heroCount++;
+
   }
 
-  if (value("hero2Url")) {
-    imageCount++;
+
+  if (
+    value("hero2Url")
+  ) {
+
+    heroCount++;
+
   }
+
+
+  const totalImages =
+    modularCount +
+    heroCount;
 
 
   console.log(
-    "Newsletter image count:",
-    imageCount
+    "Hero images:",
+    heroCount
+  );
+
+  console.log(
+    "Modular images:",
+    modularCount
+  );
+
+  console.log(
+    "Total images:",
+    totalImages
   );
 
 
-  /*
-   * STEP 3
-   *
-   * We deliberately DO NOT call body.getAsync().
-   *
-   * That operation is unnecessary for replacing the
-   * body and was adding another Outlook API operation
-   * to the build sequence.
-   */
+  updateBuildProgress(
+    2,
+    totalImages +
+    " image" +
+    (
+      totalImages === 1
+        ? ""
+        : "s"
+    ) +
+    " ready…"
+  );
 
-  setStatus(
-    "3 / 4  Writing newsletter to Outlook…"
+
+  /* =======================================================
+     STEP 3
+  ======================================================= */
+
+  updateBuildProgress(
+    3,
+    "Preparing Outlook message…"
   );
 
 
@@ -3853,66 +4283,116 @@ function buildInOutlook() {
           "Build timed out — Outlook did not respond after 60 seconds."
         );
 
+
+        console.error(
+          "Outlook operation timed out."
+        );
+
       },
       BUILD_TIMEOUT_MS
     );
 
 
-  /*
-   * SUBJECT
-   */
+  function finish() {
+
+    if (finished) {
+      return false;
+    }
+
+    finished = true;
+
+    clearTimeout(
+      timeout
+    );
+
+    return true;
+
+  }
+
+
+  /* =======================================================
+     SUBJECT
+  ======================================================= */
 
   const subject =
     buildSubject();
 
 
-  if (
-    item.subject &&
-    typeof item.subject.setAsync ===
-      "function"
-  ) {
-
-    item.subject.setAsync(
-      subject,
-      function (subjectResult) {
-
-        if (finished) {
-          return;
-        }
+  console.log(
+    "Subject:",
+    subject
+  );
 
 
-        if (
-          !subjectResult ||
-          subjectResult.status !==
-            Office.AsyncResultStatus.Succeeded
-        ) {
+  item.subject.setAsync(
+    subject,
+    function (
+      subjectResult
+    ) {
 
-          finished =
-            true;
-
-          clearTimeout(
-            timeout
-          );
+      if (finished) {
+        return;
+      }
 
 
-          setStatus(
-            "Build failed setting subject: " +
-            getAsyncError(
-              subjectResult
-            )
-          );
+      if (
+        !subjectResult ||
+        subjectResult.status !==
+          Office.AsyncResultStatus.Succeeded
+      ) {
 
-          return;
-
-        }
+        finish();
 
 
-        writeNewsletterBody(
-          item,
+        setStatus(
+          "Build failed setting subject: " +
+          getAsyncError(
+            subjectResult
+          )
+        );
+
+
+        console.error(
+          "subject.setAsync result:",
+          subjectResult
+        );
+
+
+        return;
+
+      }
+
+
+      console.log(
+        "Subject set successfully."
+      );
+
+
+      /* ===================================================
+         WRITE BODY
+      =================================================== */
+
+      updateBuildProgress(
+        3,
+        "Writing newsletter body…"
+      );
+
+
+      console.log(
+        "Calling body.setAsync..."
+      );
+
+
+      try {
+
+        item.body.setAsync(
           html,
+          {
+            coercionType:
+              Office.CoercionType.Html
+          },
           function (
-            success,
-            errorMessage
+            bodyResult
           ) {
 
             if (finished) {
@@ -3920,109 +4400,185 @@ function buildInOutlook() {
             }
 
 
-            finished =
-              true;
+            if (
+              bodyResult &&
+              bodyResult.status ===
+                Office.AsyncResultStatus.Succeeded
+            ) {
 
-            clearTimeout(
-              timeout
+              finish();
+
+
+              updateBuildProgress(
+                4,
+                "✓ Complete — Dispatch built in Outlook."
+              );
+
+
+              console.log(
+                "body.setAsync succeeded."
+              );
+
+
+              return;
+
+            }
+
+
+            finish();
+
+
+            const errorMessage =
+              getAsyncError(
+                bodyResult
+              );
+
+
+            setStatus(
+              "Build failed writing newsletter: " +
+              errorMessage
             );
 
 
-            if (success) {
+            console.error(
+              "body.setAsync result:",
+              bodyResult
+            );
 
-              setStatus(
-                "4 / 4  ✓ Complete — Dispatch built in Outlook."
-              );
 
-              console.log(
-                "Newsletter inserted successfully."
-              );
+            console.error(
+              "Rejected HTML length:",
+              html.length
+            );
 
-            } else {
 
-              setStatus(
-                "Build failed writing newsletter: " +
-                errorMessage
-              );
-
-              console.error(
-                "Newsletter body error:",
-                errorMessage
-              );
-
-            }
+            console.error(
+              "First 2000 characters:",
+              html.substring(
+                0,
+                2000
+              )
+            );
 
           }
         );
 
-      }
-    );
+      } catch (error) {
 
-  } else {
-
-    /*
-     * If subject.setAsync is unavailable,
-     * still attempt the body.
-     */
-
-    writeNewsletterBody(
-      item,
-      html,
-      function (
-        success,
-        errorMessage
-      ) {
-
-        if (finished) {
-          return;
-        }
+        finish();
 
 
-        finished =
-          true;
-
-        clearTimeout(
-          timeout
+        setStatus(
+          "Build failed writing newsletter: " +
+          error.message
         );
 
 
-        if (success) {
-
-          setStatus(
-            "4 / 4  ✓ Complete — Dispatch built in Outlook."
-          );
-
-        } else {
-
-          setStatus(
-            "Build failed writing newsletter: " +
-            errorMessage
-          );
-
-        }
+        console.error(
+          "body.setAsync threw exception:",
+          error
+        );
 
       }
-    );
 
-  }
+    }
+  );
 
 }
 
 
 /* =========================================================
-   WRITE BODY
+   SUBJECT
 ========================================================= */
 
-function writeNewsletterBody(
-  item,
-  html,
-  callback
-) {
+function buildSubject() {
+
+  return (
+
+    "The Pleasure Dispatch — " +
+
+    (
+      value("edition") ||
+      "No. 001"
+    ) +
+
+    ": " +
+
+    (
+      value("title") ||
+      "A Note on Pleasure"
+    )
+
+  );
+
+}
+
+
+/* =========================================================
+   MINIMAL OUTLOOK BODY TEST
+========================================================= */
+
+function testOutlookBody() {
+
+  console.log(
+    "Running minimal Outlook body test..."
+  );
+
+
+  if (
+    typeof Office ===
+    "undefined"
+  ) {
+
+    setStatus(
+      "Office.js unavailable."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !Office.context ||
+    !Office.context.mailbox ||
+    !Office.context.mailbox.item
+  ) {
+
+    setStatus(
+      "Open a new Outlook message first."
+    );
+
+    return;
+
+  }
+
+
+  const item =
+    Office.context.mailbox.item;
+
+
+  const testHtml =
+
+    '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">' +
+
+      "<tr>" +
+
+        '<td style="padding:30px;font-family:Arial,sans-serif;font-size:20px;color:#151515;">' +
+
+          "The Pleasure Dispatch body test." +
+
+        "</td>" +
+
+      "</tr>" +
+
+    "</table>";
+
 
   try {
 
     item.body.setAsync(
-      html,
+      testHtml,
       {
         coercionType:
           Office.CoercionType.Html
@@ -4031,36 +4587,46 @@ function writeNewsletterBody(
         result
       ) {
 
+        console.log(
+          "Minimal body test result:",
+          result
+        );
+
+
         if (
           result &&
           result.status ===
             Office.AsyncResultStatus.Succeeded
         ) {
 
-          callback(
-            true,
-            null
+          setStatus(
+            "✓ Outlook body test succeeded."
           );
 
-          return;
+        } else {
+
+          setStatus(
+            "Outlook body test failed: " +
+            getAsyncError(
+              result
+            )
+          );
 
         }
-
-
-        callback(
-          false,
-          getAsyncError(
-            result
-          )
-        );
 
       }
     );
 
   } catch (error) {
 
-    callback(
-      false,
+    console.error(
+      "Minimal body test exception:",
+      error
+    );
+
+
+    setStatus(
+      "Outlook body test failed: " +
       error.message
     );
 
@@ -4088,11 +4654,13 @@ function previewNewsletter() {
     html =
       buildNewsletterHtml();
 
-    validateNewsletterHtml(
-      html
+  } catch (error) {
+
+    console.error(
+      "Preview error:",
+      error
     );
 
-  } catch (error) {
 
     setStatus(
       "Preview error: " +
@@ -4126,22 +4694,42 @@ function previewNewsletter() {
 
 
   previewWindow.document.write(
+
     "<!doctype html>" +
+
     "<html>" +
+
       "<head>" +
+
         '<meta charset="utf-8">' +
+
         "<title>The Pleasure Dispatch Preview</title>" +
+
         "<style>" +
-          "html,body{margin:0;padding:0;background:" +
-            COLORS.background +
-          ";}" +
-          "img{max-width:100%;}" +
+
+          "body{" +
+            "margin:0;" +
+            "background:" +
+              COLORS.background +
+            ";" +
+          "}" +
+
+          "img{" +
+            "cursor:pointer;" +
+          "}" +
+
         "</style>" +
+
       "</head>" +
+
       "<body>" +
+
         html +
+
       "</body>" +
+
     "</html>"
+
   );
 
 
@@ -4153,4 +4741,3 @@ function previewNewsletter() {
   );
 
 }
-```
