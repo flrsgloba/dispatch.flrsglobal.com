@@ -1,21 +1,8 @@
 /* =========================================================
    THE PLEASURE DISPATCH
    taskpane.js
-   Consolidated Production Version — PATCHED
-   Patch notes (this revision):
-   - uploadToDrive() now retries once automatically before
-     giving up, to absorb transient network/Apps Script blips.
-   - handleHeroUpload() / handleModuleUpload() now CLEAR the
-     field on final failure instead of leaving a raw base64
-     data: URL sitting in the input. Previously a failed Drive
-     upload silently left multi-hundred-KB base64 strings in
-     hero1Url/hero2Url/.module-url, which would later blow up
-     the build with "HTML contains an embedded data image."
-   - buildInOutlook() now runs a precise pre-check that scans
-     every image source field for a stray data: URL BEFORE
-     generating the newsletter, and if found, stops with a
-     message naming exactly which image slot is the problem
-     (e.g. "Hero Image 02 still has an unsaved local image").
+   Consolidated Production Version
+   MULTILINE TEXT PATCH
 ========================================================= */
 
 const DRIVE_API_URL =
@@ -68,6 +55,8 @@ function initializeDispatch() {
 
   initialized = true;
 
+  upgradeMultilineFields();
+
   bindStaticControls();
   bindDelegatedControls();
 
@@ -118,6 +107,7 @@ function value(id) {
   return element.value.trim();
 }
 
+
 function escapeHtml(text) {
 
   return String(text || "").replace(
@@ -134,15 +124,17 @@ function escapeHtml(text) {
 
     }
   );
+}
 
+
+function escapeAttribute(text) {
+  return escapeHtml(text);
 }
 
 
 /*
- * Escape text while preserving line breaks.
- *
- * Enter / Return becomes <br>
- * Multiple consecutive line breaks are preserved.
+ * Preserve user-entered line breaks when text is inserted
+ * into newsletter HTML.
  */
 function textWithLineBreaks(text) {
 
@@ -150,16 +142,138 @@ function textWithLineBreaks(text) {
     return "";
   }
 
-  return escapeHtml(text).replace(
-    /\r?\n/g,
-    "<br>"
-  );
-
+  return escapeHtml(text)
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n/g, "<br>");
 }
 
 
-function escapeAttribute(text) {
-  return escapeHtml(text);
+/*
+ * Converts a text value to a safe single-line value.
+ * Used only where line breaks are not appropriate, such
+ * as an email subject.
+ */
+function singleLineText(text) {
+
+  return String(text || "")
+    .replace(/\r\n/g, " ")
+    .replace(/\r/g, " ")
+    .replace(/\n/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
+/*
+ * Converts static single-line <input> fields into
+ * <textarea> elements so Enter/Return creates line breaks.
+ *
+ * Runs once during initialization.
+ *
+ * Fields covered:
+ *
+ * - Title
+ * - Subtitle
+ * - Hero captions
+ * - Reflection
+ * - The Work
+ * - Studio Notes
+ * - Invitation title
+ * - Invitation text
+ * - Question
+ *
+ * Existing attributes, classes, IDs, placeholders,
+ * autocomplete settings, etc. are preserved.
+ */
+function upgradeMultilineFields() {
+
+  const fieldIds = [
+    "title",
+    "subtitle",
+    "hero1Caption",
+    "hero2Caption",
+    "reflection",
+    "workText",
+    "studioText",
+    "inviteTitle",
+    "inviteText",
+    "question"
+  ];
+
+  fieldIds.forEach(function (id) {
+
+    const input =
+      document.getElementById(id);
+
+    if (
+      !input ||
+      input.tagName.toLowerCase() === "textarea"
+    ) {
+      return;
+    }
+
+    const textarea =
+      document.createElement("textarea");
+
+    Array.from(input.attributes).forEach(
+      function (attribute) {
+
+        if (
+          attribute.name !== "value"
+        ) {
+
+          textarea.setAttribute(
+            attribute.name,
+            attribute.value
+          );
+
+        }
+
+      }
+    );
+
+    textarea.value =
+      input.value || "";
+
+    textarea.className =
+      input.className;
+
+    /*
+     * Give multiline fields enough room to be useful
+     * without requiring HTML changes.
+     */
+    if (
+      !textarea.getAttribute("rows")
+    ) {
+
+      textarea.setAttribute(
+        "rows",
+        id === "title" ||
+        id === "subtitle" ||
+        id === "inviteTitle" ||
+        id === "question"
+          ? "3"
+          : "6"
+      );
+
+    }
+
+    /*
+     * Make sure the browser treats these as text fields.
+     */
+    textarea.setAttribute(
+      "data-multiline",
+      "true"
+    );
+
+    input.parentNode.replaceChild(
+      textarea,
+      input
+    );
+
+  });
+
 }
 
 
@@ -177,12 +291,9 @@ function paragraph(text) {
         COLORS.text +
       ";" +
     '">' +
-
       textWithLineBreaks(text) +
-
     "</p>"
   );
-
 }
 
 
@@ -202,10 +313,6 @@ function setStatus(message) {
 }
 
 
-/*
- * Returns true if a value looks like a raw base64
- * data: URL rather than a real hosted HTTPS URL.
- */
 function isDataUrl(text) {
 
   return (
@@ -368,9 +475,6 @@ function bindStaticControls() {
 
 function bindDelegatedControls() {
 
-  /*
-   * BUTTONS
-   */
   document.addEventListener(
     "click",
     function (event) {
@@ -591,9 +695,7 @@ function bindDelegatedControls() {
 
       /*
        * Hero "Use Image URL" button.
-       * taskpane.html uses: <button class="secondary" data-url="hero1">
        */
-
       if (
         button.dataset &&
         button.dataset.url
@@ -1152,12 +1254,9 @@ function blobToDataUrl(
 
 
 /* =========================================================
-   GOOGLE DRIVE UPLOAD (with retry)
+   GOOGLE DRIVE UPLOAD
 ========================================================= */
 
-/*
- * Single attempt — unchanged network logic.
- */
 async function uploadToDriveOnce(
   dataUrl,
   originalFileName
@@ -1271,9 +1370,6 @@ async function uploadToDriveOnce(
   }
 
 
-  /*
-   * Normalize URLs from file ID.
-   */
   result.imageUrl =
     buildDriveImageUrl(
       result.fileId
@@ -1291,11 +1387,6 @@ async function uploadToDriveOnce(
 }
 
 
-/*
- * Wrapper: retries once (DRIVE_UPLOAD_MAX_ATTEMPTS) before
- * surfacing the failure to the caller. Reports each attempt
- * via setStatus so retries are visible, not silent.
- */
 async function uploadToDrive(
   dataUrl,
   originalFileName
@@ -1569,13 +1660,6 @@ function handleHeroUpload(
         );
 
 
-      /*
-       * Immediate local preview — this is a temporary
-       * base64 preview only. It gets replaced by the
-       * real Drive URL below, or CLEARED if the upload
-       * ultimately fails, so it never survives into a
-       * build.
-       */
       input.value =
         result.dataUrl;
 
@@ -1624,11 +1708,6 @@ function handleHeroUpload(
 
 
       } catch (error) {
-
-        /*
-         * Final failure after retries — clear the field
-         * rather than leaving a base64 data: URL behind.
-         */
 
         input.value =
           "";
@@ -1799,11 +1878,6 @@ function handleModuleUpload(
       }
 
 
-      /*
-       * Immediate local preview — temporary, replaced
-       * by the real Drive URL below, or CLEARED if the
-       * upload ultimately fails.
-       */
       urlInput.value =
         result.dataUrl;
 
@@ -1823,9 +1897,6 @@ function handleModuleUpload(
           );
 
 
-        /*
-         * Save Drive references.
-         */
         item.dataset.fileId =
           drive.fileId;
 
@@ -1839,9 +1910,6 @@ function handleModuleUpload(
           drive.driveUrl;
 
 
-        /*
-         * Use Drive thumbnail URL.
-         */
         urlInput.value =
           drive.imageUrl;
 
@@ -1858,11 +1926,6 @@ function handleModuleUpload(
 
 
       } catch (error) {
-
-        /*
-         * Final failure after retries — clear the field
-         * rather than leaving a base64 data: URL behind.
-         */
 
         urlInput.value =
           "";
@@ -2353,6 +2416,10 @@ function syncImageInputs(
 }
 
 
+/* =========================================================
+   IMAGE ITEM
+========================================================= */
+
 function addImageItem(
   wrap,
   number,
@@ -2374,6 +2441,12 @@ function addImageItem(
     "image-item";
 
 
+  /*
+   * IMPORTANT:
+   *
+   * .module-caption is now a TEXTAREA rather than an
+   * <input>, so image captions support Enter/Return.
+   */
   item.innerHTML =
 
     '<label>Image ' +
@@ -2409,14 +2482,14 @@ function addImageItem(
 
     "</div>" +
 
-    '<input class="module-caption" value="' +
+    '<textarea class="module-caption" rows="3" placeholder="Caption">' +
 
-      escapeAttribute(
+      escapeHtml(
         preset.caption ||
         ""
       ) +
 
-    '" placeholder="Caption">' +
+    "</textarea>" +
 
     '<button type="button" class="remove-image">' +
 
@@ -2430,9 +2503,6 @@ function addImageItem(
   );
 
 
-  /*
-   * Preserve Drive click destination.
-   */
   if (
     preset.clickUrl
   ) {
@@ -2579,7 +2649,7 @@ function removeImageItem(
 
 
 /* =========================================================
-   DUPLICATE
+   DUPLICATE IMAGE BLOCK
 ========================================================= */
 
 function duplicateBlock(
@@ -2626,7 +2696,7 @@ function duplicateBlock(
 
           caption:
             caption
-              ? caption.value.trim()
+              ? caption.value
               : "",
 
           clickUrl:
@@ -2765,7 +2835,7 @@ function duplicateBlock(
 
 
 /* =========================================================
-   COLLECT PLEASURE NOTES
+   PLEASURE NOTES
 ========================================================= */
 
 function collectPleasureNotes() {
@@ -2849,21 +2919,32 @@ function addPleasureRow(
     "pleasure-row";
 
 
+  /*
+   * BOTH fields are textareas now.
+   *
+   * This means:
+   * - Category supports line breaks
+   * - Pleasure Note supports line breaks
+   */
   row.innerHTML =
 
-    '<input class="pleasure-label" value="' +
-      escapeAttribute(
+    '<textarea class="pleasure-label" rows="2" placeholder="Category">' +
+
+      escapeHtml(
         labelValue ||
         ""
       ) +
-    '" placeholder="Category">' +
 
-    '<input class="pleasure-value" value="' +
-      escapeAttribute(
+    "</textarea>" +
+
+    '<textarea class="pleasure-value" rows="4" placeholder="What has held your attention?">' +
+
+      escapeHtml(
         noteValue ||
         ""
       ) +
-    '" placeholder="What has held your attention?">' +
+
+    "</textarea>" +
 
     '<button type="button">×</button>';
 
@@ -2932,7 +3013,7 @@ function buildPleasureNotesHtml(
                 ";" +
               '">' +
 
-                escapeHtml(
+                textWithLineBreaks(
                   note.label
                 ) +
 
@@ -3107,7 +3188,7 @@ function buildEmailImage(
         "margin-top:7px;" +
       '">' +
 
-        escapeHtml(
+        textWithLineBreaks(
           caption
         ) +
 
@@ -3499,7 +3580,7 @@ function buildNewsletterHtml() {
               "margin:0 0 10px;" +
             '">' +
 
-              escapeHtml(
+              textWithLineBreaks(
                 inviteTitle
               ) +
 
@@ -3559,7 +3640,7 @@ function buildNewsletterHtml() {
         function (item) {
 
           return escapeHtml(
-            item
+            singleLineText(item)
           );
 
         }
@@ -3713,7 +3794,7 @@ function buildNewsletterHtml() {
                           "margin:0 0 28px;" +
                         '">' +
 
-                          escapeHtml(
+                          textWithLineBreaks(
                             subtitle
                           ) +
 
@@ -3887,7 +3968,7 @@ function buildNewsletterHtml() {
                     "margin:0 0 36px;" +
                   '">' +
 
-                    escapeHtml(
+                    textWithLineBreaks(
                       question
                     ) +
 
@@ -4050,10 +4131,6 @@ function getAsyncError(
 
 /* =========================================================
    FINAL HTML VALIDATION
-   Safety check only — run immediately before body.setAsync.
-   Does NOT alter the generated HTML. Reports the specific
-   rule that was violated so failures are diagnosable instead
-   of surfacing as a generic Outlook error.
 ========================================================= */
 
 function validateNewsletterHtml(
@@ -4068,16 +4145,6 @@ function validateNewsletterHtml(
     return "Newsletter HTML is empty.";
 
   }
-
-
-  /*
-   * NOTE: inline CSS (style="...") is intentionally NOT
-   * flagged here. Outlook desktop's HTML body renderer
-   * strips <style> blocks and ignores CSS classes in many
-   * contexts, so inline styles are the correct, standard
-   * approach for email HTML — this newsletter uses them on
-   * purpose and that is not a compatibility problem.
-   */
 
 
   /*
@@ -4096,7 +4163,7 @@ function validateNewsletterHtml(
 
 
   /*
-   * 3. Embedded data: images.
+   * 2. Embedded data images.
    */
 
   if (
@@ -4111,7 +4178,7 @@ function validateNewsletterHtml(
 
 
   /*
-   * 4. Every <img src="..."> must be HTTPS.
+   * 3. Every image source must be HTTPS.
    */
 
   const imgSrcPattern =
@@ -4157,9 +4224,6 @@ function validateNewsletterHtml(
 
 /* =========================================================
    PRE-BUILD DATA-URL CHECK
-   Scans every image source field for a stray data: URL
-   and returns a human-readable description of the FIRST
-   offending field, or null if everything is clean.
 ========================================================= */
 
 function findEmbeddedDataImage() {
@@ -4326,11 +4390,9 @@ function buildInOutlook() {
   }
 
 
-  /* =======================================================
-     STEP 0 — PRE-BUILD DATA URL CHECK
-     Catch unsaved local images BEFORE generating HTML,
-     so the error names the exact field responsible.
-  ======================================================= */
+  /*
+   * STEP 0 — PRE-BUILD DATA URL CHECK
+   */
 
   const dataImageProblem =
     findEmbeddedDataImage();
@@ -4357,9 +4419,9 @@ function buildInOutlook() {
   }
 
 
-  /* =======================================================
-     STEP 1 — GENERATE HTML
-  ======================================================= */
+  /*
+   * STEP 1 — GENERATE HTML
+   */
 
   updateBuildProgress(
     1,
@@ -4409,10 +4471,7 @@ function buildInOutlook() {
 
 
   /*
-   * Final safety validation on the generated HTML — checks
-   * for stray SVG references, embedded data: images, and any
-   * non-HTTPS image sources. This is a check only; it does
-   * not alter the HTML.
+   * Final safety validation.
    */
 
   const validationProblem =
@@ -4448,9 +4507,9 @@ function buildInOutlook() {
   );
 
 
-  /* =======================================================
-     STEP 2 — IMAGE COUNT
-  ======================================================= */
+  /*
+   * STEP 2 — IMAGE COUNT
+   */
 
   updateBuildProgress(
     2,
@@ -4536,9 +4595,9 @@ function buildInOutlook() {
   );
 
 
-  /* =======================================================
-     STEP 3 — READ CURRENT OUTLOOK BODY
-  ======================================================= */
+  /*
+   * STEP 3 — READ CURRENT OUTLOOK BODY
+   */
 
   updateBuildProgress(
     3,
@@ -4553,6 +4612,7 @@ function buildInOutlook() {
   /*
    * 60-second safety timeout.
    */
+
   const timeout =
     setTimeout(
       function () {
@@ -4628,9 +4688,9 @@ function buildInOutlook() {
       );
 
 
-      /* =================================================
-         STEP 3A — SUBJECT
-      ================================================= */
+      /*
+       * STEP 3A — SUBJECT
+       */
 
       updateBuildProgress(
         3,
@@ -4686,9 +4746,9 @@ function buildInOutlook() {
           );
 
 
-          /* =============================================
-             STEP 3B — BODY
-          ============================================= */
+          /*
+           * STEP 3B — BODY
+           */
 
           updateBuildProgress(
             3,
@@ -4773,6 +4833,18 @@ function buildInOutlook() {
 
 function buildSubject() {
 
+  /*
+   * Email subjects cannot contain the same multiline
+   * formatting as the newsletter body, so title line
+   * breaks are converted to spaces here.
+   */
+
+  const title =
+    singleLineText(
+      value("title")
+    );
+
+
   return (
 
     "The Pleasure Dispatch — " +
@@ -4785,7 +4857,7 @@ function buildSubject() {
     ": " +
 
     (
-      value("title") ||
+      title ||
       "A Note on Pleasure"
     )
 
@@ -4872,6 +4944,12 @@ function previewNewsletter() {
           "img{" +
             "cursor:pointer;" +
           "}" +
+
+          /*
+           * Preview-only support for dynamically generated
+           * multiline fields. The actual newsletter HTML
+           * already uses <br> for line breaks.
+           */
 
         "</style>" +
 
