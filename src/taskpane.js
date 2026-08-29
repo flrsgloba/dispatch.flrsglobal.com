@@ -4036,7 +4036,7 @@ function buildNewsletterHtml() {
                     ";" +
                   '">' +
 
-                    "THE PLEASURE DISPATCH · BY FLRS GLOBAL" +
+                    "THE PLEASURE DISPATCH · BY FLRSGLOBAL" +
 
                   "</div>" +
 
