@@ -118,7 +118,6 @@ function value(id) {
   return element.value.trim();
 }
 
-
 function escapeHtml(text) {
 
   return String(text || "").replace(
@@ -135,6 +134,27 @@ function escapeHtml(text) {
 
     }
   );
+
+}
+
+
+/*
+ * Escape text while preserving line breaks.
+ *
+ * Enter / Return becomes <br>
+ * Multiple consecutive line breaks are preserved.
+ */
+function textWithLineBreaks(text) {
+
+  if (!text) {
+    return "";
+  }
+
+  return escapeHtml(text).replace(
+    /\r?\n/g,
+    "<br>"
+  );
+
 }
 
 
@@ -157,12 +177,12 @@ function paragraph(text) {
         COLORS.text +
       ";" +
     '">' +
-      escapeHtml(text).replace(
-        /\n/g,
-        "<br>"
-      ) +
+
+      textWithLineBreaks(text) +
+
     "</p>"
   );
+
 }
 
 
@@ -2927,7 +2947,7 @@ function buildPleasureNotesHtml(
                 ";" +
               '">' +
 
-                escapeHtml(
+                textWithLineBreaks(
                   note.value
                 ) +
 
