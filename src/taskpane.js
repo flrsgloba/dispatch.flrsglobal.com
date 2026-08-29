@@ -22,7 +22,7 @@ const DRIVE_API_URL =
   "https://script.google.com/macros/s/AKfycbyTLvYbe1O_BbzsH09UMSZdbY9_XZXga-TbSPkR3UclT3Qhlaj7gy5yhXPA_UpE6Fu7tw/exec";
 
 const LOOP_ASSET_URL =
-  "https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/pleasure-loop.svg";
+  "https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/pleasure-loop.png";
 
 const COLORS = {
   background: "#303030",
@@ -3990,27 +3990,147 @@ function getAsyncError(
     result.error
   ) {
 
+    const name =
+      result.error.name ||
+      "UnknownName";
+
+
+    const code =
+      (
+        result.error.code !==
+        undefined &&
+        result.error.code !==
+        null
+      )
+        ? result.error.code
+        : "UnknownCode";
+
+
+    const message =
+      result.error.message ||
+      "No message provided.";
+
+
+    return (
+      message +
+      " [name: " +
+      name +
+      ", code: " +
+      code +
+      "]"
+    );
+
+  }
+
+
+  return "Unknown Outlook error (no error object returned).";
+
+}
+
+
+/* =========================================================
+   FINAL HTML VALIDATION
+   Safety check only — run immediately before body.setAsync.
+   Does NOT alter the generated HTML. Reports the specific
+   rule that was violated so failures are diagnosable instead
+   of surfacing as a generic Outlook error.
+========================================================= */
+
+function validateNewsletterHtml(
+  html
+) {
+
+  if (
+    !html ||
+    typeof html !== "string"
+  ) {
+
+    return "Newsletter HTML is empty.";
+
+  }
+
+
+  /*
+   * NOTE: inline CSS (style="...") is intentionally NOT
+   * flagged here. Outlook desktop's HTML body renderer
+   * strips <style> blocks and ignores CSS classes in many
+   * contexts, so inline styles are the correct, standard
+   * approach for email HTML — this newsletter uses them on
+   * purpose and that is not a compatibility problem.
+   */
+
+
+  /*
+   * 1. SVG references.
+   */
+
+  if (
+    /\.svg/i.test(
+      html
+    )
+  ) {
+
+    return "Newsletter HTML still contains an .svg image reference.";
+
+  }
+
+
+  /*
+   * 3. Embedded data: images.
+   */
+
+  if (
+    /src\s*=\s*["']data:/i.test(
+      html
+    )
+  ) {
+
+    return "Newsletter HTML still contains an embedded data: image.";
+
+  }
+
+
+  /*
+   * 4. Every <img src="..."> must be HTTPS.
+   */
+
+  const imgSrcPattern =
+    /<img[^>]*\ssrc\s*=\s*["']([^"']+)["']/gi;
+
+
+  let match;
+
+
+  while (
+    (
+      match =
+        imgSrcPattern.exec(
+          html
+        )
+    ) !== null
+  ) {
+
+    const src =
+      match[1];
+
+
     if (
-      result.error.message
+      !/^https:\/\//i.test(
+        src
+      )
     ) {
 
-      return result.error.message;
-
-    }
-
-
-    if (
-      result.error.name
-    ) {
-
-      return result.error.name;
+      return (
+        "Newsletter HTML contains a non-HTTPS image source: " +
+        src
+      );
 
     }
 
   }
 
 
-  return "Unknown Outlook error.";
+  return null;
 
 }
 
@@ -4269,26 +4389,31 @@ function buildInOutlook() {
 
 
   /*
-   * Belt-and-suspenders: even though findEmbeddedDataImage()
-   * already checked the source fields, also verify the final
-   * generated HTML itself doesn't contain a data: image —
-   * catches any other path that might embed one.
+   * Final safety validation on the generated HTML — checks
+   * for stray SVG references, embedded data: images, and any
+   * non-HTTPS image sources. This is a check only; it does
+   * not alter the HTML.
    */
 
-  if (
-    /src=["']data:/i.test(
+  const validationProblem =
+    validateNewsletterHtml(
       html
-    )
+    );
+
+
+  if (
+    validationProblem
   ) {
 
     setStatus(
-      "Build stopped — HTML contains an embedded data image. " +
-      "Please re-upload any image that failed to save to Drive."
+      "Build stopped — " +
+      validationProblem
     );
 
 
     console.error(
-      "[Pleasure Dispatch] Generated HTML unexpectedly contains a data: image source."
+      "[Pleasure Dispatch] Final HTML validation failed:",
+      validationProblem
     );
 
 
