@@ -14,6 +14,9 @@
 const DRIVE_API_URL =
   "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
 
+// Publishing authorization key. Sent automatically; never prompted for.
+const PUBLISH_KEY = "0209_04290528_LEAPyear";
+
 const LIGHTBOX_BASE_URL =
   "https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/lightbox.html";
 
@@ -567,6 +570,7 @@ async function uploadToDriveOnce(
 ) {
   const payload = {
     action: "upload",
+    publishKey: PUBLISH_KEY,
     fileName:
       "PD_" +
       getEditionSafeName() +
