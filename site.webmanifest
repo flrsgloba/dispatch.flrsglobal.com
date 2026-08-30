@@ -1,0 +1,17 @@
+{
+  "name": "The Pleasure Dispatch — FLRSGLOBAL",
+  "short_name": "Pleasure Dispatch",
+  "description": "A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#303030",
+  "theme_color": "#303030",
+  "icons": [
+    {
+      "src": "/assets/pleasure-loop.png",
+      "sizes": "1811x1811",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
