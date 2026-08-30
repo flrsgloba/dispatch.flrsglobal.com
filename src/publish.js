@@ -374,3 +374,130 @@
   window.publishDispatch =
     publishDispatch;
 })();
+
+/* =========================================================
+   OPTIONAL SECTION TITLE CLEANUP
+
+   Section labels belong to their content. If the corresponding
+   editor field is empty, remove the label from the generated
+   newsletter so no orphaned heading or section spacing remains.
+
+   This is intentionally applied only to the generated newsletter
+   HTML. The Outlook composer UI remains unchanged.
+========================================================= */
+(function () {
+  if (typeof window === "undefined") return;
+
+  const originalBuildNewsletterHtml =
+    window.buildNewsletterHtml;
+
+  if (typeof originalBuildNewsletterHtml !== "function") {
+    console.warn(
+      "[Pleasure Dispatch] Newsletter builder was not available for section-title cleanup."
+    );
+    return;
+  }
+
+  function fieldHasText(id) {
+    const element = document.getElementById(id);
+    return !!(
+      element &&
+      String(element.value || "").trim()
+    );
+  }
+
+  function hasPleasureNotes() {
+    if (typeof collectPleasureNotes === "function") {
+      return collectPleasureNotes().some(function (note) {
+        return (
+          String(note.label || "").trim() ||
+          String(note.value || "").trim()
+        );
+      });
+    }
+
+    const rows = document.querySelectorAll(
+      "#pleasureRows > *"
+    );
+
+    for (let i = 0; i < rows.length; i++) {
+      const inputs = rows[i].querySelectorAll
+        ? rows[i].querySelectorAll("input,textarea")
+        : [];
+
+      for (let j = 0; j < inputs.length; j++) {
+        if (String(inputs[j].value || "").trim()) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  function removeHeading(html, label) {
+    const escapedLabel = label.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+    const headingPattern = new RegExp(
+      '<div[^>]*>\\s*' +
+      escapedLabel +
+      '\\s*</div>',
+      "gi"
+    );
+
+    return html.replace(headingPattern, "");
+  }
+
+  window.buildNewsletterHtml = function () {
+    let html = originalBuildNewsletterHtml.apply(
+      this,
+      arguments
+    );
+
+    if (!fieldHasText("reflection")) {
+      html = removeHeading(
+        html,
+        "01 — A REFLECTION"
+      );
+    }
+
+    if (!fieldHasText("workText")) {
+      html = removeHeading(
+        html,
+        "02 — THE WORK"
+      );
+    }
+
+    if (!fieldHasText("studioText")) {
+      html = removeHeading(
+        html,
+        "03 — STUDIO NOTES"
+      );
+    }
+
+    if (!hasPleasureNotes()) {
+      html = removeHeading(
+        html,
+        "04 — PLEASURE NOTES"
+      );
+
+      /* This is the fixed introductory sentence for the section. */
+      html = html.replace(
+        /<div[^>]*>\\s*An offering of what has held my attention\.\\s*<\/div>/gi,
+        ""
+      );
+    }
+
+    if (!fieldHasText("question")) {
+      html = removeHeading(
+        html,
+        "06 — A QUESTION"
+      );
+    }
+
+    return html;
+  };
+})();
