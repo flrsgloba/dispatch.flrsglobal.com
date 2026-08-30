@@ -1,176 +1,26 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta
-    name="viewport"
-    content="width=device-width,initial-scale=1"
-  >
-
-  <title>The Pleasure Dispatch</title>
-
-  <link
-    rel="stylesheet"
-    href="taskpane.css"
-  >
-
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Pleasure Dispatch</title>
+<link rel="stylesheet" href="taskpane.css">
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 </head>
-
 <body>
-
 <main class="shell">
-
-  <header class="masthead">
-    <div class="masthead-copy">
-      <div class="eyebrow">FLRSGLOBAL</div>
-      <h1>The Pleasure Dispatch</h1>
-      <div class="subline">FROM THE STUDIO OF FREDDIE L. RANKIN II</div>
-    </div>
-
-    <div class="motif-mark" aria-label="The Loop">
-      <img
-        src="https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/pleasure-loop.svg"
-        alt="The Loop"
-      >
-    </div>
-  </header>
-
-  <section class="meta">
-    <div>
-      <label for="edition">Edition</label>
-      <input id="edition" name="edition" value="No. 001">
-    </div>
-
-    <div>
-      <label for="date">Date</label>
-      <input id="date" name="date" type="date">
-    </div>
-
-    <div class="wide">
-      <label for="title">Dispatch Title</label>
-      <input id="title" name="title" placeholder="On Pleasure &amp; Distance">
-    </div>
-
-    <div class="wide">
-      <label for="subtitle">Subtitle <span class="optional">optional</span></label>
-      <input id="subtitle" name="subtitle" placeholder="An artistic update">
-    </div>
-  </section>
-
-  <section class="editor-section">
-    <div class="section-head"><span>01</span><strong>A Reflection</strong></div>
-    <textarea id="reflection" name="reflection" placeholder="Write the opening reflection..."></textarea>
-  </section>
-
-  <section class="image-section locked-hero">
-    <div class="section-head"><span>HERO</span><strong>Hero Image 01</strong><em>fixed</em></div>
-
-    <div class="source-row">
-      <label class="upload-button" for="hero1File">
-        Upload from Desktop
-        <input id="hero1File" name="hero1File" type="file" accept="image/jpeg,image/png,image/webp">
-      </label>
-      <button type="button" class="secondary" data-url="hero1">Use Image URL</button>
-    </div>
-
-    <input id="hero1Url" name="hero1Url" class="source-url" placeholder="Paste a direct HTTPS image URL">
-    <div id="hero1Preview" class="preview hero-preview empty">No hero image selected</div>
-    <input id="hero1Caption" name="hero1Caption" placeholder="Caption / title / year / medium">
-  </section>
-
-  <section class="editor-section">
-    <div class="section-head"><span>02</span><strong>The Work</strong></div>
-    <textarea id="workText" name="workText" placeholder="Write about the work, series, object, exhibition, or idea..."></textarea>
-
-    <div class="inline-label">Visual Rhythm</div>
-    <div class="small-note">Add images below to shape the pace and sequence of the Dispatch.</div>
-
-    <div id="imageBlocks"></div>
-
-    <button id="addImageBlock" class="add-block" type="button">+ Add Image Block</button>
-  </section>
-
-  <section class="editor-section">
-    <div class="section-head"><span>03</span><strong>Studio Notes</strong></div>
-    <textarea id="studioText" name="studioText" placeholder="What is happening in the studio..."></textarea>
-  </section>
-
-  <section class="image-section locked-hero">
-    <div class="section-head"><span>HERO</span><strong>Hero Image 02</strong><em>fixed</em></div>
-
-    <div class="source-row">
-      <label class="upload-button" for="hero2File">
-        Upload from Desktop
-        <input id="hero2File" name="hero2File" type="file" accept="image/jpeg,image/png,image/webp">
-      </label>
-      <button type="button" class="secondary" data-url="hero2">Use Image URL</button>
-    </div>
-
-    <input id="hero2Url" name="hero2Url" class="source-url" placeholder="Paste a direct HTTPS image URL">
-    <div id="hero2Preview" class="preview hero-preview empty">No hero image selected</div>
-    <input id="hero2Caption" name="hero2Caption" placeholder="Caption / title / year / medium">
-  </section>
-
-  <section class="editor-section">
-    <div class="section-head"><span>04</span><strong>Pleasure Notes</strong></div>
-    <div class="small-note">An offering of what has held my attention.</div>
-    <div id="pleasureRows"></div>
-    <button id="addPleasure" class="text-button" type="button">+ Add Note</button>
-  </section>
-
-  <section class="editor-section">
-    <div class="section-head"><span>05</span><strong>An Invitation</strong></div>
-    <input id="inviteTitle" name="inviteTitle" placeholder="Invitation title">
-    <textarea id="inviteText" name="inviteText" placeholder="Describe the invitation, offering, sitting, exhibition, dinner, or available work..."></textarea>
-
-    <div class="cta-grid">
-      <input id="ctaLabel" name="ctaLabel" value="INQUIRE">
-      <input id="ctaUrl" name="ctaUrl" placeholder="https://...">
-    </div>
-  </section>
-
-  <section class="editor-section">
-    <div class="section-head"><span>06</span><strong>A Question</strong></div>
-    <input id="question" name="question" value="What has given you pleasure lately?">
-  </section>
-
-  <section class="actions">
-    <button id="previewBtn" class="secondary" type="button">Preview</button>
-    <button id="insertBtn" class="primary" type="button">Build in Outlook</button>
-  </section>
-
-  <div id="status" class="status" aria-live="polite">Loading The Pleasure Dispatch…</div>
-
+<header class="masthead"><div class="masthead-copy"><div class="eyebrow">FLRSGLOBAL</div><h1>The Pleasure Dispatch</h1><div class="subline">FROM THE STUDIO OF FREDDIE L. RANKIN II</div></div><div class="motif-mark" aria-label="The Loop"><img src="https://dispatch.flrsglobal.com/assets/pleasure-loop.png" alt="The Loop"></div></header>
+<section class="meta"><div><label for="edition">Edition</label><input id="edition" name="edition" value="No. 001"></div><div><label for="date">Date</label><input id="date" name="date" type="date"></div><div class="wide"><label for="title">Dispatch Title</label><input id="title" name="title" placeholder="On Pleasure &amp; Distance"></div><div class="wide"><label for="subtitle">Subtitle <span class="optional">optional</span></label><input id="subtitle" name="subtitle" placeholder="An artistic update"></div></section>
+<section class="editor-section"><div class="section-head"><span>01</span><strong>A Reflection</strong></div><textarea id="reflection" name="reflection" placeholder="Write the opening reflection..."></textarea></section>
+<section class="image-section locked-hero"><div class="section-head"><span>HERO</span><strong>Hero Image 01</strong><em>fixed</em></div><div class="source-row"><label class="upload-button" for="hero1File">Upload from Desktop<input id="hero1File" name="hero1File" type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" class="secondary" data-url="hero1">Use Image URL</button></div><input id="hero1Url" name="hero1Url" class="source-url" placeholder="Paste a direct HTTPS image URL"><div id="hero1Preview" class="preview hero-preview empty">No hero image selected</div><input id="hero1Caption" name="hero1Caption" placeholder="Caption / title / year / medium"></section>
+<section class="editor-section"><div class="section-head"><span>02</span><strong>The Work</strong></div><textarea id="workText" name="workText" placeholder="Write about the work, series, object, exhibition, or idea..."></textarea><div class="inline-label">Visual Rhythm</div><div class="small-note">Add images below to shape the pace and sequence of the Dispatch.</div><div id="imageBlocks"></div><button id="addImageBlock" class="add-block" type="button">+ Add Image Block</button></section>
+<section class="editor-section"><div class="section-head"><span>03</span><strong>Studio Notes</strong></div><textarea id="studioText" name="studioText" placeholder="What is happening in the studio..."></textarea></section>
+<section class="image-section locked-hero"><div class="section-head"><span>HERO</span><strong>Hero Image 02</strong><em>fixed</em></div><div class="source-row"><label class="upload-button" for="hero2File">Upload from Desktop<input id="hero2File" name="hero2File" type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" class="secondary" data-url="hero2">Use Image URL</button></div><input id="hero2Url" name="hero2Url" class="source-url" placeholder="Paste a direct HTTPS image URL"><div id="hero2Preview" class="preview hero-preview empty">No hero image selected</div><input id="hero2Caption" name="hero2Caption" placeholder="Caption / title / year / medium"></section>
+<section class="editor-section"><div class="section-head"><span>04</span><strong>Pleasure Notes</strong></div><div class="small-note">An offering of what has held my attention.</div><div id="pleasureRows"></div><button id="addPleasure" class="text-button" type="button">+ Add Note</button></section>
+<section class="editor-section"><div class="section-head"><span>05</span><strong>An Invitation</strong></div><input id="inviteTitle" name="inviteTitle" placeholder="Invitation title"><textarea id="inviteText" name="inviteText" placeholder="Describe the invitation, offering, sitting, exhibition, dinner, or available work..."></textarea><div class="cta-grid"><input id="ctaLabel" name="ctaLabel" value="INQUIRE"><input id="ctaUrl" name="ctaUrl" placeholder="https://..."></div></section>
+<section class="editor-section"><div class="section-head"><span>06</span><strong>A Question</strong></div><input id="question" name="question" value="What has given you pleasure lately?"></section>
+<section class="actions"><button id="previewBtn" class="secondary" type="button">Preview</button><button id="insertBtn" class="primary" type="button">Build in Outlook</button><button id="publishBtn" class="primary" type="button">Publish to Dispatch</button></section>
+<div id="status" class="status" aria-live="polite">Loading The Pleasure Dispatch…</div>
 </main>
-
-<script src="taskpane.js"></script>
-
-<!--
-  Office.onReady() is normally responsible for initialization.
-  This second call is intentionally harmless because initializeDispatch()
-  is idempotent. It prevents a blank task pane when Office.js loads slowly,
-  is temporarily unavailable, or fails to fire its ready callback.
--->
-<script>
-  (function () {
-    function bootDispatch() {
-      if (typeof initializeDispatch === "function") {
-        initializeDispatch();
-        return true;
-      }
-      return false;
-    }
-
-    if (!bootDispatch()) {
-      window.setTimeout(function retryDispatchBoot() {
-        if (!bootDispatch()) {
-          window.setTimeout(retryDispatchBoot, 500);
-        }
-      }, 100);
-    }
-  })();
-</script>
-
-</body>
-</html>
+<script src="taskpane.js"></script><script src="publish.js"></script>
+<script>(function(){function boot(){if(typeof initializeDispatch==='function'){initializeDispatch();return true}return false}if(!boot()){setTimeout(function retry(){if(!boot())setTimeout(retry,500)},100)}})();</script>
+</body></html>
