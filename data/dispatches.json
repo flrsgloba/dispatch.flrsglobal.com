@@ -3,30 +3,6 @@
   "updatedAt": "2026-08-30T05:56:19.249Z",
   "dispatches": [
     {
-      "edition": "003",
-      "editionLabel": "003",
-      "date": "2026-08",
-      "title": "Ritual as Pleasure",
-      "searchText": "003 ritual as pleasure august 2026",
-      "legacyPath": "/003/"
-    },
-    {
-      "edition": "002",
-      "editionLabel": "002",
-      "date": "2026-07",
-      "title": "Ritual as Pleasure",
-      "searchText": "002 pleasure ritual july 2026",
-      "legacyPath": "/002/"
-    },
-    {
-      "edition": "001",
-      "editionLabel": "001",
-      "date": "2026-06",
-      "title": "The Pleasure Dispatch",
-      "searchText": "001 pleasure contentment june 2026",
-      "legacyPath": "/001/"
-    },
-    {
       "edition": "000",
       "editionLabel": "No. 000",
       "date": "2026-08-01",
@@ -34,7 +10,7 @@
       "subtitle": "",
       "subject": "The Pleasure Dispatch — No. 000: Welcome to The Pleasure Dispatch",
       "html": "<div style=\"margin:0;padding:0;background:#303030;color:#F2EEE5;\"><table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"border-collapse:collapse;background:#303030;\"><tbody><tr><td align=\"center\" style=\"padding:28px 12px;\"><table role=\"presentation\" width=\"680\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"border-collapse:collapse;width:100%;max-width:680px;background:#303030;\"><tbody><tr><td style=\"padding:42px 42px 24px;border-bottom:1px solid #777777;\"><div style=\"font:10px Arial,Helvetica,sans-serif;letter-spacing:2px;color:#F2EEE5;\">FLRSGLOBAL</div><div style=\"font:10px Arial,Helvetica,sans-serif;letter-spacing:1.4px;color:#C9C3B8;margin-top:8px;\">FROM THE STUDIO OF FREDDIE L. RANKIN II</div><div style=\"font:400 50px/0.96 Garamond,Georgia,Times New Roman,serif;color:#F2EEE5;margin:20px 0 10px;\">The Pleasure Dispatch</div><div style=\"font:10px Arial,Helvetica,sans-serif;letter-spacing:1.3px;color:#C9C3B8;\">No. 000 · 2026-08-01 · Welcome to The Pleasure Dispatch</div></td></tr><tr><td style=\"padding:26px 42px 42px;\"><div style=\"text-align:center;margin:0 0 28px;\"><img src=\"https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/pleasure-loop.png\" alt=\"The Loop\" width=\"92\" style=\"display:inline-block;width:92px;height:auto;border:0;\"></div><div style=\"font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#C9C3B8;margin:30px 0 11px;\">01 — A REFLECTION</div><p style=\"font:17px/1.75 Garamond,Georgia,Times New Roman,serif;margin:0 0 24px;color:#F2EEE5;\">Welcome to the first dispatch.<br><br>This is a place for notes from the studio, conversations around pleasure, images in progress, and the things I’m thinking about along the way. Less polished statement, more open notebook.<br><br>I’m interested in what sustains us, what we return to, and what happens when we start paying closer attention to those things.<br><br>Thanks for being here.</p><div style=\"font:19px/1.4 Garamond,Georgia,Times New Roman,serif;color:#F2EEE5;margin:0 0 8px;\">An offering of what has held my attention.</div><div style=\"font:10px Arial,Helvetica,sans-serif;letter-spacing:1.5px;color:#C9C3B8;margin:38px 0 11px;\">06 — A QUESTION</div><div style=\"font:25px/1.35 Garamond,Georgia,Times New Roman,serif;color:#F2EEE5;margin:0 0 36px;\">What has given you pleasure lately?</div><div style=\"text-align:center;margin:30px 0 18px;\"><img src=\"https://flrsgloba.github.io/dispatch.flrsglobal.com/assets/pleasure-loop.png\" alt=\"The Loop\" width=\"66\" style=\"display:inline-block;width:66px;height:auto;border:0;\"></div><div style=\"text-align:center;font:15px/1.4 Garamond,Georgia,Times New Roman,serif;font-style:italic;color:#C9C3B8;margin:0 0 10px;\">Pleasure is the desire to return.</div></td></tr><tr><td style=\"padding:18px 42px 34px;border-top:1px solid #777777;\"><div style=\"font:10px Arial,Helvetica,sans-serif;letter-spacing:1.1px;color:#C9C3B8;\">THE PLEASURE DISPATCH · BY FLRSGLOBAL</div></td></tr></tbody></table></td></tr></tbody></table></div>",
-      "searchText": "000 No. 000 2026-08-01 Welcome to The Pleasure Dispatch  Welcome to the first dispatch.\n\nThis is a place for notes from the studio, conversations around pleasure, images in progress, and the things I’m thinking about along the way. Less polished statement, more open notebook.\n\nI’m interested in what sustains us, what we return to, and what happens when we start paying closer attention to those things.\n\nThanks for being here.     What has given you pleasure lately? ",
+      "searchText": "000 No. 000 2026-08-01 Welcome to The Pleasure Dispatch Welcome to the first dispatch. This is a place for notes from the studio, conversations around pleasure, images in progress, and the things I’m thinking about along the way. Less polished statement, more open notebook. I’m interested in what sustains us, what we return to, and what happens when we start paying closer attention to those things. Thanks for being here. What has given you pleasure lately?",
       "publishedAt": "2026-08-30T05:56:19.248Z"
     }
   ]
