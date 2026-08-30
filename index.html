@@ -43,25 +43,12 @@
 <section class="latest shell">
   <div class="section-label">
     <span>01</span>
-    <span>Latest Dispatch</span>
+    <span>Latest Dispatches</span>
   </div>
 
-  <article id="latest-dispatch" class="latest-card">
-    <div class="dispatch-meta">
-      <span id="latest-edition">Loading…</span>
-      <span id="latest-date"></span>
-    </div>
-
-    <h2 id="latest-title"></h2>
-    <p id="latest-subtitle" class="dispatch-subtitle"></p>
-
-    <div class="dispatch-reflection">
-      <div class="eyebrow">A REFLECTION</div>
-      <p id="latest-reflection"></p>
-    </div>
-
-    <a id="latest-link" class="button" href="#">Read Dispatch ↗</a>
-  </article>
+  <div id="latest-dispatches" class="latest-stack">
+    <div class="latest-loading">Loading…</div>
+  </div>
 </section>
 
 <section class="about shell" id="about">
@@ -89,12 +76,7 @@
 <script>
 (function () {
 
-  const editionEl = document.getElementById('latest-edition');
-  const dateEl = document.getElementById('latest-date');
-  const titleEl = document.getElementById('latest-title');
-  const subtitleEl = document.getElementById('latest-subtitle');
-  const reflectionEl = document.getElementById('latest-reflection');
-  const linkEl = document.getElementById('latest-link');
+  const container = document.getElementById('latest-dispatches');
 
   fetch('/data/dispatches.json?v=' + Date.now(), { cache: 'no-store' })
     .then(function (response) {
@@ -103,26 +85,72 @@
     })
     .then(function (data) {
       const dispatches = Array.isArray(data.dispatches) ? data.dispatches : [];
-      if (!dispatches.length) throw new Error('No dispatches found.');
 
-      const latest = dispatches[0];
+      if (!dispatches.length) {
+        throw new Error('No dispatches found.');
+      }
 
-      editionEl.textContent = latest.editionLabel || ('No. ' + (latest.edition || '000'));
-      dateEl.textContent = formatDate(latest.date);
-      titleEl.textContent = latest.title || '';
-      subtitleEl.textContent = latest.subtitle || '';
-      reflectionEl.textContent = latest.reflection || '';
+      container.innerHTML = '';
 
-      linkEl.href = '/' + encodeURIComponent(latest.edition) + '/';
-      linkEl.textContent = 'Read ' + (latest.editionLabel || ('No. ' + latest.edition)) + ' ↗';
+      dispatches.slice(0, 3).forEach(function (dispatch) {
+        const article = document.createElement('article');
+        article.className = 'latest-card';
 
-      subtitleEl.style.display = latest.subtitle ? '' : 'none';
-      reflectionEl.parentElement.style.display = latest.reflection ? '' : 'none';
+        const meta = document.createElement('div');
+        meta.className = 'dispatch-meta';
+
+        const edition = document.createElement('span');
+        edition.textContent = dispatch.editionLabel || ('No. ' + (dispatch.edition || '000'));
+
+        const date = document.createElement('span');
+        date.textContent = formatDate(dispatch.date);
+
+        meta.appendChild(edition);
+        meta.appendChild(date);
+
+        const title = document.createElement('h2');
+        title.textContent = dispatch.title || '';
+
+        const subtitle = document.createElement('p');
+        subtitle.className = 'dispatch-subtitle';
+        subtitle.textContent = dispatch.subtitle || '';
+
+        const reflection = document.createElement('div');
+        reflection.className = 'dispatch-reflection';
+
+        const reflectionLabel = document.createElement('div');
+        reflectionLabel.className = 'eyebrow';
+        reflectionLabel.textContent = 'A REFLECTION';
+
+        const reflectionText = document.createElement('p');
+        reflectionText.textContent = dispatch.reflection || '';
+
+        reflection.appendChild(reflectionLabel);
+        reflection.appendChild(reflectionText);
+
+        const link = document.createElement('a');
+        link.className = 'button';
+        link.href = '/' + encodeURIComponent(dispatch.edition) + '/';
+        link.textContent = 'Read ' + (dispatch.editionLabel || ('No. ' + dispatch.edition)) + ' ↗';
+
+        article.appendChild(meta);
+        article.appendChild(title);
+
+        if (dispatch.subtitle) {
+          article.appendChild(subtitle);
+        }
+
+        if (dispatch.reflection) {
+          article.appendChild(reflection);
+        }
+
+        article.appendChild(link);
+        container.appendChild(article);
+      });
     })
     .catch(function (error) {
       console.error(error);
-      editionEl.textContent = 'The Pleasure Dispatch';
-      titleEl.textContent = 'Unable to load the latest dispatch.';
+      container.innerHTML = '<div class="latest-loading">Unable to load the latest dispatches.</div>';
     });
 
   function formatDate(value) {
