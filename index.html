@@ -1,171 +1,49 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="The Pleasure Dispatch by FLRSGLOBAL. A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.">
-  <meta name="theme-color" content="#303030">
-  <meta property="og:title" content="The Pleasure Dispatch — FLRSGLOBAL">
-  <meta property="og:description" content="A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.">
-  <meta property="og:type" content="website">
-  <link rel="canonical" href="https://dispatch.flrsglobal.com/">
-  <link rel="stylesheet" href="styles.css">
-  <title>The Pleasure Dispatch — FLRSGLOBAL</title>
-</head>
-
-<body>
-
-<header class="site-header shell">
-  <a class="wordmark" href="/" aria-label="The Pleasure Dispatch home">FLRSGLOBAL</a>
-  <nav aria-label="Primary navigation">
-    <a href="/archive/">Archive</a>
-    <a href="#about">About</a>
-  </nav>
-</header>
-
-<main>
-
-<section class="hero shell">
-  <div class="eyebrow">FROM THE STUDIO OF FREDDIE L. RANKIN II</div>
-  <div class="hero-grid">
-    <div>
-      <h1>The Pleasure<br><em>Dispatch</em></h1>
-    </div>
-    <div class="hero-copy">
-      <img class="loop" src="/assets/pleasure-loop.svg" alt="The Loop">
-      <p>A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.</p>
-      <a class="text-link" href="/archive/">Enter the archive <span>↗</span></a>
-    </div>
-  </div>
-</section>
-
-<section class="latest shell">
-  <div class="section-label">
-    <span>01</span>
-    <span>Latest Dispatches</span>
-  </div>
-
-  <div id="latest-dispatches" class="latest-stack">
-    <div class="latest-loading">Loading…</div>
-  </div>
-</section>
-
-<section class="about shell" id="about">
-  <div class="section-label">
-    <span>02</span>
-    <span>About</span>
-  </div>
-
-  <div class="about-grid">
-    <h2>Pleasure is a practice.</h2>
-    <div>
-      <p>The Pleasure Dispatch is an ongoing editorial project from FLRSGLOBAL, following pleasure as a daily pursuit rather than a finished state.</p>
-      <p>It moves between the studio, the table, the image, the object, the encounter, and the quiet details that make a life feel lived.</p>
-    </div>
-  </div>
-</section>
-
-</main>
-
-<footer class="site-footer shell">
-  <span>THE PLEASURE DISPATCH</span>
-  <span>BY FLRSGLOBAL · NEW YORK</span>
-</footer>
-
-<script>
-(function () {
-
-  const container = document.getElementById('latest-dispatches');
-
-  fetch('/data/dispatches.json?v=' + Date.now(), { cache: 'no-store' })
-    .then(function (response) {
-      if (!response.ok) throw new Error('Could not load dispatch data.');
-      return response.json();
-    })
-    .then(function (data) {
-      const dispatches = Array.isArray(data.dispatches) ? data.dispatches : [];
-
-      if (!dispatches.length) {
-        throw new Error('No dispatches found.');
-      }
-
-      container.innerHTML = '';
-
-      dispatches.slice(0, 3).forEach(function (dispatch) {
-        const article = document.createElement('article');
-        article.className = 'latest-card';
-
-        const meta = document.createElement('div');
-        meta.className = 'dispatch-meta';
-
-        const edition = document.createElement('span');
-        edition.textContent = dispatch.editionLabel || ('No. ' + (dispatch.edition || '000'));
-
-        const date = document.createElement('span');
-        date.textContent = formatDate(dispatch.date);
-
-        meta.appendChild(edition);
-        meta.appendChild(date);
-
-        const title = document.createElement('h2');
-        title.textContent = dispatch.title || '';
-
-        const subtitle = document.createElement('p');
-        subtitle.className = 'dispatch-subtitle';
-        subtitle.textContent = dispatch.subtitle || '';
-
-        const reflection = document.createElement('div');
-        reflection.className = 'dispatch-reflection';
-
-        const reflectionLabel = document.createElement('div');
-        reflectionLabel.className = 'eyebrow';
-        reflectionLabel.textContent = 'A REFLECTION';
-
-        const reflectionText = document.createElement('p');
-        reflectionText.textContent = dispatch.reflection || '';
-
-        reflection.appendChild(reflectionLabel);
-        reflection.appendChild(reflectionText);
-
-        const link = document.createElement('a');
-        link.className = 'button';
-        link.href = '/' + encodeURIComponent(dispatch.edition) + '/';
-        link.textContent = 'Read ' + (dispatch.editionLabel || ('No. ' + dispatch.edition)) + ' ↗';
-
-        article.appendChild(meta);
-        article.appendChild(title);
-
-        if (dispatch.subtitle) {
-          article.appendChild(subtitle);
-        }
-
-        if (dispatch.reflection) {
-          article.appendChild(reflection);
-        }
-
-        article.appendChild(link);
-        container.appendChild(article);
-      });
-    })
-    .catch(function (error) {
-      console.error(error);
-      container.innerHTML = '<div class="latest-loading">Unable to load the latest dispatches.</div>';
-    });
-
-  function formatDate(value) {
-    if (!value) return '';
-    const date = new Date(value + 'T00:00:00');
-    if (isNaN(date.getTime())) return value;
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-
-}());
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Pleasure Dispatch — FLRSGLOBAL</title>
+<meta name="description" content="The Pleasure Dispatch by FLRSGLOBAL. A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.">
+<meta name="author" content="Freddie L. Rankin II">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="theme-color" content="#303030">
+<link rel="canonical" href="https://dispatch.flrsglobal.com/">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/pleasure-loop.png">
+<link rel="apple-touch-icon" href="/assets/pleasure-loop.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="styles.css">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="The Pleasure Dispatch">
+<meta property="og:title" content="The Pleasure Dispatch — FLRSGLOBAL">
+<meta property="og:description" content="A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://dispatch.flrsglobal.com/">
+<meta property="og:image" content="https://dispatch.flrsglobal.com/assets/pleasure-loop.png">
+<meta property="og:image:secure_url" content="https://dispatch.flrsglobal.com/assets/pleasure-loop.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1811">
+<meta property="og:image:height" content="1811">
+<meta property="og:image:alt" content="The Loop — The Pleasure Dispatch by FLRSGLOBAL">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Pleasure Dispatch — FLRSGLOBAL">
+<meta name="twitter:description" content="A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.">
+<meta name="twitter:image" content="https://dispatch.flrsglobal.com/assets/pleasure-loop.png">
+<meta name="twitter:image:alt" content="The Loop — The Pleasure Dispatch by FLRSGLOBAL">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"The Pleasure Dispatch","alternateName":"The Pleasure Dispatch by FLRSGLOBAL","url":"https://dispatch.flrsglobal.com/","description":"A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.","publisher":{"@type":"Person","name":"Freddie L. Rankin II","url":"https://flrsglobal.com/"}}
 </script>
-
+</head>
+<body>
+<header class="site-header shell"><a class="wordmark" href="/" aria-label="The Pleasure Dispatch home">FLRSGLOBAL</a><nav aria-label="Primary navigation"><a href="/archive/">Archive</a><a href="#about">About</a></nav></header>
+<main>
+<section class="hero shell"><div class="eyebrow">FROM THE STUDIO OF FREDDIE L. RANKIN II</div><div class="hero-grid"><div><h1>The Pleasure<br><em>Dispatch</em></h1></div><div class="hero-copy"><img class="loop" src="/assets/pleasure-loop.svg" alt="The Loop"><p>A periodic dispatch on pleasure, art, objects, people, places, rituals, and the pursuit of contentment.</p><a class="text-link" href="/archive/">Enter the archive <span>↗</span></a></div></div></section>
+<section class="latest shell"><div class="section-label"><span>01</span><span>Latest Dispatches</span></div><div id="latest-dispatches" class="latest-stack"><div class="latest-loading">Loading…</div></div></section>
+<section class="about shell" id="about"><div class="section-label"><span>02</span><span>About</span></div><div class="about-grid"><h2>Pleasure is a practice.</h2><div><p>The Pleasure Dispatch is an ongoing editorial project from FLRSGLOBAL, following pleasure as a daily pursuit rather than a finished state.</p><p>It moves between the studio, the table, the image, the object, the encounter, and the quiet details that make a life feel lived.</p></div></div></section>
+</main>
+<footer class="site-footer shell"><span>THE PLEASURE DISPATCH</span><span>BY FLRSGLOBAL · NEW YORK</span></footer>
+<script>
+(function(){const container=document.getElementById('latest-dispatches');fetch('/data/dispatches.json?v='+Date.now(),{cache:'no-store'}).then(function(response){if(!response.ok)throw new Error('Could not load dispatch data.');return response.json()}).then(function(data){const dispatches=Array.isArray(data.dispatches)?data.dispatches:[];if(!dispatches.length)throw new Error('No dispatches found.');container.innerHTML='';dispatches.slice(0,3).forEach(function(dispatch){const article=document.createElement('article');article.className='latest-card';const meta=document.createElement('div');meta.className='dispatch-meta';const edition=document.createElement('span');edition.textContent=dispatch.editionLabel||('No. '+(dispatch.edition||'000'));const date=document.createElement('span');date.textContent=formatDate(dispatch.date);meta.appendChild(edition);meta.appendChild(date);const title=document.createElement('h2');title.textContent=dispatch.title||'';const subtitle=document.createElement('p');subtitle.className='dispatch-subtitle';subtitle.textContent=dispatch.subtitle||'';const reflection=document.createElement('div');reflection.className='dispatch-reflection';const reflectionLabel=document.createElement('div');reflectionLabel.className='eyebrow';reflectionLabel.textContent='A REFLECTION';const reflectionText=document.createElement('p');reflectionText.textContent=dispatch.reflection||'';reflection.appendChild(reflectionLabel);reflection.appendChild(reflectionText);const link=document.createElement('a');link.className='button';link.href='/'+encodeURIComponent(dispatch.edition)+'/';link.textContent='Read '+(dispatch.editionLabel||('No. '+dispatch.edition))+' ↗';article.appendChild(meta);article.appendChild(title);if(dispatch.subtitle)article.appendChild(subtitle);if(dispatch.reflection)article.appendChild(reflection);article.appendChild(link);container.appendChild(article)})}).catch(function(error){console.error(error);container.innerHTML='<div class="latest-loading">Unable to load the latest dispatches.</div>'});function formatDate(value){if(!value)return '';const date=new Date(value+'T00:00:00');if(isNaN(date.getTime()))return value;return date.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}}());
+</script>
 </body>
 </html>
