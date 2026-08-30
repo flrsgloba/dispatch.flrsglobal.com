@@ -1,17 +1,93 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="The Pleasure Dispatch archive by FLRSGLOBAL.">
   <link rel="canonical" href="https://dispatch.flrsglobal.com/archive/">
   <link rel="stylesheet" href="/styles.css">
   <title>Archive — The Pleasure Dispatch</title>
 </head>
 <body>
-<header class="site-header shell"><a class="wordmark" href="/">FLRSGLOBAL</a><nav><a href="/archive/">Archive</a><a href="/#about">About</a></nav></header>
+<header class="site-header shell">
+  <div class="header-brand"><a class="wordmark" href="/">FLRSGLOBAL</a></div>
+  <div class="header-nav-wrap">
+    <nav aria-label="Primary navigation">
+      <a href="/archive/">Archive</a>
+      <a href="/#about">About</a>
+    </nav>
+    <form class="site-search" role="search" action="/archive/" method="get">
+      <label class="sr-only" for="dispatch-search">Search Dispatches</label>
+      <input id="dispatch-search" name="q" type="search" placeholder="Search Dispatches" autocomplete="off">
+      <button type="submit" aria-label="Search">↗</button>
+    </form>
+  </div>
+</header>
+
 <main class="shell">
-<section class="hero" style="padding-bottom:90px"><div class="eyebrow">THE PLEASURE DISPATCH</div><h1 style="margin-top:30px">Archive</h1><p class="hero-copy" style="margin-top:35px;font-size:24px">A growing record of dispatches from the studio and the life around it.</p></section>
-<section class="latest" style="padding-top:60px"><div class="section-label"><span>001</span><span>Coming Soon</span></div><div class="latest-card"><div><h2>The archive begins here.</h2><p>The first published Dispatch will appear here as a permanent edition with its own shareable page.</p></div><a class="button" href="/">Back home</a></div></section>
+<section class="hero archive-hero">
+  <div class="eyebrow">THE PLEASURE DISPATCH</div>
+  <h1>Archive</h1>
+  <p class="archive-intro">A growing record of dispatches from the studio and the life around it.</p>
+</section>
+
+<section class="archive-list" aria-labelledby="archive-heading">
+  <div class="section-label"><span>THE EDITIONS</span><span id="archive-count">3 Dispatches</span></div>
+
+  <div id="archive-results" class="dispatch-list">
+    <a class="dispatch-entry" href="/003/" data-search="003 ritual as pleasure august 2026">
+      <div class="dispatch-number">003</div>
+      <div class="dispatch-info"><div class="dispatch-date">AUGUST 2026</div><h2>Ritual as Pleasure</h2></div>
+      <span class="dispatch-arrow">↗</span>
+    </a>
+    <a class="dispatch-entry" href="/002/" data-search="002 pleasure ritual july 2026">
+      <div class="dispatch-number">002</div>
+      <div class="dispatch-info"><div class="dispatch-date">JULY 2026</div><h2>Ritual as Pleasure</h2></div>
+      <span class="dispatch-arrow">↗</span>
+    </a>
+    <a class="dispatch-entry" href="/001/" data-search="001 pleasure contentment june 2026">
+      <div class="dispatch-number">001</div>
+      <div class="dispatch-info"><div class="dispatch-date">JUNE 2026</div><h2>The Pleasure Dispatch</h2></div>
+      <span class="dispatch-arrow">↗</span>
+    </a>
+  </div>
+  <p id="no-results" class="no-results" hidden>No Dispatches found.</p>
+</section>
 </main>
+
 <footer class="site-footer shell"><span>THE PLEASURE DISPATCH</span><span>BY FLRSGLOBAL · NEW YORK</span></footer>
-</body></html>
+<script>
+(function () {
+  const form = document.querySelector('.site-search');
+  const input = document.getElementById('dispatch-search');
+  const entries = Array.from(document.querySelectorAll('.dispatch-entry'));
+  const count = document.getElementById('archive-count');
+  const empty = document.getElementById('no-results');
+
+  function filter(query, updateUrl) {
+    const q = query.trim().toLowerCase();
+    let visible = 0;
+    entries.forEach(function (entry) {
+      const match = !q || entry.dataset.search.toLowerCase().includes(q);
+      entry.hidden = !match;
+      if (match) visible++;
+    });
+    count.textContent = visible + (visible === 1 ? ' Dispatch' : ' Dispatches');
+    empty.hidden = visible !== 0;
+    if (updateUrl) {
+      const url = new URL(window.location.href);
+      if (q) url.searchParams.set('q', query.trim()); else url.searchParams.delete('q');
+      window.history.replaceState({}, '', url);
+    }
+  }
+
+  form.addEventListener('submit', function (event) { event.preventDefault(); filter(input.value, true); });
+  input.addEventListener('input', function () { filter(input.value, true); });
+
+  const initial = new URLSearchParams(window.location.search).get('q') || '';
+  input.value = initial;
+  filter(initial, false);
+}());
+</script>
+</body>
+</html>
