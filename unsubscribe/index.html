@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unsubscribe — The Pleasure Dispatch</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/assets/pleasure-loop.png">
+<link rel="stylesheet" href="../styles.css">
+<style>
+.unsubscribe{max-width:620px;padding:120px 0 160px}.unsubscribe h1{font-size:clamp(52px,8vw,92px);font-weight:400;line-height:.9;letter-spacing:-.04em;margin:24px 0 30px}.unsubscribe p{font-size:22px;line-height:1.45;color:var(--muted);max-width:560px}.unsubscribe form{margin-top:42px}.unsubscribe label{display:block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}.unsubscribe input{width:100%;background:transparent;border:0;border-bottom:1px solid var(--rule);padding:12px 0;color:var(--text);outline:0;font:20px 'EB Garamond',Georgia,serif}.unsubscribe button{margin-top:24px;cursor:pointer}.message{margin-top:28px;font-size:18px;color:var(--text)}
+</style>
+</head>
+<body>
+<header class="site-header shell"><a class="wordmark" href="/" aria-label="The Pleasure Dispatch home">FLRSGLOBAL</a><nav aria-label="Primary navigation"><a href="/archive/">Archive</a><a href="/">Home</a></nav></header>
+<main class="shell unsubscribe">
+<div class="eyebrow">THE PLEASURE DISPATCH</div>
+<h1>Step away<br><em>if you wish.</em></h1>
+<p>Enter the email address that receives The Pleasure Dispatch. We will remove it from the active contact list.</p>
+<form id="unsubscribeForm">
+<label for="email">Email address</label>
+<input id="email" name="email" type="email" autocomplete="email" required>
+<button class="button" type="submit">Unsubscribe</button>
+</form>
+<div id="message" class="message" aria-live="polite"></div>
+</main>
+<script>
+(function(){
+  const API='https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec';
+  const form=document.getElementById('unsubscribeForm');
+  const message=document.getElementById('message');
+  form.addEventListener('submit',async function(event){
+    event.preventDefault();
+    const email=document.getElementById('email').value.trim();
+    if(!email)return;
+    message.textContent='Updating your subscription…';
+    try{
+      const response=await fetch(API+'?action=unsubscribe&email='+encodeURIComponent(email),{cache:'no-store'});
+      const result=await response.json();
+      if(result.status!=='unsubscribed')throw new Error(result.message||'Unable to update your subscription.');
+      message.textContent='You have been unsubscribed from The Pleasure Dispatch.';
+      form.remove();
+    }catch(error){message.textContent='We could not complete the request. Please try again or contact FLRSGLOBAL directly.';console.error(error);}
+  });
+})();
+</script>
+</body>
+</html>
