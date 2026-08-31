@@ -82,36 +82,49 @@
       .replace(/[^a-zA-Z0-9_-]/g, "_") || "001";
   }
 
-  function describeBridgeFailure(result, httpStatus) {
-    if (!result) {
-      return "Google Drive returned an empty response" +
-        (httpStatus ? " (HTTP " + httpStatus + ")" : ".");
+  function describeBridgeFailure(result, httpStatus, rawText) {
+    if (result && result.code) {
+      const code = String(result.code);
+      const message = result.message ? String(result.message) : "";
+
+      if (code === "INVALID_PUBLISH_KEY") {
+        return "Google Drive rejected the publishing key. Confirm PUBLISH_KEY matches the Drive bridge Script Property and the add-in key.";
+      }
+
+      if (code === "UNKNOWN_ACTION") {
+        return "Google Drive received the request but did not recognize the upload action. The add-in may be using an outdated Drive bridge deployment.";
+      }
+
+      if (code === "NO_POST_DATA") {
+        return "Google Drive received no POST body.";
+      }
+
+      if (code === "INVALID_JSON") {
+        return "Google Drive could not read the upload JSON payload.";
+      }
+
+      if (message) {
+        return message;
+      }
     }
 
-    const code = result.code ? String(result.code) : "";
-    const message = result.message ? String(result.message) : "";
-
-    if (code === "INVALID_PUBLISH_KEY") {
-      return "Google Drive rejected the publishing key. Confirm PUBLISH_KEY matches the Drive bridge Script Property and the add-in key.";
+    if (result && result.message) {
+      return String(result.message);
     }
 
-    if (code === "UNKNOWN_ACTION") {
-      return "Google Drive received the request but did not recognize the upload action. The add-in may be using an outdated Drive bridge deployment.";
+    if (result && result.status) {
+      return "Google Drive returned status '" +
+        String(result.status) +
+        "' without a usable fileId.";
     }
 
-    if (code === "NO_POST_DATA") {
-      return "Google Drive received no POST body.";
+    if (rawText) {
+      return "Google Drive returned an unexpected response: " +
+        String(rawText).substring(0, 500);
     }
 
-    if (code === "INVALID_JSON") {
-      return "Google Drive could not read the upload JSON payload.";
-    }
-
-    if (message) {
-      return message;
-    }
-
-    return "Google Drive did not create the image.";
+    return "Google Drive did not create the image" +
+      (httpStatus ? " (HTTP " + httpStatus + ")" : ".");
   }
 
   async function stableUpload(dataUrl, originalFileName) {
@@ -175,18 +188,44 @@
       );
     }
 
+    /*
+     * Do not log the publish key or image payload.
+     * Log the complete response shape needed to diagnose bridge/deployment issues.
+     */
+    console.log("[Pleasure Dispatch] Drive upload HTTP status:", response.status);
+    console.log("[Pleasure Dispatch] Drive upload response status:", result && result.status);
+    console.log("[Pleasure Dispatch] Drive upload response code:", result && result.code);
+    console.log("[Pleasure Dispatch] Drive upload response message:", result && result.message);
+    console.log("[Pleasure Dispatch] Drive upload response fileId:", result && result.fileId);
+    console.log("[Pleasure Dispatch] Drive upload response mimeType:", result && result.mimeType);
+    console.log("[Pleasure Dispatch] Drive upload response sizeBytes:", result && result.sizeBytes);
     console.log("[Pleasure Dispatch] Drive upload response:", result);
 
     if (!response.ok) {
       throw new Error(
-        describeBridgeFailure(result, response.status) +
+        describeBridgeFailure(result, response.status, responseText) +
         " (HTTP " + response.status + ")."
       );
     }
 
-    if (!result || result.status !== "created" || !result.fileId) {
+    /*
+     * The current Drive bridge returns:
+     *   { status: "created", fileId: "...", ... }
+     *
+     * Accept only a real Drive file ID as proof that the upload succeeded.
+     * This also protects us if a deployment returns a different success label.
+     */
+    if (!result || !result.fileId) {
       throw new Error(
-        describeBridgeFailure(result, response.status)
+        describeBridgeFailure(result, response.status, responseText)
+      );
+    }
+
+    if (result.status !== "created") {
+      throw new Error(
+        "Google Drive returned a fileId but an unexpected status ('" +
+        String(result.status || "[empty]") +
+        "'). The image may have been created, but the bridge response is not the expected upload response."
       );
     }
 
