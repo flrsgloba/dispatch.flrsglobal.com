@@ -4,19 +4,22 @@
 
    NET-NEW PUBLISH BRIDGE
 
-   Browser / Outlook taskpane
+   Architecture:
+
+   Outlook taskpane
         ↓
    Office Dialog
         ↓
-   Google Apps Script publisherDialog
+   Publisher Apps Script deployment
         ↓
-   Google Apps Script publishFromDialog()
-        ↓
-   GitHub
+   GitHub / Dispatch archive
 
-   This file intentionally owns publishing only. Content building
-   remains in taskpane.js. Storage/upload remains with the current
-   Drive API. Subscriber handling is kept separate from publishing.
+   IMPORTANT:
+   - This file owns publishing only.
+   - drive-bridge.js owns the current Drive deployment.
+   - taskpane.js owns content construction and Outlook insertion.
+   - The publisher deployment URL is intentionally separate from
+     the current Drive API URL.
 ========================================================= */
 
 (function () {
@@ -37,7 +40,7 @@
   let pingTimer = null;
   let resultReceived = false;
 
-  function status(message) {
+  function setPublishStatus(message) {
     if (typeof window.setStatus === "function") {
       window.setStatus(message);
     }
@@ -50,13 +53,48 @@
   }
 
   function getPublishSecret() {
-    const secret = window.localStorage.getItem(SECRET_STORAGE_KEY);
+    let secret = "";
 
-    if (!secret || !secret.trim()) {
-      throw new Error("Publishing key is not configured.");
+    try {
+      secret = window.localStorage.getItem(SECRET_STORAGE_KEY) || "";
+    } catch (error) {
+      console.warn("[Pleasure Dispatch] Local storage is unavailable.");
     }
 
-    return secret.trim();
+    secret = secret.trim();
+
+    if (secret) return secret;
+
+    secret = window.prompt(
+      "Enter the Pleasure Dispatch publishing key:"
+    );
+
+    if (!secret || !secret.trim()) {
+      throw new Error("Publishing key is required.");
+    }
+
+    secret = secret.trim();
+
+    try {
+      window.localStorage.setItem(
+        SECRET_STORAGE_KEY,
+        secret
+      );
+    } catch (error) {
+      console.warn(
+        "[Pleasure Dispatch] Could not save publishing key locally."
+      );
+    }
+
+    return secret;
+  }
+
+  function clearStoredPublishSecret() {
+    try {
+      window.localStorage.removeItem(SECRET_STORAGE_KEY);
+    } catch (error) {
+      /* Ignore local-storage failures. */
+    }
   }
 
   function normalizeEdition() {
@@ -95,7 +133,8 @@
     return String(clone.textContent || "")
       .replace(/\u00a0/g, " ")
       .replace(/\s+/g, " ")
-      .trim().length > 0;
+      .trim()
+      .length > 0;
   }
 
   function hasMeaningfulImage(element) {
@@ -162,10 +201,7 @@
     );
 
     if (!inputValue("reflection")) {
-      removeSectionByHeading(
-        doc,
-        "01 — A REFLECTION"
-      );
+      removeSectionByHeading(doc, "01 — A REFLECTION");
     }
 
     const imageBlocks =
@@ -174,17 +210,11 @@
         : [];
 
     if (!inputValue("workText") && !imageBlocks.length) {
-      removeSectionByHeading(
-        doc,
-        "02 — THE WORK"
-      );
+      removeSectionByHeading(doc, "02 — THE WORK");
     }
 
     if (!inputValue("studioText")) {
-      removeSectionByHeading(
-        doc,
-        "03 — STUDIO NOTES"
-      );
+      removeSectionByHeading(doc, "03 — STUDIO NOTES");
     }
 
     const pleasureNotes =
@@ -193,21 +223,18 @@
         : [];
 
     if (!pleasureNotes.length) {
-      removeSectionByHeading(
-        doc,
-        "04 — PLEASURE NOTES"
-      );
+      removeSectionByHeading(doc, "04 — PLEASURE NOTES");
 
-      Array.from(
-        doc.body.querySelectorAll("div")
-      ).forEach(function (element) {
-        if (
-          String(element.textContent || "").trim() ===
-          "An offering of what has held my attention."
-        ) {
-          element.remove();
+      Array.from(doc.body.querySelectorAll("div")).forEach(
+        function (element) {
+          if (
+            String(element.textContent || "").trim() ===
+            "An offering of what has held my attention."
+          ) {
+            element.remove();
+          }
         }
-      });
+      );
     }
 
     if (
@@ -215,10 +242,7 @@
       !inputValue("inviteText") &&
       !inputValue("ctaUrl")
     ) {
-      removeSectionByHeading(
-        doc,
-        "05 — AN INVITATION"
-      );
+      removeSectionByHeading(doc, "05 — AN INVITATION");
     }
 
     return doc.body.innerHTML.trim();
@@ -239,9 +263,7 @@
         image.getAttribute("src") || ""
       ).trim();
 
-      if (!src || src === "#") {
-        image.remove();
-      }
+      if (!src || src === "#") image.remove();
     });
 
     doc.querySelectorAll("p").forEach(function (paragraph) {
@@ -287,10 +309,7 @@
 
     if (typeof window.validateNewsletterHtml === "function") {
       const problem = window.validateNewsletterHtml(html);
-
-      if (problem) {
-        throw new Error(problem);
-      }
+      if (problem) throw new Error(problem);
     }
 
     if (!html) {
@@ -384,14 +403,11 @@
     clearPending();
     closeDialog();
 
-    if (reject) {
-      reject(new Error(message));
-    }
+    if (reject) reject(new Error(message));
   }
 
   function handleDialogMessage(arg) {
     const raw = arg && arg.message;
-
     if (!raw) return;
 
     let message;
@@ -418,7 +434,7 @@
         pingTimer = null;
       }
 
-      status("Sending Dispatch to publisher…");
+      setPublishStatus("Sending Dispatch to publisher…");
 
       try {
         publisherDialog.messageChild(
@@ -464,9 +480,7 @@
 
     try {
       publisherDialog.messageChild(
-        JSON.stringify({
-          type: "publisherPing"
-        })
+        JSON.stringify({ type: "publisherPing" })
       );
     } catch (error) {
       console.warn(
@@ -501,7 +515,7 @@
       pendingReject = reject;
       resultReceived = false;
 
-      status("Opening secure publisher…");
+      setPublishStatus("Opening secure publisher…");
 
       const dialogUrl =
         PUBLISHER_URL + "?action=publisherDialog";
@@ -557,10 +571,7 @@
           );
 
           sendPing();
-          pingTimer = setInterval(
-            sendPing,
-            PING_INTERVAL_MS
-          );
+          pingTimer = setInterval(sendPing, PING_INTERVAL_MS);
 
           timeoutTimer = setTimeout(function () {
             if (
@@ -569,7 +580,7 @@
               pendingPayload
             ) {
               failPublish(
-                "Publisher did not respond within 30 seconds. Check the Apps Script deployment and try again."
+                "Publisher did not respond within 30 seconds. Check the publisher Apps Script deployment and try again."
               );
             }
           }, DIALOG_TIMEOUT_MS);
@@ -581,12 +592,10 @@
   async function publishDispatch() {
     const button = document.getElementById("publishBtn");
 
-    if (button) {
-      button.disabled = true;
-    }
+    if (button) button.disabled = true;
 
     try {
-      status("Preparing Dispatch…");
+      setPublishStatus("Preparing Dispatch…");
 
       const secret = getPublishSecret();
       const payload = collectPayload(secret);
@@ -600,18 +609,18 @@
         }
       );
 
-      status("Connecting to publisher…");
+      setPublishStatus("Connecting to publisher…");
 
-      const result = await openPublisherDialog(
-        payload
-      );
+      const result = await openPublisherDialog(payload);
 
       console.log(
         "[Pleasure Dispatch] Publisher result:",
         result
       );
 
-      status("✓ Dispatch published successfully.");
+      setPublishStatus(
+        "✓ Dispatch published successfully."
+      );
 
       return result;
     } catch (error) {
@@ -620,27 +629,35 @@
         error
       );
 
-      status(
+      if (
+        error &&
+        /publish.*key|secret|unauthor/i.test(
+          String(error.message || error)
+        )
+      ) {
+        clearStoredPublishSecret();
+      }
+
+      setPublishStatus(
         "Publish failed: " +
-          (error && error.message
-            ? error.message
-            : String(error))
+          (
+            error && error.message
+              ? error.message
+              : String(error)
+          )
       );
 
       throw error;
     } finally {
-      if (button) {
-        button.disabled = false;
-      }
+      if (button) button.disabled = false;
     }
   }
 
   function bindPublishButton() {
-    const button = document.getElementById(
-      "publishBtn"
-    );
+    const button = document.getElementById("publishBtn");
 
     if (!button) return false;
+
     if (button.dataset.publishBound === "true") {
       return true;
     }
@@ -648,19 +665,14 @@
     button.dataset.publishBound = "true";
     button.type = "button";
 
-    button.addEventListener(
-      "click",
-      function (event) {
-        event.preventDefault();
-        event.stopPropagation();
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
 
-        publishDispatch().catch(function () {
-          // publishDispatch already reports the error in the
-          // taskpane status area. Prevent an unhandled rejection.
-        });
-      },
-      false
-    );
+      publishDispatch().catch(function () {
+        /* Status is already shown to the user. */
+      });
+    });
 
     console.log(
       "[Pleasure Dispatch] Publish button bound."
@@ -669,28 +681,48 @@
     return true;
   }
 
-  function initializePublishBridge() {
-    if (bindPublishButton()) return;
+  window.publishDispatch = publishDispatch;
 
-    setTimeout(
-      initializePublishBridge,
-      250
+  window.setPublishSecret = function (secret) {
+    const value = String(secret || "").trim();
+
+    if (!value) {
+      throw new Error(
+        "Publishing key cannot be empty."
+      );
+    }
+
+    window.localStorage.setItem(
+      SECRET_STORAGE_KEY,
+      value
     );
+
+    return true;
+  };
+
+  window.clearPublishSecret =
+    clearStoredPublishSecret;
+
+  function initializePublisher() {
+    bindPublishButton();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      initializePublisher
+    );
+  } else {
+    initializePublisher();
   }
 
   if (
     window.Office &&
     typeof Office.onReady === "function"
   ) {
-    Office.onReady(
-      initializePublishBridge
-    );
-  } else {
-    window.addEventListener(
-      "load",
-      initializePublishBridge
-    );
+    Office.onReady(function () {
+      bindPublishButton();
+    });
   }
 
-  window.publishDispatch = publishDispatch;
 })();
