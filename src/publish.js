@@ -1,374 +1,1451 @@
+```javascript
 /* =========================================================
    THE PLEASURE DISPATCH
    publish.js
    Production publish bridge
 
-   One authoritative Google Apps Script deployment handles
-   Drive storage and GitHub publishing.
+   Publisher Apps Script is authoritative.
+
+   Publish flow:
+   Add-in
+      ↓
+   Publisher Apps Script
+      ↓
+   data/dispatches.json
+      ↓
+   /<edition>/index.html
+
+   Subscriber metadata is pulled server-side by the
+   Publisher Apps Script from the Drive/Contact bridge.
 ========================================================= */
+
 (function () {
   "use strict";
 
   const PUBLISH_API_URL =
     "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
 
-  const SECRET_STORAGE_KEY = "pd_publish_secret";
+  const SECRET_STORAGE_KEY =
+    "pd_publish_secret";
+
+
+  /* =======================================================
+     PUBLISH SECRET
+  ======================================================= */
 
   function getPublishSecret() {
-    const stored = window.localStorage.getItem(SECRET_STORAGE_KEY);
-    if (stored) return Promise.resolve(stored.trim());
+
+    const stored =
+      window.localStorage.getItem(
+        SECRET_STORAGE_KEY
+      );
+
+    if (stored) {
+      return Promise.resolve(
+        stored.trim()
+      );
+    }
+
 
     return new Promise(function (resolve) {
-      const existing = document.getElementById("pdPublishKeyDialog");
-      if (existing) existing.remove();
 
-      const overlay = document.createElement("div");
-      overlay.id = "pdPublishKeyDialog";
-      overlay.setAttribute("role", "dialog");
-      overlay.setAttribute("aria-modal", "true");
-      overlay.style.cssText = "position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.55);box-sizing:border-box";
+      const existing =
+        document.getElementById(
+          "pdPublishKeyDialog"
+        );
 
-      const panel = document.createElement("div");
-      panel.style.cssText = "width:100%;max-width:360px;box-sizing:border-box;padding:24px;background:#303030;color:#F2EEE5;border:1px solid #777;box-shadow:0 12px 40px rgba(0,0,0,.35);font-family:Arial,sans-serif";
+      if (existing) {
+        existing.remove();
+      }
 
-      const title = document.createElement("div");
-      title.textContent = "Publish Dispatch";
-      title.style.cssText = "font-size:16px;font-weight:600;margin-bottom:8px";
 
-      const description = document.createElement("div");
-      description.textContent = "Enter your publishing key to send this Dispatch to the public archive.";
-      description.style.cssText = "font-size:13px;line-height:1.5;color:#C9C3B8;margin-bottom:16px";
+      const overlay =
+        document.createElement(
+          "div"
+        );
 
-      const input = document.createElement("input");
-      input.type = "password";
-      input.autocomplete = "off";
-      input.spellcheck = false;
-      input.style.cssText = "display:block;width:100%;box-sizing:border-box;height:40px;padding:8px 10px;background:#595959;color:#F2EEE5;border:1px solid #777;outline:none;font:14px Arial,sans-serif";
+      overlay.id =
+        "pdPublishKeyDialog";
 
-      const error = document.createElement("div");
-      error.style.cssText = "display:none;color:#F2EEE5;font-size:12px;margin-top:8px";
+      overlay.setAttribute(
+        "role",
+        "dialog"
+      );
 
-      const actions = document.createElement("div");
-      actions.style.cssText = "display:flex;justify-content:flex-end;gap:8px;margin-top:18px";
+      overlay.setAttribute(
+        "aria-modal",
+        "true"
+      );
 
-      const cancel = document.createElement("button");
-      cancel.type = "button";
-      cancel.textContent = "Cancel";
-      cancel.style.cssText = "height:36px;padding:0 14px;background:transparent;color:#C9C3B8;border:1px solid #777;cursor:pointer";
+      overlay.style.cssText =
+        "position:fixed;inset:0;z-index:999999;" +
+        "display:flex;align-items:center;" +
+        "justify-content:center;padding:20px;" +
+        "background:rgba(0,0,0,.55);" +
+        "box-sizing:border-box";
 
-      const submit = document.createElement("button");
-      submit.type = "button";
-      submit.textContent = "Publish";
-      submit.style.cssText = "height:36px;padding:0 14px;background:#D8D0C3;color:#303030;border:1px solid #D8D0C3;cursor:pointer;font-weight:600";
+
+      const panel =
+        document.createElement(
+          "div"
+        );
+
+      panel.style.cssText =
+        "width:100%;max-width:360px;" +
+        "box-sizing:border-box;padding:24px;" +
+        "background:#303030;color:#F2EEE5;" +
+        "border:1px solid #777;" +
+        "box-shadow:0 12px 40px rgba(0,0,0,.35);" +
+        "font-family:Arial,sans-serif";
+
+
+      const title =
+        document.createElement(
+          "div"
+        );
+
+      title.textContent =
+        "Publish Dispatch";
+
+      title.style.cssText =
+        "font-size:16px;font-weight:600;" +
+        "margin-bottom:8px";
+
+
+      const description =
+        document.createElement(
+          "div"
+        );
+
+      description.textContent =
+        "Enter your publishing key to send this Dispatch to the public archive.";
+
+      description.style.cssText =
+        "font-size:13px;line-height:1.5;" +
+        "color:#C9C3B8;margin-bottom:16px";
+
+
+      const input =
+        document.createElement(
+          "input"
+        );
+
+      input.type =
+        "password";
+
+      input.autocomplete =
+        "off";
+
+      input.spellcheck =
+        false;
+
+      input.style.cssText =
+        "display:block;width:100%;" +
+        "box-sizing:border-box;height:40px;" +
+        "padding:8px 10px;" +
+        "background:#595959;color:#F2EEE5;" +
+        "border:1px solid #777;outline:none;" +
+        "font:14px Arial,sans-serif";
+
+
+      const error =
+        document.createElement(
+          "div"
+        );
+
+      error.style.cssText =
+        "display:none;color:#F2EEE5;" +
+        "font-size:12px;margin-top:8px";
+
+
+      const actions =
+        document.createElement(
+          "div"
+        );
+
+      actions.style.cssText =
+        "display:flex;justify-content:flex-end;" +
+        "gap:8px;margin-top:18px";
+
+
+      const cancel =
+        document.createElement(
+          "button"
+        );
+
+      cancel.type =
+        "button";
+
+      cancel.textContent =
+        "Cancel";
+
+      cancel.style.cssText =
+        "height:36px;padding:0 14px;" +
+        "background:transparent;color:#C9C3B8;" +
+        "border:1px solid #777;cursor:pointer";
+
+
+      const submit =
+        document.createElement(
+          "button"
+        );
+
+      submit.type =
+        "button";
+
+      submit.textContent =
+        "Publish";
+
+      submit.style.cssText =
+        "height:36px;padding:0 14px;" +
+        "background:#D8D0C3;color:#303030;" +
+        "border:1px solid #D8D0C3;" +
+        "cursor:pointer;font-weight:600";
+
 
       function close(value) {
-        document.removeEventListener("keydown", onKeyDown, true);
+
+        document.removeEventListener(
+          "keydown",
+          onKeyDown,
+          true
+        );
+
         overlay.remove();
-        resolve(value || "");
+
+        resolve(
+          value || ""
+        );
+
       }
+
 
       function submitKey() {
-        const secret = String(input.value || "").trim();
+
+        const secret =
+          String(
+            input.value || ""
+          ).trim();
+
+
         if (!secret) {
-          error.textContent = "Please enter your publishing key.";
-          error.style.display = "block";
+
+          error.textContent =
+            "Please enter your publishing key.";
+
+          error.style.display =
+            "block";
+
           input.focus();
+
           return;
+
         }
-        window.localStorage.setItem(SECRET_STORAGE_KEY, secret);
-        close(secret);
+
+
+        window.localStorage.setItem(
+          SECRET_STORAGE_KEY,
+          secret
+        );
+
+
+        close(
+          secret
+        );
+
       }
+
 
       function onKeyDown(event) {
-        if (event.key === "Escape") {
+
+        if (
+          event.key ===
+          "Escape"
+        ) {
+
           event.preventDefault();
+
           close("");
-        } else if (event.key === "Enter") {
+
+        } else if (
+          event.key ===
+          "Enter"
+        ) {
+
           event.preventDefault();
+
           submitKey();
+
         }
+
       }
 
-      cancel.addEventListener("click", function () { close(""); });
-      submit.addEventListener("click", submitKey);
-      document.addEventListener("keydown", onKeyDown, true);
 
-      actions.appendChild(cancel);
-      actions.appendChild(submit);
-      panel.appendChild(title);
-      panel.appendChild(description);
-      panel.appendChild(input);
-      panel.appendChild(error);
-      panel.appendChild(actions);
-      overlay.appendChild(panel);
-      document.body.appendChild(overlay);
+      cancel.addEventListener(
+        "click",
+        function () {
+          close("");
+        }
+      );
+
+
+      submit.addEventListener(
+        "click",
+        submitKey
+      );
+
+
+      document.addEventListener(
+        "keydown",
+        onKeyDown,
+        true
+      );
+
+
+      actions.appendChild(
+        cancel
+      );
+
+      actions.appendChild(
+        submit
+      );
+
+      panel.appendChild(
+        title
+      );
+
+      panel.appendChild(
+        description
+      );
+
+      panel.appendChild(
+        input
+      );
+
+      panel.appendChild(
+        error
+      );
+
+      panel.appendChild(
+        actions
+      );
+
+      overlay.appendChild(
+        panel
+      );
+
+      document.body.appendChild(
+        overlay
+      );
+
       input.focus();
+
     });
+
   }
+
+
+  /* =======================================================
+     STATUS
+  ======================================================= */
 
   function status(message) {
-    if (typeof setStatus === "function") setStatus(message);
-    else console.log("[Pleasure Dispatch]", message);
+
+    if (
+      typeof setStatus ===
+      "function"
+    ) {
+
+      setStatus(
+        message
+      );
+
+    } else {
+
+      console.log(
+        "[Pleasure Dispatch]",
+        message
+      );
+
+    }
+
   }
+
+
+  /* =======================================================
+     INPUT
+  ======================================================= */
 
   function inputValue(id) {
-    const element = document.getElementById(id);
-    return element ? String(element.value || "").trim() : "";
+
+    const element =
+      document.getElementById(
+        id
+      );
+
+    return element
+      ? String(
+          element.value || ""
+        ).trim()
+      : "";
+
   }
 
-  function hasMeaningfulImage(element) {
-    const images = element.querySelectorAll ? element.querySelectorAll("img") : [];
-    for (let i = 0; i < images.length; i++) {
-      const src = (images[i].getAttribute("src") || "").trim();
-      if (src && src !== "#") return true;
+
+  /* =======================================================
+     IMAGE CHECK
+  ======================================================= */
+
+  function hasMeaningfulImage(
+    element
+  ) {
+
+    const images =
+      element.querySelectorAll
+        ? element.querySelectorAll(
+            "img"
+          )
+        : [];
+
+
+    for (
+      let i = 0;
+      i < images.length;
+      i++
+    ) {
+
+      const src =
+        (
+          images[i]
+            .getAttribute(
+              "src"
+            ) ||
+          ""
+        ).trim();
+
+
+      if (
+        src &&
+        src !== "#"
+      ) {
+
+        return true;
+
+      }
+
     }
+
+
     return false;
+
   }
 
-  function hasMeaningfulText(element) {
-    const clone = element.cloneNode(true);
-    clone.querySelectorAll("img,svg,style,script,noscript").forEach(function (node) { node.remove(); });
-    return (clone.textContent || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim().length > 0;
+
+  /* =======================================================
+     TEXT CHECK
+  ======================================================= */
+
+  function hasMeaningfulText(
+    element
+  ) {
+
+    const clone =
+      element.cloneNode(
+        true
+      );
+
+
+    clone
+      .querySelectorAll(
+        "img,svg,style,script,noscript"
+      )
+      .forEach(
+        function (node) {
+          node.remove();
+        }
+      );
+
+
+    return (
+      clone.textContent || ""
+    )
+      .replace(
+        /\u00a0/g,
+        " "
+      )
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim()
+      .length > 0;
+
   }
 
-  function removeSectionByHeading(doc, headingText) {
-    const elements = Array.from(doc.body.querySelectorAll("div,td"));
-    for (let i = 0; i < elements.length; i++) {
-      const element = elements[i];
-      if ((element.textContent || "").trim() !== headingText) continue;
-      if (!element.parentNode) continue;
 
-      const parent = element.parentNode;
-      const children = Array.from(parent.children);
-      const index = children.indexOf(element);
-      if (index < 0) continue;
+  /* =======================================================
+     REMOVE SECTION
+  ======================================================= */
+
+  function removeSectionByHeading(
+    doc,
+    headingText
+  ) {
+
+    const elements =
+      Array.from(
+        doc.body.querySelectorAll(
+          "div,td"
+        )
+      );
+
+
+    for (
+      let i = 0;
+      i < elements.length;
+      i++
+    ) {
+
+      const element =
+        elements[i];
+
+
+      if (
+        (
+          element.textContent ||
+          ""
+        ).trim() !==
+        headingText
+      ) {
+
+        continue;
+
+      }
+
+
+      if (
+        !element.parentNode
+      ) {
+
+        continue;
+
+      }
+
+
+      const parent =
+        element.parentNode;
+
+
+      const children =
+        Array.from(
+          parent.children
+        );
+
+
+      const index =
+        children.indexOf(
+          element
+        );
+
+
+      if (
+        index < 0
+      ) {
+
+        continue;
+
+      }
+
 
       element.remove();
 
-      if (children[index + 1] && !hasMeaningfulText(children[index + 1]) && !hasMeaningfulImage(children[index + 1])) {
+
+      if (
+        children[index + 1] &&
+        !hasMeaningfulText(
+          children[index + 1]
+        ) &&
+        !hasMeaningfulImage(
+          children[index + 1]
+        )
+      ) {
+
         children[index + 1].remove();
+
       }
+
+
       return;
+
     }
+
   }
 
-  function removeEmptyEditorialSections(html) {
-    if (!html || typeof DOMParser === "undefined") return html;
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(String(html), "text/html");
+  /* =======================================================
+     REMOVE EMPTY EDITORIAL SECTIONS
+  ======================================================= */
 
-    if (!inputValue("reflection")) {
-      removeSectionByHeading(doc, "01 — A REFLECTION");
+  function removeEmptyEditorialSections(
+    html
+  ) {
+
+    if (
+      !html ||
+      typeof DOMParser ===
+      "undefined"
+    ) {
+
+      return html;
+
     }
 
-    if (!inputValue("workText") && typeof collectImageBlocks === "function" && !collectImageBlocks().length) {
-      removeSectionByHeading(doc, "02 — THE WORK");
+
+    const parser =
+      new DOMParser();
+
+
+    const doc =
+      parser.parseFromString(
+        String(html),
+        "text/html"
+      );
+
+
+    if (
+      !inputValue(
+        "reflection"
+      )
+    ) {
+
+      removeSectionByHeading(
+        doc,
+        "01 — A REFLECTION"
+      );
+
     }
 
-    if (!inputValue("studioText")) {
-      removeSectionByHeading(doc, "03 — STUDIO NOTES");
+
+    if (
+      !inputValue(
+        "workText"
+      ) &&
+      typeof collectImageBlocks ===
+      "function" &&
+      !collectImageBlocks().length
+    ) {
+
+      removeSectionByHeading(
+        doc,
+        "02 — THE WORK"
+      );
+
     }
 
-    const notes = typeof collectPleasureNotes === "function"
-      ? collectPleasureNotes()
-      : [];
 
-    if (!notes.length) {
-      removeSectionByHeading(doc, "04 — PLEASURE NOTES");
-      const intro = Array.from(doc.body.querySelectorAll("div")).find(function (element) {
-        return (element.textContent || "").trim() === "An offering of what has held my attention.";
-      });
-      if (intro) intro.remove();
+    if (
+      !inputValue(
+        "studioText"
+      )
+    ) {
+
+      removeSectionByHeading(
+        doc,
+        "03 — STUDIO NOTES"
+      );
+
     }
 
-    if (!inputValue("inviteTitle") && !inputValue("inviteText") && !inputValue("ctaUrl")) {
-      removeSectionByHeading(doc, "05 — AN INVITATION");
+
+    const notes =
+      typeof collectPleasureNotes ===
+      "function"
+        ? collectPleasureNotes()
+        : [];
+
+
+    if (
+      !notes.length
+    ) {
+
+      removeSectionByHeading(
+        doc,
+        "04 — PLEASURE NOTES"
+      );
+
+
+      const intro =
+        Array.from(
+          doc.body.querySelectorAll(
+            "div"
+          )
+        ).find(
+          function (element) {
+
+            return (
+              (
+                element.textContent ||
+                ""
+              ).trim() ===
+              "An offering of what has held my attention."
+            );
+
+          }
+        );
+
+
+      if (intro) {
+        intro.remove();
+      }
+
     }
+
+
+    if (
+      !inputValue(
+        "inviteTitle"
+      ) &&
+      !inputValue(
+        "inviteText"
+      ) &&
+      !inputValue(
+        "ctaUrl"
+      )
+    ) {
+
+      removeSectionByHeading(
+        doc,
+        "05 — AN INVITATION"
+      );
+
+    }
+
 
     return doc.body.innerHTML.trim();
+
   }
 
-  function cleanPublishHtml(html) {
-    if (!html || typeof DOMParser === "undefined") return html;
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(String(html), "text/html");
+  /* =======================================================
+     CLEAN HTML
+  ======================================================= */
 
-    doc.querySelectorAll("img").forEach(function (image) {
-      const src = (image.getAttribute("src") || "").trim();
-      if (!src || src === "#") image.remove();
-    });
+  function cleanPublishHtml(
+    html
+  ) {
 
-    doc.querySelectorAll("p").forEach(function (paragraph) {
-      if (!hasMeaningfulText(paragraph) && !hasMeaningfulImage(paragraph)) paragraph.remove();
-    });
+    if (
+      !html ||
+      typeof DOMParser ===
+      "undefined"
+    ) {
 
-    return removeEmptyEditorialSections(doc.body.innerHTML.trim());
+      return html;
+
+    }
+
+
+    const parser =
+      new DOMParser();
+
+
+    const doc =
+      parser.parseFromString(
+        String(html),
+        "text/html"
+      );
+
+
+    doc
+      .querySelectorAll(
+        "img"
+      )
+      .forEach(
+        function (image) {
+
+          const src =
+            (
+              image.getAttribute(
+                "src"
+              ) ||
+              ""
+            ).trim();
+
+
+          if (
+            !src ||
+            src === "#"
+          ) {
+
+            image.remove();
+
+          }
+
+        }
+      );
+
+
+    doc
+      .querySelectorAll(
+        "p"
+      )
+      .forEach(
+        function (paragraph) {
+
+          if (
+            !hasMeaningfulText(
+              paragraph
+            ) &&
+            !hasMeaningfulImage(
+              paragraph
+            )
+          ) {
+
+            paragraph.remove();
+
+          }
+
+        }
+      );
+
+
+    return removeEmptyEditorialSections(
+      doc.body.innerHTML.trim()
+    );
+
   }
+
+
+  /* =======================================================
+     EDITION
+  ======================================================= */
 
   function normalizeEdition() {
-    const raw = inputValue("edition");
-    if (!raw) throw new Error("Publish stopped — please enter an edition number.");
 
-    const match = raw.match(/(\d+(?:\.\d+)?)/);
-    if (!match) throw new Error("Publish stopped — edition must contain a number, such as No. 001.");
+    const raw =
+      inputValue(
+        "edition"
+      );
 
-    const number = match[1];
-    const numeric = Number(number);
-    if (!isFinite(numeric) || numeric < 0) {
-      throw new Error("Publish stopped — invalid edition number.");
+
+    if (!raw) {
+
+      throw new Error(
+        "Publish stopped — please enter an edition number."
+      );
+
     }
+
+
+    const match =
+      raw.match(
+        /(\d+(?:\.\d+)?)/
+      );
+
+
+    if (!match) {
+
+      throw new Error(
+        "Publish stopped — edition must contain a number, such as No. 001."
+      );
+
+    }
+
+
+    const number =
+      match[1];
+
+
+    const numeric =
+      Number(
+        number
+      );
+
+
+    if (
+      !isFinite(
+        numeric
+      ) ||
+      numeric < 0
+    ) {
+
+      throw new Error(
+        "Publish stopped — invalid edition number."
+      );
+
+    }
+
 
     return {
-      number: number,
-      label: "No. " + number
+
+      number:
+        number,
+
+      label:
+        "No. " +
+        number
+
     };
+
   }
 
-  function collectPayload(secret) {
-    if (typeof buildNewsletterHtml !== "function") {
-      throw new Error("The newsletter builder is not available. Reload the Dispatch add-in and try again.");
+
+  /* =======================================================
+     BUILD PAYLOAD
+  ======================================================= */
+
+  function collectPayload(
+    secret
+  ) {
+
+    if (
+      typeof buildNewsletterHtml !==
+      "function"
+    ) {
+
+      throw new Error(
+        "The newsletter builder is not available. Reload the Dispatch add-in and try again."
+      );
+
     }
 
-    const edition = normalizeEdition();
-    const html = cleanPublishHtml(buildNewsletterHtml());
 
-    if (typeof validateNewsletterHtml === "function") {
-      const problem = validateNewsletterHtml(html);
-      if (problem) throw new Error(problem);
-    }
+    const edition =
+      normalizeEdition();
 
-    const title = inputValue("title");
-    const date = inputValue("date") || new Date().toISOString().slice(0, 10);
 
-    let pleasureText = "";
-    if (typeof collectPleasureNotes === "function") {
-      pleasureText = collectPleasureNotes().map(function (note) {
-        return (note.label || "") + " " + (note.value || "");
-      }).join(" ");
-    }
+    const html =
+      cleanPublishHtml(
+        buildNewsletterHtml()
+      );
 
-    const subject = typeof buildSubject === "function"
-      ? buildSubject()
-      : "The Pleasure Dispatch — " + edition.label + ": " + (title || "A Note on Pleasure");
 
-    return {
-      action: "publish",
-      publishKey: secret,
-      edition: edition.number,
-      editionLabel: edition.label,
-      date: date,
-      title: title || "The Pleasure Dispatch",
-      subtitle: inputValue("subtitle"),
-      subject: subject,
-      html: html,
-      searchText: [
-        edition.number,
-        edition.label,
-        date,
-        title,
-        inputValue("subtitle"),
-        inputValue("reflection"),
-        inputValue("workText"),
-        inputValue("studioText"),
-        inputValue("inviteTitle"),
-        inputValue("inviteText"),
-        inputValue("question"),
-        pleasureText
-      ].filter(Boolean).join(" ")
-    };
-  }
+    if (
+      typeof validateNewsletterHtml ===
+      "function"
+    ) {
 
-  async function sendPublish(payload) {
-    await fetch(PUBLISH_API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify(payload),
-      keepalive: true
-    });
-  }
+      const problem =
+        validateNewsletterHtml(
+          html
+        );
 
-  async function publishDispatch() {
-    const button = document.getElementById("publishBtn");
-    if (button) button.disabled = true;
 
-    try {
-      status("Publishing Dispatch…");
-
-      const secret = await getPublishSecret();
-      if (!secret) {
-        status("Publish cancelled.");
-        return;
+      if (problem) {
+        throw new Error(
+          problem
+        );
       }
 
-      const payload = collectPayload(secret);
-
-      console.log("[Pleasure Dispatch] Publishing to bridge:", PUBLISH_API_URL);
-      console.log("[Pleasure Dispatch] Publish payload prepared:", {
-        action: payload.action,
-        edition: payload.edition,
-        editionLabel: payload.editionLabel,
-        title: payload.title,
-        htmlLength: payload.html.length
-      });
-
-      await sendPublish(payload);
-
-      status("✓ Publish request sent. The public archive will update shortly.");
-      console.log("[Pleasure Dispatch] Publish request sent to Google Apps Script.");
-    } catch (error) {
-      status("Publish failed: " + (error && error.message ? error.message : String(error)));
-      console.error("[Pleasure Dispatch] Publish failed:", error);
-    } finally {
-      if (button) button.disabled = false;
     }
+
+
+    const title =
+      inputValue(
+        "title"
+      );
+
+
+    const date =
+      inputValue(
+        "date"
+      ) ||
+      new Date()
+        .toISOString()
+        .slice(
+          0,
+          10
+        );
+
+
+    let pleasureText =
+      "";
+
+
+    if (
+      typeof collectPleasureNotes ===
+      "function"
+    ) {
+
+      pleasureText =
+        collectPleasureNotes()
+          .map(
+            function (note) {
+
+              return (
+                (
+                  note.label ||
+                  ""
+                ) +
+                " " +
+                (
+                  note.value ||
+                  ""
+                )
+              );
+
+            }
+          )
+          .join(
+            " "
+          );
+
+    }
+
+
+    const subject =
+      typeof buildSubject ===
+      "function"
+        ? buildSubject()
+        : "The Pleasure Dispatch — " +
+          edition.label +
+          ": " +
+          (
+            title ||
+            "A Note on Pleasure"
+          );
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Publisher Apps Script expects
+     * `secret`, NOT `publishKey`.
+     */
+
+    return {
+
+      action:
+        "publish",
+
+      secret:
+        secret,
+
+      edition:
+        edition.number,
+
+      editionLabel:
+        edition.label,
+
+      date:
+        date,
+
+      title:
+        title ||
+        "The Pleasure Dispatch",
+
+      subtitle:
+        inputValue(
+          "subtitle"
+        ),
+
+      subject:
+        subject,
+
+      reflection:
+        inputValue(
+          "reflection"
+        ),
+
+      html:
+        html,
+
+      searchText:
+        [
+          edition.number,
+          edition.label,
+          date,
+          title,
+          inputValue("subtitle"),
+          inputValue("reflection"),
+          inputValue("workText"),
+          inputValue("studioText"),
+          inputValue("inviteTitle"),
+          inputValue("inviteText"),
+          inputValue("question"),
+          pleasureText
+        ]
+          .filter(Boolean)
+          .join(" ")
+
+    };
+
   }
+
+
+  /* =======================================================
+     SEND PUBLISH REQUEST
+  ======================================================= */
+
+  async function sendPublish(
+    payload
+  ) {
+
+    const response =
+      await fetch(
+        PUBLISH_API_URL,
+        {
+
+          method:
+            "POST",
+
+          mode:
+            "cors",
+
+          headers: {
+
+            "Content-Type":
+              "text/plain;charset=utf-8"
+
+          },
+
+          body:
+            JSON.stringify(
+              payload
+            )
+
+        }
+      );
+
+
+    /*
+     * Apps Script can return a JSON
+     * response. Read it when available
+     * so the add-in can distinguish
+     * success from failure.
+     */
+
+    const text =
+      await response.text();
+
+
+    let data;
+
+
+    try {
+
+      data =
+        JSON.parse(
+          text
+        );
+
+    } catch (
+      parseError
+    ) {
+
+      throw new Error(
+        "Publisher returned an invalid response."
+      );
+
+    }
+
+
+    if (
+      data.status !==
+      "published"
+    ) {
+
+      throw new Error(
+        data.message ||
+        "Publisher rejected the Dispatch."
+      );
+
+    }
+
+
+    return data;
+
+  }
+
+
+  /* =======================================================
+     PUBLISH
+  ======================================================= */
+
+  async function publishDispatch() {
+
+    const button =
+      document.getElementById(
+        "publishBtn"
+      );
+
+
+    if (button) {
+      button.disabled =
+        true;
+    }
+
+
+    try {
+
+      status(
+        "Publishing Dispatch…"
+      );
+
+
+      const secret =
+        await getPublishSecret();
+
+
+      if (!secret) {
+
+        status(
+          "Publish cancelled."
+        );
+
+        return;
+
+      }
+
+
+      const payload =
+        collectPayload(
+          secret
+        );
+
+
+      console.log(
+        "[Pleasure Dispatch] Publishing:",
+        PUBLISH_API_URL
+      );
+
+
+      console.log(
+        "[Pleasure Dispatch] Payload:",
+        {
+
+          action:
+            payload.action,
+
+          edition:
+            payload.edition,
+
+          editionLabel:
+            payload.editionLabel,
+
+          title:
+            payload.title,
+
+          htmlLength:
+            payload.html.length
+
+        }
+      );
+
+
+      const result =
+        await sendPublish(
+          payload
+        );
+
+
+      status(
+        "✓ Dispatch " +
+        result.editionLabel +
+        " published."
+      );
+
+
+      console.log(
+        "[Pleasure Dispatch] Published:",
+        result
+      );
+
+
+    } catch (
+      error
+    ) {
+
+      status(
+        "Publish failed: " +
+        (
+          error &&
+          error.message
+            ? error.message
+            : String(error)
+        )
+      );
+
+
+      console.error(
+        "[Pleasure Dispatch] Publish failed:",
+        error
+      );
+
+
+    } finally {
+
+      if (button) {
+        button.disabled =
+          false;
+      }
+
+    }
+
+  }
+
+
+  /* =======================================================
+     BUTTON
+  ======================================================= */
 
   function bindPublishButton() {
-    const button = document.getElementById("publishBtn");
-    if (!button || button.dataset.publishBound === "true") return;
-    button.dataset.publishBound = "true";
-    button.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      publishDispatch();
-    });
+
+    const button =
+      document.getElementById(
+        "publishBtn"
+      );
+
+
+    if (
+      !button ||
+      button.dataset.publishBound ===
+      "true"
+    ) {
+
+      return;
+
+    }
+
+
+    button.dataset.publishBound =
+      "true";
+
+
+    button.addEventListener(
+      "click",
+      function (event) {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        publishDispatch();
+
+      }
+    );
+
   }
 
-  window.addEventListener("load", bindPublishButton);
-  setTimeout(bindPublishButton, 250);
-  setTimeout(bindPublishButton, 1000);
-  setTimeout(bindPublishButton, 2000);
-  window.publishDispatch = publishDispatch;
+
+  window.addEventListener(
+    "load",
+    bindPublishButton
+  );
+
+
+  setTimeout(
+    bindPublishButton,
+    250
+  );
+
+  setTimeout(
+    bindPublishButton,
+    1000
+  );
+
+  setTimeout(
+    bindPublishButton,
+    2000
+  );
+
+
+  window.publishDispatch =
+    publishDispatch;
+
+
+  /* =======================================================
+     WRAP NEWSLETTER BUILDER
+  ======================================================= */
 
   (function wrapNewsletterBuilder() {
+
     function install() {
-      if (typeof window.buildNewsletterHtml !== "function") return false;
-      if (window.__pdPublishBuilderWrapped) return true;
 
-      const original = window.buildNewsletterHtml;
-      window.buildNewsletterHtml = function () {
-        let html = original.apply(this, arguments);
-        if (!html || typeof html !== "string") return html;
+      if (
+        typeof window.buildNewsletterHtml !==
+        "function"
+      ) {
 
-        return html.replace(
-          /https:\/\/flrsgloba\.github\.io\/dispatch\.flrsglobal\.com\/assets\/pleasure-loop\.(png|svg)/gi,
-          "https://dispatch.flrsglobal.com/assets/pleasure-loop.png"
-        );
-      };
+        return false;
 
-      window.__pdPublishBuilderWrapped = true;
+      }
+
+
+      if (
+        window.__pdPublishBuilderWrapped
+      ) {
+
+        return true;
+
+      }
+
+
+      const original =
+        window.buildNewsletterHtml;
+
+
+      window.buildNewsletterHtml =
+        function () {
+
+          let html =
+            original.apply(
+              this,
+              arguments
+            );
+
+
+          if (
+            !html ||
+            typeof html !==
+            "string"
+          ) {
+
+            return html;
+
+          }
+
+
+          return html.replace(
+
+            /https:\/\/flrsgloba\.github\.io\/dispatch\.flrsglobal\.com\/assets\/pleasure-loop\.(png|svg)/gi,
+
+            "https://dispatch.flrsglobal.com/assets/pleasure-loop.png"
+
+          );
+
+        };
+
+
+      window.__pdPublishBuilderWrapped =
+        true;
+
+
       return true;
+
     }
+
 
     if (!install()) {
-      setTimeout(install, 250);
-      setTimeout(install, 1000);
-      setTimeout(install, 2000);
+
+      setTimeout(
+        install,
+        250
+      );
+
+      setTimeout(
+        install,
+        1000
+      );
+
+      setTimeout(
+        install,
+        2000
+      );
+
     }
+
   })();
+
 })();
+```
