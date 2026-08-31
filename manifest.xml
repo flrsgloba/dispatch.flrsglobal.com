@@ -13,10 +13,11 @@
   <IconUrl DefaultValue="https://dispatch.flrsglobal.com/assets/icon-64.png"/>
   <HighResolutionIconUrl DefaultValue="https://dispatch.flrsglobal.com/assets/icon-128.png"/>
   <SupportUrl DefaultValue="https://dispatch.flrsglobal.com/"/>
-  <AppDomains>
-    <AppDomain>https://dispatch.flrsglobal.com</AppDomain>
-    <AppDomain>https://script.google.com</AppDomain>
-  </AppDomains>
+ <AppDomains>
+  <AppDomain>https://dispatch.flrsglobal.com</AppDomain>
+  <AppDomain>https://script.google.com</AppDomain>
+  <AppDomain>https://script.googleusercontent.com</AppDomain>
+</AppDomains>
   <Hosts>
     <Host Name="Mailbox"/>
   </Hosts>
