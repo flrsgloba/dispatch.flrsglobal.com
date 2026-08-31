@@ -4,18 +4,21 @@
 
    OUTLOOK PUBLISHING BRIDGE
 
-   Outlook blocks direct fetch() calls to Google Apps Script
-   because of its Content Security Policy.
-
-   Therefore:
+   FLOW:
 
        Outlook Task Pane
             ↓
-       Office Dialog
+       Same-domain publisher.html
             ↓
        Google Apps Script Publisher
             ↓
        GitHub + Google Drive
+            ↓
+       Result back to Outlook
+
+   IMPORTANT:
+   The first Office Dialog URL MUST be on the same
+   full domain as the Outlook add-in.
 ========================================================= */
 
 (function () {
@@ -27,8 +30,17 @@
      CONFIGURATION
   ======================================================= */
 
+  const ADDIN_ORIGIN =
+    "https://dispatch.flrsglobal.com";
+
+
   const PUBLISHER_URL =
     "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
+
+
+  const DIALOG_URL =
+    ADDIN_ORIGIN +
+    "/src/publisher.html";
 
 
   const SECRET_STORAGE_KEY =
@@ -40,14 +52,6 @@
 
 
   let publishPayload =
-    null;
-
-
-  let publishResolve =
-    null;
-
-
-  let publishReject =
     null;
 
 
@@ -90,7 +94,9 @@
 
 
     if (!element) {
+
       return "";
+
     }
 
 
@@ -105,31 +111,26 @@
      PUBLISH SECRET
   ======================================================= */
 
-/* =======================================================
-   PUBLISH SECRET
-   No popup — retrieve silently from localStorage
-======================================================= */
+  function getPublishSecret() {
 
-function getPublishSecret() {
+    const stored =
+      window.localStorage.getItem(
+        SECRET_STORAGE_KEY
+      );
 
-  const stored =
-    window.localStorage.getItem(
-      SECRET_STORAGE_KEY
-    );
 
-  if (!stored) {
+    if (!stored) {
 
-    throw new Error(
-      "Publishing key is not configured. Please set the publishing key before publishing."
-    );
+      throw new Error(
+        "Publishing key is not configured."
+      );
+
+    }
+
+
+    return stored.trim();
 
   }
-
-  return Promise.resolve(
-    stored.trim()
-  );
-
-}
 
 
   /* =======================================================
@@ -396,7 +397,7 @@ function getPublishSecret() {
 
 
   /* =======================================================
-     CLEAN EDITORIAL SECTIONS
+     REMOVE EMPTY EDITORIAL SECTIONS
   ======================================================= */
 
   function removeEmptyEditorialSections(html) {
@@ -511,7 +512,9 @@ function getPublishSecret() {
 
 
       if (intro) {
+
         intro.remove();
+
       }
 
     }
@@ -543,7 +546,7 @@ function getPublishSecret() {
 
 
   /* =======================================================
-     CLEAN PUBLISH HTML
+     CLEAN HTML
   ======================================================= */
 
   function cleanPublishHtml(html) {
@@ -808,25 +811,13 @@ function getPublishSecret() {
 
 
   /* =======================================================
-     OFFICE DIALOG
+     OPEN PUBLISHER DIALOG
   ======================================================= */
 
   function openPublisherDialog(payload) {
 
     return new Promise(
       function (resolve, reject) {
-
-        publishPayload =
-          payload;
-
-
-        publishResolve =
-          resolve;
-
-
-        publishReject =
-          reject;
-
 
         if (
           !window.Office ||
@@ -842,40 +833,58 @@ function getPublishSecret() {
             )
           );
 
-
           return;
 
         }
 
 
+        if (
+          publishDialog
+        ) {
+
+          try {
+
+            publishDialog.close();
+
+          } catch (
+            error
+          ) {}
+
+          publishDialog =
+            null;
+
+        }
+
+
+        publishPayload =
+          payload;
+
+
         status(
-          "Opening secure publishing window…"
+          "Connecting to publisher…"
         );
 
 
-        const dialogUrl =
-          PUBLISHER_URL +
-          "?action=publisherDialog";
-
-
         console.log(
-          "[Pleasure Dispatch] Opening publisher:",
-          dialogUrl
+          "[Pleasure Dispatch] Opening same-domain publisher:",
+          DIALOG_URL
         );
 
 
         Office.context.ui.displayDialogAsync(
-          dialogUrl,
+
+          DIALOG_URL,
 
           {
+
             height:
-              55,
+              10,
 
             width:
-              40,
+              10,
 
             displayInIframe:
-              false
+              true
 
           },
 
@@ -886,11 +895,8 @@ function getPublishSecret() {
               Office.AsyncResultStatus.Succeeded
             ) {
 
-              const message =
-                result.error &&
-                result.error.message
-                  ? result.error.message
-                  : "Could not open the publishing window.";
+              const error =
+                result.error;
 
 
               publishDialog =
@@ -901,17 +907,16 @@ function getPublishSecret() {
                 null;
 
 
-              publishResolve =
-                null;
-
-
-              publishReject =
-                null;
-
-
               reject(
                 new Error(
-                  message
+
+                  error &&
+                  error.message
+
+                    ? error.message
+
+                    : "Could not open the publisher."
+
                 )
               );
 
@@ -926,11 +931,12 @@ function getPublishSecret() {
 
 
             console.log(
-              "[Pleasure Dispatch] Publisher dialog opened."
+              "[Pleasure Dispatch] Same-domain publisher opened."
             );
 
 
             publishDialog.addEventHandler(
+
               Office.EventType.DialogMessageReceived,
 
               function (arg) {
@@ -941,7 +947,7 @@ function getPublishSecret() {
 
 
                 console.log(
-                  "[Pleasure Dispatch] Dialog message:",
+                  "[Pleasure Dispatch] Publisher message:",
                   message
                 );
 
@@ -973,6 +979,7 @@ function getPublishSecret() {
 
 
                   publishDialog.messageChild(
+
                     JSON.stringify({
 
                       type:
@@ -981,7 +988,15 @@ function getPublishSecret() {
                       payload:
                         publishPayload
 
-                    })
+                    }),
+
+                    {
+
+                      targetOrigin:
+                        ADDIN_ORIGIN
+
+                    }
+
                   );
 
 
@@ -1009,10 +1024,13 @@ function getPublishSecret() {
                   ) {
 
                     try {
+
                       publishDialog.close();
+
                     } catch (
-                      closeError
+                      error
                     ) {}
+
                   }
 
 
@@ -1028,63 +1046,52 @@ function getPublishSecret() {
                     success
                   ) {
 
-                    if (
-                      publishResolve
-                    ) {
-
-                      publishResolve(
-                        data
-                      );
-
-                    }
+                    resolve(
+                      data
+                    );
 
                   } else {
 
-                    if (
-                      publishReject
-                    ) {
+                    reject(
 
-                      publishReject(
-                        new Error(
-                          message.error ||
-                          "Publishing failed."
-                        )
-                      );
+                      new Error(
 
-                    }
+                        message.error ||
+                        "Publishing failed."
+
+                      )
+
+                    );
 
                   }
-
-
-                  publishResolve =
-                    null;
-
-
-                  publishReject =
-                    null;
 
                 }
 
               }
+
             );
 
 
             publishDialog.addEventHandler(
+
               Office.EventType.DialogEventReceived,
 
               function (event) {
 
                 console.log(
-                  "[Pleasure Dispatch] Dialog event:",
+                  "[Pleasure Dispatch] Publisher dialog event:",
                   event
                 );
 
 
                 if (
                   event &&
-                  event.error ===
-                  12006
+                  event.error
                 ) {
+
+                  const errorCode =
+                    event.error;
+
 
                   publishDialog =
                     null;
@@ -1095,34 +1102,61 @@ function getPublishSecret() {
 
 
                   if (
-                    publishReject
+                    errorCode ===
+                    12006
                   ) {
 
-                    publishReject(
+                    reject(
                       new Error(
-                        "Publishing window was closed."
+                        "Publisher dialog was closed."
+                      )
+                    );
+
+                  } else if (
+                    errorCode ===
+                    12009
+                  ) {
+
+                    reject(
+                      new Error(
+                        "Outlook blocked the publisher dialog."
+                      )
+                    );
+
+                  } else if (
+                    errorCode ===
+                    12011
+                  ) {
+
+                    reject(
+                      new Error(
+                        "Your Outlook/browser is blocking the publisher window."
+                      )
+                    );
+
+                  } else {
+
+                    reject(
+                      new Error(
+                        "Publisher dialog error: " +
+                        errorCode
                       )
                     );
 
                   }
 
-
-                  publishResolve =
-                    null;
-
-
-                  publishReject =
-                    null;
-
                 }
 
               }
+
             );
 
           }
+
         );
 
       }
+
     );
 
   }
@@ -1136,11 +1170,6 @@ function getPublishSecret() {
 
     console.log(
       "[Pleasure Dispatch] Publish button clicked."
-    );
-
-
-    status(
-      "Publish button clicked."
     );
 
 
@@ -1166,24 +1195,7 @@ function getPublishSecret() {
 
 
       const secret =
-        await getPublishSecret();
-
-
-      if (!secret) {
-
-        status(
-          "Publish cancelled."
-        );
-
-
-        return;
-
-      }
-
-
-      status(
-        "Building Dispatch payload…"
-      );
+        getPublishSecret();
 
 
       const payload =
@@ -1209,11 +1221,6 @@ function getPublishSecret() {
             payload.html.length
 
         }
-      );
-
-
-      status(
-        "Connecting to publisher…"
       );
 
 
@@ -1283,11 +1290,6 @@ function getPublishSecret() {
 
     if (!button) {
 
-      console.log(
-        "[Pleasure Dispatch] publishBtn not found yet."
-      );
-
-
       return false;
 
     }
@@ -1312,6 +1314,7 @@ function getPublishSecret() {
 
 
     button.addEventListener(
+
       "click",
 
       function (event) {
@@ -1325,6 +1328,7 @@ function getPublishSecret() {
       },
 
       false
+
     );
 
 
@@ -1373,7 +1377,6 @@ function getPublishSecret() {
 
 
     bindPublishButton();
-
 
     waitForPublishButton();
 
@@ -1485,19 +1488,19 @@ function getPublishSecret() {
     }
 
 
-    if (!install()) {
+    if (
+      !install()
+    ) {
 
       setTimeout(
         install,
         250
       );
 
-
       setTimeout(
         install,
         1000
       );
-
 
       setTimeout(
         install,
