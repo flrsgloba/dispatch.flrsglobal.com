@@ -104,3 +104,8 @@
     </Resources>
   </VersionOverrides>
 </OfficeApp>
+
+<AppDomains>
+  <AppDomain>https://dispatch.flrsglobal.com</AppDomain>
+  <AppDomain>https://script.google.com</AppDomain>
+</AppDomains>
