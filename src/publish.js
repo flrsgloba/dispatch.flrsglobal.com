@@ -2,35 +2,39 @@
 /* =========================================================
    THE PLEASURE DISPATCH
    publish.js
-   Production publish bridge
 
-   Publisher Apps Script is authoritative.
+   Outlook publishing bridge
 
-   Publish flow:
-   Add-in
-      ↓
-   Publisher Apps Script
-      ↓
-   data/dispatches.json
-      ↓
-   /<edition>/index.html
+   IMPORTANT:
+   Outlook's task pane CSP blocks direct fetch() requests
+   to Google Apps Script.
 
-   Subscriber metadata is pulled server-side by the
-   Publisher Apps Script from the Drive/Contact bridge.
+   Publishing therefore uses the Office Dialog API:
+
+   Outlook task pane
+        ↓
+   Office Dialog
+        ↓
+   Publisher endpoint
+        ↓
+   GitHub / Drive
 ========================================================= */
 
 (function () {
   "use strict";
 
-  const PUBLISH_API_URL =
+  const PUBLISHER_URL =
     "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
 
   const SECRET_STORAGE_KEY =
     "pd_publish_secret";
 
+  let publishDialog = null;
+  let publishPayload = null;
+
 
   /* =======================================================
-     PUBLISH SECRET
+     PUBLISH KEY
   ======================================================= */
 
   function getPublishSecret() {
@@ -47,300 +51,303 @@
     }
 
 
-    return new Promise(function (resolve) {
+    return new Promise(
+      function (resolve) {
 
-      const existing =
-        document.getElementById(
-          "pdPublishKeyDialog"
+        const existing =
+          document.getElementById(
+            "pdPublishKeyDialog"
+          );
+
+        if (existing) {
+          existing.remove();
+        }
+
+
+        const overlay =
+          document.createElement(
+            "div"
+          );
+
+        overlay.id =
+          "pdPublishKeyDialog";
+
+        overlay.setAttribute(
+          "role",
+          "dialog"
         );
 
-      if (existing) {
-        existing.remove();
-      }
-
-
-      const overlay =
-        document.createElement(
-          "div"
+        overlay.setAttribute(
+          "aria-modal",
+          "true"
         );
 
-      overlay.id =
-        "pdPublishKeyDialog";
-
-      overlay.setAttribute(
-        "role",
-        "dialog"
-      );
-
-      overlay.setAttribute(
-        "aria-modal",
-        "true"
-      );
-
-      overlay.style.cssText =
-        "position:fixed;inset:0;z-index:999999;" +
-        "display:flex;align-items:center;" +
-        "justify-content:center;padding:20px;" +
-        "background:rgba(0,0,0,.55);" +
-        "box-sizing:border-box";
+        overlay.style.cssText =
+          "position:fixed;inset:0;z-index:999999;" +
+          "display:flex;align-items:center;" +
+          "justify-content:center;padding:20px;" +
+          "background:rgba(0,0,0,.55);" +
+          "box-sizing:border-box";
 
 
-      const panel =
-        document.createElement(
-          "div"
+        const panel =
+          document.createElement(
+            "div"
+          );
+
+        panel.style.cssText =
+          "width:100%;max-width:360px;" +
+          "box-sizing:border-box;padding:24px;" +
+          "background:#303030;color:#F2EEE5;" +
+          "border:1px solid #777;" +
+          "box-shadow:0 12px 40px rgba(0,0,0,.35);" +
+          "font-family:Arial,sans-serif";
+
+
+        const title =
+          document.createElement(
+            "div"
+          );
+
+        title.textContent =
+          "Publish Dispatch";
+
+        title.style.cssText =
+          "font-size:16px;font-weight:600;" +
+          "margin-bottom:8px";
+
+
+        const description =
+          document.createElement(
+            "div"
+          );
+
+        description.textContent =
+          "Enter your publishing key to send this Dispatch to the public archive.";
+
+        description.style.cssText =
+          "font-size:13px;line-height:1.5;" +
+          "color:#C9C3B8;margin-bottom:16px";
+
+
+        const input =
+          document.createElement(
+            "input"
+          );
+
+        input.type =
+          "password";
+
+        input.autocomplete =
+          "off";
+
+        input.spellcheck =
+          false;
+
+        input.style.cssText =
+          "display:block;width:100%;" +
+          "box-sizing:border-box;height:40px;" +
+          "padding:8px 10px;background:#595959;" +
+          "color:#F2EEE5;border:1px solid #777;" +
+          "outline:none;font:14px Arial,sans-serif";
+
+
+        const error =
+          document.createElement(
+            "div"
+          );
+
+        error.style.cssText =
+          "display:none;color:#F2EEE5;" +
+          "font-size:12px;margin-top:8px";
+
+
+        const actions =
+          document.createElement(
+            "div"
+          );
+
+        actions.style.cssText =
+          "display:flex;justify-content:flex-end;" +
+          "gap:8px;margin-top:18px";
+
+
+        const cancel =
+          document.createElement(
+            "button"
+          );
+
+        cancel.type =
+          "button";
+
+        cancel.textContent =
+          "Cancel";
+
+        cancel.style.cssText =
+          "height:36px;padding:0 14px;" +
+          "background:transparent;color:#C9C3B8;" +
+          "border:1px solid #777;cursor:pointer";
+
+
+        const submit =
+          document.createElement(
+            "button"
+          );
+
+        submit.type =
+          "button";
+
+        submit.textContent =
+          "Publish";
+
+        submit.style.cssText =
+          "height:36px;padding:0 14px;" +
+          "background:#D8D0C3;color:#303030;" +
+          "border:1px solid #D8D0C3;" +
+          "cursor:pointer;font-weight:600";
+
+
+        function close(value) {
+
+          document.removeEventListener(
+            "keydown",
+            onKeyDown,
+            true
+          );
+
+          overlay.remove();
+
+          resolve(
+            value || ""
+          );
+
+        }
+
+
+        function submitKey() {
+
+          const secret =
+            String(
+              input.value || ""
+            ).trim();
+
+
+          if (!secret) {
+
+            error.textContent =
+              "Please enter your publishing key.";
+
+            error.style.display =
+              "block";
+
+            input.focus();
+
+            return;
+
+          }
+
+
+          window.localStorage.setItem(
+            SECRET_STORAGE_KEY,
+            secret
+          );
+
+
+          close(
+            secret
+          );
+
+        }
+
+
+        function onKeyDown(
+          event
+        ) {
+
+          if (
+            event.key ===
+            "Escape"
+          ) {
+
+            event.preventDefault();
+
+            close("");
+
+          } else if (
+            event.key ===
+            "Enter"
+          ) {
+
+            event.preventDefault();
+
+            submitKey();
+
+          }
+
+        }
+
+
+        cancel.addEventListener(
+          "click",
+          function () {
+            close("");
+          }
         );
 
-      panel.style.cssText =
-        "width:100%;max-width:360px;" +
-        "box-sizing:border-box;padding:24px;" +
-        "background:#303030;color:#F2EEE5;" +
-        "border:1px solid #777;" +
-        "box-shadow:0 12px 40px rgba(0,0,0,.35);" +
-        "font-family:Arial,sans-serif";
 
-
-      const title =
-        document.createElement(
-          "div"
+        submit.addEventListener(
+          "click",
+          submitKey
         );
 
-      title.textContent =
-        "Publish Dispatch";
 
-      title.style.cssText =
-        "font-size:16px;font-weight:600;" +
-        "margin-bottom:8px";
-
-
-      const description =
-        document.createElement(
-          "div"
-        );
-
-      description.textContent =
-        "Enter your publishing key to send this Dispatch to the public archive.";
-
-      description.style.cssText =
-        "font-size:13px;line-height:1.5;" +
-        "color:#C9C3B8;margin-bottom:16px";
-
-
-      const input =
-        document.createElement(
-          "input"
-        );
-
-      input.type =
-        "password";
-
-      input.autocomplete =
-        "off";
-
-      input.spellcheck =
-        false;
-
-      input.style.cssText =
-        "display:block;width:100%;" +
-        "box-sizing:border-box;height:40px;" +
-        "padding:8px 10px;" +
-        "background:#595959;color:#F2EEE5;" +
-        "border:1px solid #777;outline:none;" +
-        "font:14px Arial,sans-serif";
-
-
-      const error =
-        document.createElement(
-          "div"
-        );
-
-      error.style.cssText =
-        "display:none;color:#F2EEE5;" +
-        "font-size:12px;margin-top:8px";
-
-
-      const actions =
-        document.createElement(
-          "div"
-        );
-
-      actions.style.cssText =
-        "display:flex;justify-content:flex-end;" +
-        "gap:8px;margin-top:18px";
-
-
-      const cancel =
-        document.createElement(
-          "button"
-        );
-
-      cancel.type =
-        "button";
-
-      cancel.textContent =
-        "Cancel";
-
-      cancel.style.cssText =
-        "height:36px;padding:0 14px;" +
-        "background:transparent;color:#C9C3B8;" +
-        "border:1px solid #777;cursor:pointer";
-
-
-      const submit =
-        document.createElement(
-          "button"
-        );
-
-      submit.type =
-        "button";
-
-      submit.textContent =
-        "Publish";
-
-      submit.style.cssText =
-        "height:36px;padding:0 14px;" +
-        "background:#D8D0C3;color:#303030;" +
-        "border:1px solid #D8D0C3;" +
-        "cursor:pointer;font-weight:600";
-
-
-      function close(value) {
-
-        document.removeEventListener(
+        document.addEventListener(
           "keydown",
           onKeyDown,
           true
         );
 
-        overlay.remove();
 
-        resolve(
-          value || ""
+        actions.appendChild(
+          cancel
         );
 
-      }
-
-
-      function submitKey() {
-
-        const secret =
-          String(
-            input.value || ""
-          ).trim();
-
-
-        if (!secret) {
-
-          error.textContent =
-            "Please enter your publishing key.";
-
-          error.style.display =
-            "block";
-
-          input.focus();
-
-          return;
-
-        }
-
-
-        window.localStorage.setItem(
-          SECRET_STORAGE_KEY,
-          secret
+        actions.appendChild(
+          submit
         );
 
-
-        close(
-          secret
+        panel.appendChild(
+          title
         );
 
+        panel.appendChild(
+          description
+        );
+
+        panel.appendChild(
+          input
+        );
+
+        panel.appendChild(
+          error
+        );
+
+        panel.appendChild(
+          actions
+        );
+
+        overlay.appendChild(
+          panel
+        );
+
+        document.body.appendChild(
+          overlay
+        );
+
+        input.focus();
+
       }
-
-
-      function onKeyDown(event) {
-
-        if (
-          event.key ===
-          "Escape"
-        ) {
-
-          event.preventDefault();
-
-          close("");
-
-        } else if (
-          event.key ===
-          "Enter"
-        ) {
-
-          event.preventDefault();
-
-          submitKey();
-
-        }
-
-      }
-
-
-      cancel.addEventListener(
-        "click",
-        function () {
-          close("");
-        }
-      );
-
-
-      submit.addEventListener(
-        "click",
-        submitKey
-      );
-
-
-      document.addEventListener(
-        "keydown",
-        onKeyDown,
-        true
-      );
-
-
-      actions.appendChild(
-        cancel
-      );
-
-      actions.appendChild(
-        submit
-      );
-
-      panel.appendChild(
-        title
-      );
-
-      panel.appendChild(
-        description
-      );
-
-      panel.appendChild(
-        input
-      );
-
-      panel.appendChild(
-        error
-      );
-
-      panel.appendChild(
-        actions
-      );
-
-      overlay.appendChild(
-        panel
-      );
-
-      document.body.appendChild(
-        overlay
-      );
-
-      input.focus();
-
-    });
+    );
 
   }
 
@@ -349,7 +356,9 @@
      STATUS
   ======================================================= */
 
-  function status(message) {
+  function status(
+    message
+  ) {
 
     if (
       typeof setStatus ===
@@ -376,12 +385,15 @@
      INPUT
   ======================================================= */
 
-  function inputValue(id) {
+  function inputValue(
+    id
+  ) {
 
     const element =
       document.getElementById(
         id
       );
+
 
     return element
       ? String(
@@ -393,7 +405,7 @@
 
 
   /* =======================================================
-     IMAGE CHECK
+     IMAGE TEST
   ======================================================= */
 
   function hasMeaningfulImage(
@@ -442,7 +454,7 @@
 
 
   /* =======================================================
-     TEXT CHECK
+     TEXT TEST
   ======================================================= */
 
   function hasMeaningfulText(
@@ -467,7 +479,8 @@
 
 
     return (
-      clone.textContent || ""
+      clone.textContent ||
+      ""
     )
       .replace(
         /\u00a0/g,
@@ -593,7 +606,7 @@
     if (
       !html ||
       typeof DOMParser ===
-      "undefined"
+        "undefined"
     ) {
 
       return html;
@@ -631,7 +644,7 @@
         "workText"
       ) &&
       typeof collectImageBlocks ===
-      "function" &&
+        "function" &&
       !collectImageBlocks().length
     ) {
 
@@ -659,7 +672,7 @@
 
     const notes =
       typeof collectPleasureNotes ===
-      "function"
+        "function"
         ? collectPleasureNotes()
         : [];
 
@@ -737,7 +750,7 @@
     if (
       !html ||
       typeof DOMParser ===
-      "undefined"
+        "undefined"
     ) {
 
       return html;
@@ -973,15 +986,9 @@
             function (note) {
 
               return (
-                (
-                  note.label ||
-                  ""
-                ) +
+                (note.label || "") +
                 " " +
-                (
-                  note.value ||
-                  ""
-                )
+                (note.value || "")
               );
 
             }
@@ -995,8 +1002,10 @@
 
     const subject =
       typeof buildSubject ===
-      "function"
+        "function"
+
         ? buildSubject()
+
         : "The Pleasure Dispatch — " +
           edition.label +
           ": " +
@@ -1006,18 +1015,15 @@
           );
 
 
-    /*
-     * IMPORTANT:
-     *
-     * Publisher Apps Script expects
-     * `secret`, NOT `publishKey`.
-     */
-
     return {
 
       action:
         "publish",
 
+      /*
+       * Publisher .gs currently expects
+       * "secret" rather than "publishKey".
+       */
       secret:
         secret,
 
@@ -1065,8 +1071,12 @@
           inputValue("question"),
           pleasureText
         ]
-          .filter(Boolean)
-          .join(" ")
+          .filter(
+            Boolean
+          )
+          .join(
+            " "
+          )
 
     };
 
@@ -1074,86 +1084,216 @@
 
 
   /* =======================================================
-     SEND PUBLISH REQUEST
+     OPEN PUBLISH DIALOG
   ======================================================= */
 
-  async function sendPublish(
+  function openPublisherDialog(
     payload
   ) {
 
-    const response =
-      await fetch(
-        PUBLISH_API_URL,
-        {
+    return new Promise(
+      function (resolve, reject) {
 
-          method:
-            "POST",
+        if (
+          !window.Office ||
+          !Office.context ||
+          !Office.context.ui ||
+          typeof Office.context.ui.displayDialogAsync !==
+            "function"
+        ) {
 
-          mode:
-            "cors",
+          reject(
+            new Error(
+              "Outlook does not support the publishing dialog API in this context."
+            )
+          );
 
-          headers: {
+          return;
 
-            "Content-Type":
-              "text/plain;charset=utf-8"
+        }
+
+
+        publishPayload =
+          payload;
+
+
+        status(
+          "Opening secure publishing window…"
+        );
+
+
+        Office.context.ui.displayDialogAsync(
+          PUBLISHER_URL +
+            "?action=publisherDialog",
+
+          {
+            height:
+              55,
+
+            width:
+              40,
+
+            displayInIframe:
+              false
 
           },
 
-          body:
-            JSON.stringify(
-              payload
-            )
+          function (result) {
 
-        }
-      );
+            if (
+              result.status !==
+              Office.AsyncResultStatus.Succeeded
+            ) {
 
+              reject(
+                new Error(
+                  "Could not open the publishing window."
+                )
+              );
 
-    /*
-     * Apps Script can return a JSON
-     * response. Read it when available
-     * so the add-in can distinguish
-     * success from failure.
-     */
+              return;
 
-    const text =
-      await response.text();
+            }
 
 
-    let data;
+            publishDialog =
+              result.value;
 
 
-    try {
+            publishDialog.addEventHandler(
+              Office.EventType.DialogMessageReceived,
 
-      data =
-        JSON.parse(
-          text
+              function (
+                arg
+              ) {
+
+                let message =
+                  arg &&
+                  arg.message;
+
+
+                try {
+
+                  message =
+                    JSON.parse(
+                      message
+                    );
+
+                } catch (
+                  parseError
+                ) {
+
+                  /*
+                   * Ignore non-JSON messages.
+                   */
+
+                  return;
+
+                }
+
+
+                if (
+                  message.type ===
+                  "publisherReady"
+                ) {
+
+                  publishDialog.messageChild(
+                    JSON.stringify({
+                      type:
+                        "publishPayload",
+
+                      payload:
+                        publishPayload
+                    })
+                  );
+
+                  return;
+
+                }
+
+
+                if (
+                  message.type ===
+                  "publishResult"
+                ) {
+
+                  if (
+                    publishDialog
+                  ) {
+
+                    publishDialog.close();
+
+                  }
+
+
+                  publishDialog =
+                    null;
+
+                  publishPayload =
+                    null;
+
+
+                  if (
+                    message.success
+                  ) {
+
+                    resolve(
+                      message.data ||
+                      message
+                    );
+
+                  } else {
+
+                    reject(
+                      new Error(
+                        message.error ||
+                        "Publishing failed."
+                      )
+                    );
+
+                  }
+
+                }
+
+              }
+            );
+
+
+            publishDialog.addEventHandler(
+              Office.EventType.DialogEventReceived,
+
+              function (
+                event
+              ) {
+
+                if (
+                  event &&
+                  event.error ===
+                  12006
+                ) {
+
+                  publishDialog =
+                    null;
+
+                  publishPayload =
+                    null;
+
+                  reject(
+                    new Error(
+                      "Publishing window was closed."
+                    )
+                  );
+
+                }
+
+              }
+            );
+
+          }
         );
 
-    } catch (
-      parseError
-    ) {
-
-      throw new Error(
-        "Publisher returned an invalid response."
-      );
-
-    }
-
-
-    if (
-      data.status !==
-      "published"
-    ) {
-
-      throw new Error(
-        data.message ||
-        "Publisher rejected the Dispatch."
-      );
-
-    }
-
-
-    return data;
+      }
+    );
 
   }
 
@@ -1179,7 +1319,7 @@
     try {
 
       status(
-        "Publishing Dispatch…"
+        "Preparing Dispatch…"
       );
 
 
@@ -1205,15 +1345,8 @@
 
 
       console.log(
-        "[Pleasure Dispatch] Publishing:",
-        PUBLISH_API_URL
-      );
-
-
-      console.log(
-        "[Pleasure Dispatch] Payload:",
+        "[Pleasure Dispatch] Payload prepared:",
         {
-
           action:
             payload.action,
 
@@ -1228,27 +1361,24 @@
 
           htmlLength:
             payload.html.length
-
         }
       );
 
 
       const result =
-        await sendPublish(
+        await openPublisherDialog(
           payload
         );
 
 
-      status(
-        "✓ Dispatch " +
-        result.editionLabel +
-        " published."
+      console.log(
+        "[Pleasure Dispatch] Publisher result:",
+        result
       );
 
 
-      console.log(
-        "[Pleasure Dispatch] Published:",
-        result
+      status(
+        "✓ Dispatch published successfully."
       );
 
 
@@ -1272,7 +1402,6 @@
         error
       );
 
-
     } finally {
 
       if (button) {
@@ -1286,7 +1415,7 @@
 
 
   /* =======================================================
-     BUTTON
+     BUTTON BINDING
   ======================================================= */
 
   function bindPublishButton() {
@@ -1300,7 +1429,7 @@
     if (
       !button ||
       button.dataset.publishBound ===
-      "true"
+        "true"
     ) {
 
       return;
@@ -1327,6 +1456,10 @@
 
   }
 
+
+  /* =======================================================
+     LOAD
+  ======================================================= */
 
   window.addEventListener(
     "load",
@@ -1355,7 +1488,7 @@
 
 
   /* =======================================================
-     WRAP NEWSLETTER BUILDER
+     NORMALIZE LOOP IMAGE
   ======================================================= */
 
   (function wrapNewsletterBuilder() {
