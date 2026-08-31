@@ -15,7 +15,7 @@
   "use strict";
 
   const CURRENT_DRIVE_API =
-    "https://script.google.com/macros/s/AKfycbyAodEuYNjMNIRf-6RhBLRaRCYaXtgTSDqYTpD3X7-YyHGVmXt5TQBC6v40joHDklTm0w/exec";
+    "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
 
   const DRIVE_THUMBNAIL = function (fileId) {
     return "https://drive.google.com/thumbnail?id=" +
