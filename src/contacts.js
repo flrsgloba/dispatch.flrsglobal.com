@@ -7,7 +7,7 @@
   "use strict";
 
   const CONTACTS_API_URL =
-    "https://script.google.com/macros/s/AKfycbyAodEuYNjMNIRf-6RhBLRaRCYaXtgTSDqYTpD3X7-YyHGVmXt5TQBC6v40joHDklTm0w/exec";
+    "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
 
   const UNSUBSCRIBE_URL = "https://dispatch.flrsglobal.com/unsubscribe/";
   const state = { files: [], contacts: [], selected: new Set(), loadedFileId: "", loadedFileName: "" };
