@@ -127,142 +127,320 @@
       (httpStatus ? " (HTTP " + httpStatus + ")" : ".");
   }
 
-  async function stableUpload(dataUrl, originalFileName) {
-    if (!dataUrl || !/^data:image\//i.test(String(dataUrl))) {
-      throw new Error("The image data was empty or was not a browser image.");
-    }
-
-    const publishKey =
-      typeof PUBLISH_KEY !== "undefined"
-        ? String(PUBLISH_KEY || "")
-        : "";
-
-    if (!publishKey) {
-      throw new Error("The Outlook add-in has no PUBLISH_KEY configured.");
-    }
-
-    const payload = {
-      action: "upload",
-      publishKey: publishKey,
-      fileName:
-        "PD_" + editionName() + "_" + Date.now() + "_" + safeName(originalFileName) + ".jpg",
-      mimeType: "image/jpeg",
-      fileContent: safeBase64(dataUrl)
-    };
-
-    if (!payload.fileContent || payload.fileContent.length < 100) {
-      throw new Error("The compressed image data was empty.");
-    }
-
-    console.log("[Pleasure Dispatch] Drive upload endpoint:", CURRENT_DRIVE_API);
-    console.log("[Pleasure Dispatch] Drive upload filename:", payload.fileName);
-    console.log("[Pleasure Dispatch] Drive upload payload size:", payload.fileContent.length);
-
-    let response;
-
-    try {
-      response = await fetch(CURRENT_DRIVE_API, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
-        body: JSON.stringify(payload)
-      });
-    } catch (error) {
-      throw new Error(
-        "Could not connect to the Google Drive bridge: " +
-        (error && error.message ? error.message : String(error))
-      );
-    }
-
-    const responseText = await response.text();
-    let result = null;
-
-    try {
-      result = responseText ? JSON.parse(responseText) : null;
-    } catch (error) {
-      console.error("[Pleasure Dispatch] Drive returned non-JSON:", responseText);
-      throw new Error(
-        "Google Drive returned an unreadable response (HTTP " +
-        response.status + ")."
-      );
-    }
-
-    /*
-     * Do not log the publish key or image payload.
-     * Log the complete response shape needed to diagnose bridge/deployment issues.
-     */
-    console.log("[Pleasure Dispatch] Drive upload HTTP status:", response.status);
-    console.log("[Pleasure Dispatch] Drive upload response status:", result && result.status);
-    console.log("[Pleasure Dispatch] Drive upload response code:", result && result.code);
-    console.log("[Pleasure Dispatch] Drive upload response message:", result && result.message);
-    console.log("[Pleasure Dispatch] Drive upload response fileId:", result && result.fileId);
-    console.log("[Pleasure Dispatch] Drive upload response mimeType:", result && result.mimeType);
-    console.log("[Pleasure Dispatch] Drive upload response sizeBytes:", result && result.sizeBytes);
-    console.log("[Pleasure Dispatch] Drive upload response:", result);
-
-    if (!response.ok) {
-      throw new Error(
-        describeBridgeFailure(result, response.status, responseText) +
-        " (HTTP " + response.status + ")."
-      );
-    }
-
-    /*
-     * The current Drive bridge returns:
-     *   { status: "created", fileId: "...", ... }
-     *
-     * Accept only a real Drive file ID as proof that the upload succeeded.
-     * This also protects us if a deployment returns a different success label.
-     */
-    if (!result || !result.fileId) {
-      throw new Error(
-        describeBridgeFailure(result, response.status, responseText)
-      );
-    }
-
-    if (result.status !== "created") {
-      throw new Error(
-        "Google Drive returned a fileId but an unexpected status ('" +
-        String(result.status || "[empty]") +
-        "'). The image may have been created, but the bridge response is not the expected upload response."
-      );
-    }
-
-    const fileId = result.fileId;
-    const imageUrl = result.imageUrl || DRIVE_THUMBNAIL(fileId);
-    const driveUrl = result.driveUrl || DRIVE_FILE(fileId);
-
-    if (result.mimeType && result.mimeType !== "image/jpeg") {
-      throw new Error(
-        "Drive created the image with MIME type " + result.mimeType + " instead of image/jpeg."
-      );
-    }
-
-    if (!result.sizeBytes || Number(result.sizeBytes) < 100) {
-      throw new Error("Drive created an image file with an invalid or empty size.");
-    }
-
-    const ready = await verifyImage(imageUrl);
-
-    if (!ready) {
-      throw new Error(
-        "Drive created the image, but its thumbnail is not accessible yet."
-      );
-    }
-
-    return Object.assign({}, result, {
-      fileId: fileId,
-      imageUrl: imageUrl,
-      driveUrl: driveUrl,
-      lightboxUrl:
-        (typeof buildLightboxUrl === "function")
-          ? buildLightboxUrl(fileId)
-          : driveUrl,
-      previewReady: true
-    });
+async function stableUpload(dataUrl, originalFileName) {
+  if (!dataUrl || !/^data:image\//i.test(String(dataUrl))) {
+    throw new Error("The image data was empty or was not a browser image.");
   }
 
+  const publishKey =
+    typeof PUBLISH_KEY !== "undefined"
+      ? String(PUBLISH_KEY || "")
+      : "";
+
+  if (!publishKey) {
+    throw new Error("The Outlook add-in has no PUBLISH_KEY configured.");
+  }
+
+  const payload = {
+    action: "upload",
+    publishKey: publishKey,
+    fileName:
+      "PD_" +
+      editionName() +
+      "_" +
+      Date.now() +
+      "_" +
+      safeName(originalFileName) +
+      ".jpg",
+    mimeType: "image/jpeg",
+    fileContent: safeBase64(dataUrl)
+  };
+
+  if (!payload.fileContent || payload.fileContent.length < 100) {
+    throw new Error("The compressed image data was empty.");
+  }
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload endpoint:",
+    CURRENT_DRIVE_API
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload filename:",
+    payload.fileName
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload payload size:",
+    payload.fileContent.length
+  );
+
+  let response;
+
+  try {
+    response = await fetch(CURRENT_DRIVE_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (error) {
+    throw new Error(
+      "Could not connect to the Google Drive bridge: " +
+      (error && error.message ? error.message : String(error))
+    );
+  }
+
+  const responseText = await response.text();
+
+  let rawResult = null;
+
+  try {
+    rawResult = responseText
+      ? JSON.parse(responseText)
+      : null;
+  } catch (error) {
+    console.error(
+      "[Pleasure Dispatch] Drive returned non-JSON:",
+      responseText
+    );
+
+    throw new Error(
+      "Google Drive returned an unreadable response (HTTP " +
+      response.status +
+      ")."
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * NORMALIZE GOOGLE APPS SCRIPT RESPONSE
+   * ---------------------------------------------------------
+   *
+   * Depending on the deployed bridge / fetch wrapper,
+   * the useful response can arrive either directly:
+   *
+   *   { status, fileId, imageUrl, ... }
+   *
+   * or wrapped:
+   *
+   *   { data: { status, fileId, imageUrl, ... } }
+   *
+   * or:
+   *
+   *   { result: { status, fileId, imageUrl, ... } }
+   *
+   * Normalize all supported shapes into `result`.
+   */
+
+  let result = rawResult;
+
+  if (
+    result &&
+    result.data &&
+    typeof result.data === "object"
+  ) {
+    result = result.data;
+  }
+
+  if (
+    result &&
+    result.result &&
+    typeof result.result === "object"
+  ) {
+    result = result.result;
+  }
+
+  /*
+   * Some bridge responses may put the payload inside
+   * a nested body object.
+   */
+  if (
+    result &&
+    result.body &&
+    typeof result.body === "object"
+  ) {
+    result = result.body;
+  }
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload HTTP status:",
+    response.status
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive raw response:",
+    rawResult
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive normalized response:",
+    result
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload response status:",
+    result && result.status
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload response code:",
+    result && result.code
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload response message:",
+    result && result.message
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload response fileId:",
+    result && result.fileId
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload response mimeType:",
+    result && result.mimeType
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload response sizeBytes:",
+    result && result.sizeBytes
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload response imageUrl:",
+    result && result.imageUrl
+  );
+
+  console.log(
+    "[Pleasure Dispatch] Drive upload response driveUrl:",
+    result && result.driveUrl
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      describeBridgeFailure(
+        result,
+        response.status,
+        responseText
+      ) +
+      " (HTTP " +
+      response.status +
+      ")."
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * SUCCESS VALIDATION
+   * ---------------------------------------------------------
+   *
+   * A real Drive file ID is the authoritative proof that
+   * Google Drive created the image.
+   */
+
+  if (
+    !result ||
+    !result.fileId
+  ) {
+    throw new Error(
+      describeBridgeFailure(
+        result,
+        response.status,
+        responseText
+      )
+    );
+  }
+
+  if (
+    result.status &&
+    result.status !== "created"
+  ) {
+    throw new Error(
+      "Google Drive returned a fileId but an unexpected status ('" +
+      String(result.status) +
+      "'). The image may have been created, but the bridge response is not the expected upload response."
+    );
+  }
+
+  const fileId =
+    String(result.fileId);
+
+  const imageUrl =
+    result.imageUrl ||
+    DRIVE_THUMBNAIL(fileId);
+
+  const driveUrl =
+    result.driveUrl ||
+    DRIVE_FILE(fileId);
+
+  /*
+   * MIME validation.
+   */
+  if (
+    result.mimeType &&
+    result.mimeType !== "image/jpeg"
+  ) {
+    throw new Error(
+      "Drive created the image with MIME type " +
+      result.mimeType +
+      " instead of image/jpeg."
+    );
+  }
+
+  /*
+   * Size validation.
+   *
+   * Only enforce this if Drive actually returned a size.
+   * This prevents a missing optional metadata field from
+   * falsely turning a successful upload into a failure.
+   */
+
+  if (
+    result.sizeBytes !== undefined &&
+    result.sizeBytes !== null &&
+    Number(result.sizeBytes) < 100
+  ) {
+    throw new Error(
+      "Drive created an image file with an invalid or empty size."
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * VERIFY IMAGE ACCESS
+   * ---------------------------------------------------------
+   */
+
+  const ready =
+    await verifyImage(imageUrl);
+
+  if (!ready) {
+    throw new Error(
+      "Drive created the image, but its thumbnail is not accessible yet."
+    );
+  }
+
+  console.log(
+    "[Pleasure Dispatch] ✓ Drive image created:",
+    fileId
+  );
+
+  return Object.assign({}, result, {
+    fileId: fileId,
+    imageUrl: imageUrl,
+    driveUrl: driveUrl,
+
+    lightboxUrl:
+      typeof buildLightboxUrl === "function"
+        ? buildLightboxUrl(fileId)
+        : driveUrl,
+
+    previewReady: true
+  });
+}
   /* Replace the production patch's upload implementation. */
   window.uploadToDriveOnce = stableUpload;
 
