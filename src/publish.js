@@ -6,23 +6,26 @@
 
    Outlook taskpane
         ↓
-   Same-domain Office Dialog
+   Office Dialog
         ↓
-   publisher.html
+   Google Apps Script publisherDialog
         ↓
-   Google Apps Script
+   Google Apps Script publish
         ↓
    GitHub
 
-   The child waits for a parent "ping" before announcing
-   readiness. This prevents the first message from being lost.
+   IMPORTANT:
+   The dialog is served by Google Apps Script rather than GitHub
+   because the browser cannot reliably read a cross-origin POST
+   response from Apps Script.
 ========================================================= */
 
 (function () {
   "use strict";
 
-  const ADDIN_ORIGIN = "https://dispatch.flrsglobal.com";
-  const DIALOG_URL = ADDIN_ORIGIN + "/src/publisher.html";
+  const PUBLISHER_URL =
+    "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
+
   const SECRET_STORAGE_KEY = "pd_publish_secret";
 
   let dialog = null;
@@ -30,6 +33,7 @@
   let pendingResolve = null;
   let pendingReject = null;
   let resultReceived = false;
+  let pingTimer = null;
 
   function status(message) {
     if (typeof window.setStatus === "function") window.setStatus(message);
@@ -43,16 +47,22 @@
 
   function getPublishSecret() {
     const secret = window.localStorage.getItem(SECRET_STORAGE_KEY);
-    if (!secret || !secret.trim()) throw new Error("Publishing key is not configured.");
+    if (!secret || !secret.trim()) {
+      throw new Error("Publishing key is not configured.");
+    }
     return secret.trim();
   }
 
   function normalizeEdition() {
     const raw = inputValue("edition");
     const match = raw.match(/(\d+(?:\.\d+)?)/);
-    if (!match) throw new Error("Publish stopped — enter an edition number, such as No. 001.");
+    if (!match) {
+      throw new Error("Publish stopped — enter an edition number, such as No. 001.");
+    }
     const number = match[1];
-    if (!isFinite(Number(number)) || Number(number) < 0) throw new Error("Publish stopped — invalid edition number.");
+    if (!isFinite(Number(number)) || Number(number) < 0) {
+      throw new Error("Publish stopped — invalid edition number.");
+    }
     return { number: number, label: "No. " + number };
   }
 
@@ -69,8 +79,13 @@
   function hasMeaningfulText(element) {
     if (!element) return false;
     const clone = element.cloneNode(true);
-    clone.querySelectorAll("img,svg,style,script,noscript").forEach(function (node) { node.remove(); });
-    return String(clone.textContent || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim().length > 0;
+    clone.querySelectorAll("img,svg,style,script,noscript").forEach(function (node) {
+      node.remove();
+    });
+    return String(clone.textContent || "")
+      .replace(/\u00a0/g, " ")
+      .replace(/\s+/g, " ")
+      .trim().length > 0;
   }
 
   function removeSectionByHeading(doc, headingText) {
@@ -93,17 +108,32 @@
     if (!html || typeof DOMParser === "undefined") return html;
     const doc = new DOMParser().parseFromString(String(html), "text/html");
 
-    if (!inputValue("reflection")) removeSectionByHeading(doc, "01 — A REFLECTION");
+    if (!inputValue("reflection")) {
+      removeSectionByHeading(doc, "01 — A REFLECTION");
+    }
 
-    const imageBlocks = typeof window.collectImageBlocks === "function" ? window.collectImageBlocks() : [];
-    if (!inputValue("workText") && !imageBlocks.length) removeSectionByHeading(doc, "02 — THE WORK");
-    if (!inputValue("studioText")) removeSectionByHeading(doc, "03 — STUDIO NOTES");
+    const imageBlocks = typeof window.collectImageBlocks === "function"
+      ? window.collectImageBlocks()
+      : [];
 
-    const notes = typeof window.collectPleasureNotes === "function" ? window.collectPleasureNotes() : [];
+    if (!inputValue("workText") && !imageBlocks.length) {
+      removeSectionByHeading(doc, "02 — THE WORK");
+    }
+
+    if (!inputValue("studioText")) {
+      removeSectionByHeading(doc, "03 — STUDIO NOTES");
+    }
+
+    const notes = typeof window.collectPleasureNotes === "function"
+      ? window.collectPleasureNotes()
+      : [];
+
     if (!notes.length) {
       removeSectionByHeading(doc, "04 — PLEASURE NOTES");
       Array.from(doc.body.querySelectorAll("div")).forEach(function (element) {
-        if (String(element.textContent || "").trim() === "An offering of what has held my attention.") element.remove();
+        if (String(element.textContent || "").trim() === "An offering of what has held my attention.") {
+          element.remove();
+        }
       });
     }
 
@@ -124,7 +154,9 @@
     });
 
     doc.querySelectorAll("p").forEach(function (paragraph) {
-      if (!hasMeaningfulText(paragraph) && !hasMeaningfulImage(paragraph)) paragraph.remove();
+      if (!hasMeaningfulText(paragraph) && !hasMeaningfulImage(paragraph)) {
+        paragraph.remove();
+      }
     });
 
     return removeEmptyEditorialSections(doc.body.innerHTML.trim());
@@ -143,7 +175,9 @@
       if (problem) throw new Error(problem);
     }
 
-    if (!html) throw new Error("Publish stopped — the Dispatch contains no publishable content.");
+    if (!html) {
+      throw new Error("Publish stopped — the Dispatch contains no publishable content.");
+    }
 
     const title = inputValue("title");
     const date = inputValue("date") || new Date().toISOString().slice(0, 10);
@@ -171,16 +205,27 @@
       reflection: inputValue("reflection"),
       html: html,
       searchText: [
-        edition.number, edition.label, date, title,
-        inputValue("subtitle"), inputValue("reflection"),
-        inputValue("workText"), inputValue("studioText"),
-        inputValue("inviteTitle"), inputValue("inviteText"),
-        inputValue("question"), pleasureText
+        edition.number,
+        edition.label,
+        date,
+        title,
+        inputValue("subtitle"),
+        inputValue("reflection"),
+        inputValue("workText"),
+        inputValue("studioText"),
+        inputValue("inviteTitle"),
+        inputValue("inviteText"),
+        inputValue("question"),
+        pleasureText
       ].filter(Boolean).join(" ")
     };
   }
 
   function clearPending() {
+    if (pingTimer) {
+      clearInterval(pingTimer);
+      pingTimer = null;
+    }
     pendingPayload = null;
     pendingResolve = null;
     pendingReject = null;
@@ -189,6 +234,10 @@
   function fail(message) {
     const reject = pendingReject;
     clearPending();
+    if (dialog) {
+      try { dialog.close(); } catch (error) {}
+    }
+    dialog = null;
     if (reject) reject(new Error(message));
   }
 
@@ -197,16 +246,30 @@
     if (!raw) return;
 
     let message;
-    try { message = JSON.parse(raw); }
-    catch (error) { console.warn("[Pleasure Dispatch] Ignoring non-JSON dialog message.", raw); return; }
+    try {
+      message = JSON.parse(raw);
+    } catch (error) {
+      console.warn("[Pleasure Dispatch] Ignoring non-JSON dialog message.");
+      return;
+    }
 
     console.log("[Pleasure Dispatch] Publisher message:", message);
 
     if (message.type === "publisherReady") {
       if (!dialog || !pendingPayload) return;
+
+      if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+      }
+
       status("Sending Dispatch to publisher…");
+
       try {
-        dialog.messageChild(JSON.stringify({ type: "publishPayload", payload: pendingPayload }));
+        dialog.messageChild(JSON.stringify({
+          type: "publishPayload",
+          payload: pendingPayload
+        }));
       } catch (error) {
         fail("Could not send the Dispatch to the publisher: " + error.message);
       }
@@ -215,12 +278,18 @@
 
     if (message.type === "publishResult") {
       resultReceived = true;
+
       const resolve = pendingResolve;
       const reject = pendingReject;
       const data = message.data || message;
-      try { if (dialog) dialog.close(); } catch (error) {}
+
+      if (dialog) {
+        try { dialog.close(); } catch (error) {}
+      }
+
       dialog = null;
       clearPending();
+
       if (message.success) {
         if (resolve) resolve(data);
       } else if (reject) {
@@ -229,9 +298,19 @@
     }
   }
 
+  function sendPing() {
+    if (!dialog || !pendingPayload) return;
+    try {
+      dialog.messageChild(JSON.stringify({ type: "publisherPing" }));
+    } catch (error) {
+      console.warn("[Pleasure Dispatch] Publisher ping failed:", error);
+    }
+  }
+
   function openPublisherDialog(payload) {
     return new Promise(function (resolve, reject) {
-      if (!window.Office || !Office.context || !Office.context.ui || typeof Office.context.ui.displayDialogAsync !== "function") {
+      if (!window.Office || !Office.context || !Office.context.ui ||
+          typeof Office.context.ui.displayDialogAsync !== "function") {
         reject(new Error("Office Dialog API is unavailable in this Outlook context."));
         return;
       }
@@ -247,34 +326,45 @@
       resultReceived = false;
 
       status("Opening secure publisher…");
-      console.log("[Pleasure Dispatch] Opening same-domain publisher:", DIALOG_URL);
+      console.log("[Pleasure Dispatch] Opening Apps Script publisher dialog:", PUBLISHER_URL);
 
-      Office.context.ui.displayDialogAsync(DIALOG_URL, {
-        height: 20,
-        width: 25,
+      const dialogUrl = PUBLISHER_URL + "?action=publisherDialog";
+
+      Office.context.ui.displayDialogAsync(dialogUrl, {
+        height: 25,
+        width: 30,
         displayInIframe: false
       }, function (result) {
         if (result.status !== Office.AsyncResultStatus.Succeeded) {
-          fail(result.error && result.error.message ? result.error.message : "Could not open the publisher.");
+          fail(result.error && result.error.message
+            ? result.error.message
+            : "Could not open the publisher.");
           return;
         }
 
         dialog = result.value;
-        console.log("[Pleasure Dispatch] Same-domain publisher opened.");
+        console.log("[Pleasure Dispatch] Publisher dialog opened.");
 
-        dialog.addEventHandler(Office.EventType.DialogMessageReceived, handleDialogMessage);
+        dialog.addEventHandler(
+          Office.EventType.DialogMessageReceived,
+          handleDialogMessage
+        );
 
-        dialog.addEventHandler(Office.EventType.DialogEventReceived, function (event) {
-          console.log("[Pleasure Dispatch] Publisher dialog event:", event);
-          if (resultReceived) return;
-          if (event && event.error === 12006) fail("Publisher dialog closed before publishing completed.");
-        });
+        dialog.addEventHandler(
+          Office.EventType.DialogEventReceived,
+          function (event) {
+            console.log("[Pleasure Dispatch] Publisher dialog event:", event);
+            if (resultReceived) return;
+            if (event && event.error === 12006) {
+              fail("Publisher dialog closed before publishing completed.");
+            }
+          }
+        );
 
-        try {
-          dialog.messageChild(JSON.stringify({ type: "publisherPing" }));
-        } catch (error) {
-          fail("Could not contact the publisher: " + error.message);
-        }
+        // The child may take a moment to register its Office message handler.
+        // Ping repeatedly until it answers with publisherReady.
+        sendPing();
+        pingTimer = setInterval(sendPing, 500);
       });
     });
   }
@@ -294,7 +384,9 @@
         htmlLength: payload.html.length
       });
 
+      status("Connecting to publisher…");
       const result = await openPublisherDialog(payload);
+
       console.log("[Pleasure Dispatch] Publisher result:", result);
       status("✓ Dispatch published successfully.");
     } catch (error) {
@@ -311,6 +403,7 @@
 
     button.dataset.publishBound = "true";
     button.type = "button";
+
     button.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -326,8 +419,11 @@
     setTimeout(initializePublishBridge, 250);
   }
 
-  if (window.Office && typeof Office.onReady === "function") Office.onReady(initializePublishBridge);
-  else window.addEventListener("load", initializePublishBridge);
+  if (window.Office && typeof Office.onReady === "function") {
+    Office.onReady(initializePublishBridge);
+  } else {
+    window.addEventListener("load", initializePublishBridge);
+  }
 
   window.publishDispatch = publishDispatch;
 })();
