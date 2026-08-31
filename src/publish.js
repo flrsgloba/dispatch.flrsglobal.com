@@ -12,68 +12,65 @@
    Publishing is intentionally sent as a simple text/plain
    POST with mode:no-cors. This avoids the CORS read barrier.
    The bridge still receives and processes the JSON payload.
+
+   IMPORTANT:
+   taskpane-patch.js installs a compatibility fetch router that
+   identifies the Drive bridge by an exact, case-sensitive URL
+   prefix. The publisher must use the same Drive deployment,
+   so the hostname is intentionally written in uppercase here.
+   Hosts are case-insensitive, but this prevents the old router
+   from redirecting the publish request to the retired publisher
+   deployment, which was returning HTTP 404.
 ========================================================= */
 (function () {
   "use strict";
 
   const PUBLISH_API_URL =
-    "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
+    "https://SCRIPT.GOOGLE.COM/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
 
   const SECRET_STORAGE_KEY = "pd_publish_secret";
 
   function getPublishSecret() {
     const stored = window.localStorage.getItem(SECRET_STORAGE_KEY);
     if (stored) return Promise.resolve(stored.trim());
-
     return new Promise(function (resolve) {
       const existing = document.getElementById("pdPublishKeyDialog");
       if (existing) existing.remove();
-
       const overlay = document.createElement("div");
       overlay.id = "pdPublishKeyDialog";
       overlay.setAttribute("role", "dialog");
       overlay.setAttribute("aria-modal", "true");
       overlay.style.cssText = "position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.55);box-sizing:border-box";
-
       const panel = document.createElement("div");
       panel.style.cssText = "width:100%;max-width:360px;box-sizing:border-box;padding:24px;background:#303030;color:#F2EEE5;border:1px solid #777;box-shadow:0 12px 40px rgba(0,0,0,.35);font-family:Arial,sans-serif";
-
       const title = document.createElement("div");
       title.textContent = "Publish Dispatch";
       title.style.cssText = "font-size:16px;font-weight:600;margin-bottom:8px;";
-
       const description = document.createElement("div");
       description.textContent = "Enter your publishing key to send this Dispatch to the public archive.";
       description.style.cssText = "font-size:13px;line-height:1.5;color:#C9C3B8;margin-bottom:16px;";
-
       const input = document.createElement("input");
       input.type = "password";
       input.autocomplete = "off";
       input.spellcheck = false;
       input.style.cssText = "display:block;width:100%;box-sizing:border-box;height:40px;padding:8px 10px;background:#595959;color:#F2EEE5;border:1px solid #777;outline:none;font:14px Arial,sans-serif";
-
       const error = document.createElement("div");
       error.style.cssText = "display:none;color:#F2EEE5;font-size:12px;margin-top:8px;";
-
       const actions = document.createElement("div");
       actions.style.cssText = "display:flex;justify-content:flex-end;gap:8px;margin-top:18px;";
-
       const cancel = document.createElement("button");
       cancel.type = "button";
       cancel.textContent = "Cancel";
       cancel.style.cssText = "height:36px;padding:0 14px;background:transparent;color:#C9C3B8;border:1px solid #777;cursor:pointer";
-
       const submit = document.createElement("button");
       submit.type = "button";
       submit.textContent = "Publish";
       submit.style.cssText = "height:36px;padding:0 14px;background:#D8D0C3;color:#303030;border:1px solid #D8D0C3;cursor:pointer;font-weight:600";
-
       function close(value) {
         document.removeEventListener("keydown", onKeyDown, true);
         overlay.remove();
         resolve(value || "");
       }
-
       function submitKey() {
         const secret = String(input.value || "").trim();
         if (!secret) {
@@ -85,7 +82,6 @@
         window.localStorage.setItem(SECRET_STORAGE_KEY, secret);
         close(secret);
       }
-
       function onKeyDown(event) {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -95,11 +91,9 @@
           submitKey();
         }
       }
-
       cancel.addEventListener("click", function () { close(""); });
       submit.addEventListener("click", submitKey);
       document.addEventListener("keydown", onKeyDown, true);
-
       actions.appendChild(cancel);
       actions.appendChild(submit);
       panel.appendChild(title);
@@ -111,10 +105,6 @@
       document.body.appendChild(overlay);
       input.focus();
     });
-  }
-
-  function clearStoredPublishSecret() {
-    window.localStorage.removeItem(SECRET_STORAGE_KEY);
   }
 
   function status(message) {
@@ -147,21 +137,17 @@
     if (!html || typeof DOMParser === "undefined") return html;
     const parser = new DOMParser();
     const document = parser.parseFromString(html, "text/html");
-
     document.querySelectorAll("img").forEach(function (image) {
       const src = (image.getAttribute("src") || "").trim();
       if (!src || src === "#") image.remove();
     });
-
     Array.from(document.body.querySelectorAll("div,section,article,figure,td")).reverse().forEach(function (element) {
       if (!element.parentNode || !looksLikeOptionalModule(element)) return;
       if (!hasMeaningfulText(element) && !hasMeaningfulImage(element)) element.remove();
     });
-
     document.querySelectorAll("p").forEach(function (paragraph) {
       if (!hasMeaningfulText(paragraph) && !hasMeaningfulImage(paragraph)) paragraph.remove();
     });
-
     return document.body.innerHTML.trim();
   }
 
@@ -169,32 +155,26 @@
     if (typeof buildNewsletterHtml !== "function") {
       throw new Error("The newsletter builder is not available. Reload the Dispatch add-in and try again.");
     }
-
     const rawHtml = buildNewsletterHtml();
     const html = cleanPublishHtml(rawHtml);
-
     if (typeof validateNewsletterHtml === "function") {
       const problem = validateNewsletterHtml(html);
       if (problem) throw new Error(problem);
     }
-
     const edition = typeof singleLineText === "function" ? singleLineText(value("edition")) : value("edition");
     const safeEdition = edition || "No. 001";
     const numberMatch = safeEdition.match(/(\d+(?:\.\d+)?)/);
     const number = numberMatch ? numberMatch[1] : safeEdition;
     const title = typeof singleLineText === "function" ? singleLineText(value("title")) : value("title");
     const date = value("date") || new Date().toISOString().slice(0, 10);
-
     let pleasureText = "";
     if (typeof collectPleasureNotes === "function") {
       pleasureText = collectPleasureNotes().map(function (note) {
         return (note.label || "") + " " + (note.value || "");
       }).join(" ");
     }
-
     let subject = "";
     if (typeof buildSubject === "function") subject = buildSubject();
-
     return {
       action: "publish",
       publishKey: secret,
@@ -210,13 +190,6 @@
   }
 
   async function sendPublish(payload) {
-    /*
-     * This must remain a simple request:
-     * - text/plain avoids a CORS preflight.
-     * - no-cors prevents the browser from blocking the request
-     *   merely because Apps Script does not expose CORS headers.
-     * - We intentionally do not attempt response.json().
-     */
     await fetch(PUBLISH_API_URL, {
       method: "POST",
       mode: "no-cors",
@@ -231,7 +204,6 @@
   async function publishDispatch() {
     const button = document.getElementById("publishBtn");
     if (button) button.disabled = true;
-
     try {
       status("Publishing Dispatch…");
       const secret = await getPublishSecret();
@@ -239,9 +211,7 @@
         status("Publish cancelled.");
         return;
       }
-
       const payload = collectPayload(secret);
-
       console.log("[Pleasure Dispatch] Publishing to bridge:", PUBLISH_API_URL);
       console.log("[Pleasure Dispatch] Publish payload prepared:", {
         action: payload.action,
@@ -249,14 +219,7 @@
         title: payload.title,
         htmlLength: payload.html.length
       });
-
       await sendPublish(payload);
-
-      /*
-       * With no-cors the browser deliberately hides the response.
-       * Therefore this is confirmation that the request was sent,
-       * not confirmation that the backend accepted it.
-       */
       status("✓ Publish request sent. Check the Dispatch archive in a moment.");
       console.log("[Pleasure Dispatch] Publish request sent to Google Apps Script.");
     } catch (error) {
@@ -289,12 +252,10 @@
   if (typeof window === "undefined") return;
   const originalBuildNewsletterHtml = window.buildNewsletterHtml;
   if (typeof originalBuildNewsletterHtml !== "function") return;
-
   function fieldHasText(id) {
     const element = document.getElementById(id);
     return !!(element && String(element.value || "").trim());
   }
-
   function hasPleasureNotes() {
     if (typeof collectPleasureNotes === "function") {
       return collectPleasureNotes().some(function (note) {
@@ -308,12 +269,10 @@
     }
     return false;
   }
-
   function removeHeading(html, label) {
     const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return html.replace(new RegExp("<div[^>]*>\\s*" + escapedLabel + "\\s*</div>", "gi"), "");
   }
-
   window.buildNewsletterHtml = function () {
     let html = originalBuildNewsletterHtml.apply(this, arguments);
     if (!fieldHasText("reflection")) html = removeHeading(html, "01 — A REFLECTION");
