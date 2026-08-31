@@ -9,6 +9,7 @@
    - Never report an image as ready until its Drive thumbnail loads.
    - Keep Drive as the archive and the existing public site/lightbox.
    - Avoid data: and cid: image sources in the editor preview.
+   - Return actionable diagnostics when the Drive bridge rejects a request.
 ========================================================= */
 (function () {
   "use strict";
@@ -81,33 +82,111 @@
       .replace(/[^a-zA-Z0-9_-]/g, "_") || "001";
   }
 
+  function describeBridgeFailure(result, httpStatus) {
+    if (!result) {
+      return "Google Drive returned an empty response" +
+        (httpStatus ? " (HTTP " + httpStatus + ")" : ".");
+    }
+
+    const code = result.code ? String(result.code) : "";
+    const message = result.message ? String(result.message) : "";
+
+    if (code === "INVALID_PUBLISH_KEY") {
+      return "Google Drive rejected the publishing key. Confirm PUBLISH_KEY matches the Drive bridge Script Property and the add-in key.";
+    }
+
+    if (code === "UNKNOWN_ACTION") {
+      return "Google Drive received the request but did not recognize the upload action. The add-in may be using an outdated Drive bridge deployment.";
+    }
+
+    if (code === "NO_POST_DATA") {
+      return "Google Drive received no POST body.";
+    }
+
+    if (code === "INVALID_JSON") {
+      return "Google Drive could not read the upload JSON payload.";
+    }
+
+    if (message) {
+      return message;
+    }
+
+    return "Google Drive did not create the image.";
+  }
+
   async function stableUpload(dataUrl, originalFileName) {
+    if (!dataUrl || !/^data:image\//i.test(String(dataUrl))) {
+      throw new Error("The image data was empty or was not a browser image.");
+    }
+
+    const publishKey =
+      typeof PUBLISH_KEY !== "undefined"
+        ? String(PUBLISH_KEY || "")
+        : "";
+
+    if (!publishKey) {
+      throw new Error("The Outlook add-in has no PUBLISH_KEY configured.");
+    }
+
     const payload = {
       action: "upload",
-      publishKey: typeof PUBLISH_KEY !== "undefined" ? PUBLISH_KEY : "",
+      publishKey: publishKey,
       fileName:
         "PD_" + editionName() + "_" + Date.now() + "_" + safeName(originalFileName) + ".jpg",
       mimeType: "image/jpeg",
       fileContent: safeBase64(dataUrl)
     };
 
-    const response = await fetch(CURRENT_DRIVE_API, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      throw new Error("Google Drive returned HTTP " + response.status + ".");
+    if (!payload.fileContent || payload.fileContent.length < 100) {
+      throw new Error("The compressed image data was empty.");
     }
 
-    const result = await response.json();
+    console.log("[Pleasure Dispatch] Drive upload endpoint:", CURRENT_DRIVE_API);
+    console.log("[Pleasure Dispatch] Drive upload filename:", payload.fileName);
+    console.log("[Pleasure Dispatch] Drive upload payload size:", payload.fileContent.length);
+
+    let response;
+
+    try {
+      response = await fetch(CURRENT_DRIVE_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      throw new Error(
+        "Could not connect to the Google Drive bridge: " +
+        (error && error.message ? error.message : String(error))
+      );
+    }
+
+    const responseText = await response.text();
+    let result = null;
+
+    try {
+      result = responseText ? JSON.parse(responseText) : null;
+    } catch (error) {
+      console.error("[Pleasure Dispatch] Drive returned non-JSON:", responseText);
+      throw new Error(
+        "Google Drive returned an unreadable response (HTTP " +
+        response.status + ")."
+      );
+    }
+
+    console.log("[Pleasure Dispatch] Drive upload response:", result);
+
+    if (!response.ok) {
+      throw new Error(
+        describeBridgeFailure(result, response.status) +
+        " (HTTP " + response.status + ")."
+      );
+    }
 
     if (!result || result.status !== "created" || !result.fileId) {
       throw new Error(
-        result && result.message
-          ? result.message
-          : "Google Drive did not create the image."
+        describeBridgeFailure(result, response.status)
       );
     }
 
