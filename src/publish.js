@@ -28,7 +28,7 @@
   ======================================================= */
 
   const PUBLISHER_URL =
-    "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
+    "https://script.google.com/macros/s/AKfycbwpdElO35PiRlfhLvzISgpT3rtcxz8Iv5wewQoqvQJvC7yP02xN6UqrAjwPjfNHBv0T/exec";
 
 
   const SECRET_STORAGE_KEY =
