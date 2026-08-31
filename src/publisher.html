@@ -6,7 +6,7 @@
   <title>The Pleasure Dispatch Publisher</title>
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   <style>
-    html,body{margin:0;padding:0;width:100%;min-height:100%;background:#303030;color:#F2EEE5;font-family:Arial,sans-serif}
+    html,body{margin:0;padding:0;width:100%;height:100%;background:#303030;color:#F2EEE5;font-family:Arial,sans-serif}
     body{display:flex;align-items:center;justify-content:center}
     #status{text-align:center;padding:28px;font-size:14px;line-height:1.5}
   </style>
@@ -19,8 +19,11 @@
     "use strict";
 
     var statusElement=document.getElementById("status");
-    var payloadReceived=false;
     var officeReady=false;
+    var handlerRegistered=false;
+    var publishing=false;
+
+    var PUBLISHER_URL=window.location.origin + window.location.pathname;
 
     function setStatus(message){
       if(statusElement) statusElement.textContent=message;
@@ -32,6 +35,7 @@
         console.warn("[Pleasure Dispatch Publisher] messageParent unavailable.");
         return false;
       }
+
       try{
         Office.context.ui.messageParent(JSON.stringify(message));
         return true;
@@ -42,11 +46,11 @@
     }
 
     function publish(payload){
-      if(payloadReceived) return;
-      payloadReceived=true;
+      if(publishing) return;
+      publishing=true;
       setStatus("Publishing Dispatch…");
 
-      fetch("https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec",{
+      fetch(PUBLISHER_URL,{
         method:"POST",
         headers:{"Content-Type":"text/plain;charset=utf-8"},
         body:JSON.stringify(payload),
@@ -54,14 +58,18 @@
       })
       .then(function(response){
         return response.text().then(function(text){
-          return {ok:response.ok,status:response.status,text:text};
+          return {status:response.status,text:text};
         });
       })
       .then(function(result){
         console.log("[Pleasure Dispatch Publisher] HTTP response:",result.status,result.text);
+
         var data;
-        try{ data=JSON.parse(result.text); }
-        catch(error){ throw new Error("Publisher returned an invalid response (HTTP "+result.status+")."); }
+        try{
+          data=JSON.parse(result.text);
+        }catch(error){
+          throw new Error("Publisher returned an invalid response (HTTP "+result.status+").");
+        }
 
         if(data && data.status==="published"){
           setStatus("Dispatch published.");
@@ -69,22 +77,30 @@
           return;
         }
 
-        throw new Error((data && data.message)||"Publishing failed.");
+        throw new Error((data && (data.message || data.error)) || "Publishing failed.");
       })
       .catch(function(error){
         console.error("[Pleasure Dispatch Publisher] Publish error:",error);
         setStatus("Publishing failed.");
-        send({type:"publishResult",success:false,error:error&&error.message?error.message:String(error)});
+        send({
+          type:"publishResult",
+          success:false,
+          error:error && error.message ? error.message : String(error)
+        });
       });
     }
 
     function receive(event){
-      var raw=event&&event.message;
+      var raw=event && event.message;
       if(!raw) return;
 
       var message;
-      try{ message=JSON.parse(raw); }
-      catch(error){ return; }
+      try{
+        message=JSON.parse(raw);
+      }catch(error){
+        console.warn("[Pleasure Dispatch Publisher] Invalid parent message.");
+        return;
+      }
 
       console.log("[Pleasure Dispatch Publisher] Parent message:",message);
 
@@ -94,7 +110,11 @@
         return;
       }
 
-      if(message.type==="publishPayload" && message.payload){
+      if(message.type==="publishPayload"){
+        if(!message.payload){
+          send({type:"publishResult",success:false,error:"No publishing payload received."});
+          return;
+        }
         publish(message.payload);
       }
     }
@@ -104,6 +124,8 @@
         setStatus("Office connection unavailable.");
         return;
       }
+
+      if(handlerRegistered) return;
 
       Office.context.ui.addHandlerAsync(
         Office.EventType.DialogParentMessageReceived,
@@ -115,6 +137,7 @@
             return;
           }
 
+          handlerRegistered=true;
           officeReady=true;
           setStatus("Waiting for Dispatch…");
           console.log("[Pleasure Dispatch Publisher] Ready for parent handshake.");
@@ -123,7 +146,7 @@
     }
 
     if(window.Office && typeof Office.onReady==="function"){
-      Office.onReady(function(){ initialize(); });
+      Office.onReady(function(){initialize();});
     }else{
       window.addEventListener("load",initialize);
     }
