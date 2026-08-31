@@ -2,8 +2,16 @@
    THE PLEASURE DISPATCH
    publish.js
    Production Send → Publish bridge
+
+   IMPORTANT:
+   Publishing uses the same Apps Script deployment as the
+   Drive bridge. The compatibility patch intercepts fetch()
+   requests, so publishing uses XMLHttpRequest here to avoid
+   being rerouted to the retired publisher deployment.
 ========================================================= */
 (function () {
+  "use strict";
+
   const PUBLISH_API_URL =
     "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
 
@@ -114,7 +122,7 @@
     const images = element.querySelectorAll ? element.querySelectorAll("img") : [];
     for (let i = 0; i < images.length; i++) {
       const src = (images[i].getAttribute("src") || "").trim();
-      if (src && !/^data:image\/(gif|png|jpe?g|webp);base64,$/i.test(src) && src !== "#") return true;
+      if (src && src !== "#") return true;
     }
     return false;
   }
@@ -154,7 +162,9 @@
   }
 
   function collectPayload(secret) {
-    if (typeof buildNewsletterHtml !== "function") throw new Error("The newsletter builder is not available. Reload the Dispatch add-in and try again.");
+    if (typeof buildNewsletterHtml !== "function") {
+      throw new Error("The newsletter builder is not available. Reload the Dispatch add-in and try again.");
+    }
 
     const rawHtml = buildNewsletterHtml();
     const html = cleanPublishHtml(rawHtml);
@@ -195,6 +205,47 @@
     };
   }
 
+  function postPublish(payload) {
+    return new Promise(function (resolve, reject) {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", PUBLISH_API_URL, true);
+      xhr.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
+      xhr.timeout = 30000;
+
+      xhr.onload = function () {
+        const responseText = xhr.responseText || "";
+        let result = null;
+
+        try {
+          result = responseText ? JSON.parse(responseText) : null;
+        } catch (error) {
+          reject(new Error("Publish service returned an unreadable response (HTTP " + xhr.status + ")."));
+          return;
+        }
+
+        console.log("[Pleasure Dispatch] Publish HTTP status:", xhr.status);
+        console.log("[Pleasure Dispatch] Publish response:", result);
+
+        if (xhr.status < 200 || xhr.status >= 300) {
+          reject(new Error((result && result.message) || "Publish service returned HTTP " + xhr.status + "."));
+          return;
+        }
+
+        resolve(result);
+      };
+
+      xhr.onerror = function () {
+        reject(new Error("Could not connect to the Dispatch publishing bridge."));
+      };
+
+      xhr.ontimeout = function () {
+        reject(new Error("The Dispatch publishing bridge timed out."));
+      };
+
+      xhr.send(JSON.stringify(payload));
+    });
+  }
+
   async function publishDispatch() {
     const button = document.getElementById("publishBtn");
     if (button) button.disabled = true;
@@ -202,24 +253,13 @@
     try {
       status("Publishing Dispatch…");
       const secret = await getPublishSecret();
-      if (!secret) { status("Publish cancelled."); return; }
+      if (!secret) {
+        status("Publish cancelled.");
+        return;
+      }
 
       const payload = collectPayload(secret);
-      const response = await fetch(PUBLISH_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload)
-      });
-
-      const responseText = await response.text();
-      let result = null;
-      try { result = responseText ? JSON.parse(responseText) : null; }
-      catch (parseError) { throw new Error("Publish service returned an unreadable response (HTTP " + response.status + ")."); }
-
-      console.log("[Pleasure Dispatch] Publish HTTP status:", response.status);
-      console.log("[Pleasure Dispatch] Publish response:", result);
-
-      if (!response.ok) throw new Error((result && result.message) || "Publish service returned HTTP " + response.status + ".");
+      const result = await postPublish(payload);
 
       if (!result || result.status !== "published") {
         if (result && result.code === "INVALID_PUBLISH_KEY") {
@@ -257,6 +297,9 @@
   window.publishDispatch = publishDispatch;
 })();
 
+/* =========================================================
+   OPTIONAL MODULE CLEANUP
+========================================================= */
 (function () {
   if (typeof window === "undefined") return;
   const originalBuildNewsletterHtml = window.buildNewsletterHtml;
@@ -276,7 +319,9 @@
     const rows = document.querySelectorAll("#pleasureRows > *");
     for (let i = 0; i < rows.length; i++) {
       const inputs = rows[i].querySelectorAll ? rows[i].querySelectorAll("input,textarea") : [];
-      for (let j = 0; j < inputs.length; j++) if (String(inputs[j].value || "").trim()) return true;
+      for (let j = 0; j < inputs.length; j++) {
+        if (String(inputs[j].value || "").trim()) return true;
+      }
     }
     return false;
   }
