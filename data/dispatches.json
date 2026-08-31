@@ -1,7 +1,27 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-31T16:21:17.996Z",
+  "updatedAt": "2026-08-31T17:40:40.621Z",
   "dispatches": [
+    {
+      "edition": "TEST-1788198036064",
+      "editionLabel": "Test Edition",
+      "date": "2026-08-31",
+      "title": "Publisher Test",
+      "subtitle": "Testing The Pleasure Dispatch publishing bridge.",
+      "subject": "Publisher Test",
+      "reflection": "This is a publishing bridge test.",
+      "html": "<p>This is a test publication from Publisher.gs.</p>",
+      "searchText": "publisher test",
+      "subscriberCount": 494,
+      "activeSubscriberCount": 494,
+      "unsubscribedCount": 0,
+      "subscriberCsv": {
+        "fileId": "1uBod8ydXSP-M6nVgylq3as7s-PoJ0TU6",
+        "fileName": "Newsletter Contacts 2026 Updated - Newsletter Contacts.csv",
+        "updatedAt": "2026-08-30T17:12:41.000Z"
+      },
+      "publishedAt": "2026-08-31T17:40:40.620Z"
+    },
     {
       "edition": "001",
       "editionLabel": "No. 001",
