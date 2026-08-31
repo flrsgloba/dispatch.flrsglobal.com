@@ -3,11 +3,15 @@
    publish.js
    Production Send → Publish bridge
 
-   IMPORTANT:
-   Publishing uses the same Apps Script deployment as the
-   Drive bridge. The compatibility patch intercepts fetch()
-   requests, so publishing uses XMLHttpRequest here to avoid
-   being rerouted to the retired publisher deployment.
+   NOTE:
+   Google Apps Script web apps do not expose an
+   Access-Control-Allow-Origin header for ContentService
+   responses. A browser fetch() therefore cannot read the
+   response cross-origin from dispatch.flrsglobal.com.
+
+   Publishing is intentionally sent as a simple text/plain
+   POST with mode:no-cors. This avoids the CORS read barrier.
+   The bridge still receives and processes the JSON payload.
 ========================================================= */
 (function () {
   "use strict";
@@ -205,44 +209,22 @@
     };
   }
 
-  function postPublish(payload) {
-    return new Promise(function (resolve, reject) {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", PUBLISH_API_URL, true);
-      xhr.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
-      xhr.timeout = 30000;
-
-      xhr.onload = function () {
-        const responseText = xhr.responseText || "";
-        let result = null;
-
-        try {
-          result = responseText ? JSON.parse(responseText) : null;
-        } catch (error) {
-          reject(new Error("Publish service returned an unreadable response (HTTP " + xhr.status + ")."));
-          return;
-        }
-
-        console.log("[Pleasure Dispatch] Publish HTTP status:", xhr.status);
-        console.log("[Pleasure Dispatch] Publish response:", result);
-
-        if (xhr.status < 200 || xhr.status >= 300) {
-          reject(new Error((result && result.message) || "Publish service returned HTTP " + xhr.status + "."));
-          return;
-        }
-
-        resolve(result);
-      };
-
-      xhr.onerror = function () {
-        reject(new Error("Could not connect to the Dispatch publishing bridge."));
-      };
-
-      xhr.ontimeout = function () {
-        reject(new Error("The Dispatch publishing bridge timed out."));
-      };
-
-      xhr.send(JSON.stringify(payload));
+  async function sendPublish(payload) {
+    /*
+     * This must remain a simple request:
+     * - text/plain avoids a CORS preflight.
+     * - no-cors prevents the browser from blocking the request
+     *   merely because Apps Script does not expose CORS headers.
+     * - We intentionally do not attempt response.json().
+     */
+    await fetch(PUBLISH_API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload),
+      keepalive: true
     });
   }
 
@@ -259,20 +241,26 @@
       }
 
       const payload = collectPayload(secret);
-      const result = await postPublish(payload);
 
-      if (!result || result.status !== "published") {
-        if (result && result.code === "INVALID_PUBLISH_KEY") {
-          clearStoredPublishSecret();
-          throw new Error("Publishing key rejected. Click Publish again and enter the current key.");
-        }
-        throw new Error(result && result.message ? result.message : "Publish service did not publish the Dispatch.");
-      }
+      console.log("[Pleasure Dispatch] Publishing to bridge:", PUBLISH_API_URL);
+      console.log("[Pleasure Dispatch] Publish payload prepared:", {
+        action: payload.action,
+        edition: payload.edition,
+        title: payload.title,
+        htmlLength: payload.html.length
+      });
 
-      status("✓ Published " + payload.editionLabel + " to dispatch.flrsglobal.com.");
-      console.log("[Pleasure Dispatch] Published:", result);
+      await sendPublish(payload);
+
+      /*
+       * With no-cors the browser deliberately hides the response.
+       * Therefore this is confirmation that the request was sent,
+       * not confirmation that the backend accepted it.
+       */
+      status("✓ Publish request sent. Check the Dispatch archive in a moment.");
+      console.log("[Pleasure Dispatch] Publish request sent to Google Apps Script.");
     } catch (error) {
-      status("Publish failed: " + error.message);
+      status("Publish failed: " + (error && error.message ? error.message : String(error)));
       console.error("[Pleasure Dispatch] Publish failed:", error);
     } finally {
       if (button) button.disabled = false;
@@ -297,9 +285,6 @@
   window.publishDispatch = publishDispatch;
 })();
 
-/* =========================================================
-   OPTIONAL MODULE CLEANUP
-========================================================= */
 (function () {
   if (typeof window === "undefined") return;
   const originalBuildNewsletterHtml = window.buildNewsletterHtml;
@@ -319,9 +304,7 @@
     const rows = document.querySelectorAll("#pleasureRows > *");
     for (let i = 0; i < rows.length; i++) {
       const inputs = rows[i].querySelectorAll ? rows[i].querySelectorAll("input,textarea") : [];
-      for (let j = 0; j < inputs.length; j++) {
-        if (String(inputs[j].value || "").trim()) return true;
-      }
+      for (let j = 0; j < inputs.length; j++) if (String(inputs[j].value || "").trim()) return true;
     }
     return false;
   }
