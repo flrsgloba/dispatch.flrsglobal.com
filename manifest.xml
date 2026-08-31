@@ -16,7 +16,6 @@
  <AppDomains>
   <AppDomain>https://dispatch.flrsglobal.com</AppDomain>
   <AppDomain>https://script.google.com</AppDomain>
-  <AppDomain>https://script.googleusercontent.com</AppDomain>
 </AppDomains>
   <Hosts>
     <Host Name="Mailbox"/>
