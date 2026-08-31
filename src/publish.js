@@ -10,14 +10,13 @@
         ↓
    Google Apps Script publisherDialog
         ↓
-   Google Apps Script publish
+   Google Apps Script publishFromDialog()
         ↓
    GitHub
 
-   IMPORTANT:
-   The dialog is served by Google Apps Script rather than GitHub
-   because the browser cannot reliably read a cross-origin POST
-   response from Apps Script.
+   The dialog is served by Google Apps Script. The actual publish
+   operation is performed server-side with google.script.run so the
+   browser never POSTs to the Apps Script web-app URL.
 ========================================================= */
 
 (function () {
@@ -27,6 +26,7 @@
     "https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec";
 
   const SECRET_STORAGE_KEY = "pd_publish_secret";
+  const DIALOG_TIMEOUT_MS = 30000;
 
   let dialog = null;
   let pendingPayload = null;
@@ -34,6 +34,7 @@
   let pendingReject = null;
   let resultReceived = false;
   let pingTimer = null;
+  let timeoutTimer = null;
 
   function status(message) {
     if (typeof window.setStatus === "function") window.setStatus(message);
@@ -226,6 +227,10 @@
       clearInterval(pingTimer);
       pingTimer = null;
     }
+    if (timeoutTimer) {
+      clearTimeout(timeoutTimer);
+      timeoutTimer = null;
+    }
     pendingPayload = null;
     pendingResolve = null;
     pendingReject = null;
@@ -361,10 +366,14 @@
           }
         );
 
-        // The child may take a moment to register its Office message handler.
-        // Ping repeatedly until it answers with publisherReady.
         sendPing();
         pingTimer = setInterval(sendPing, 500);
+
+        timeoutTimer = setTimeout(function () {
+          if (!resultReceived && dialog && pendingPayload) {
+            fail("Publisher did not respond within 30 seconds. Check the Apps Script deployment and try again.");
+          }
+        }, DIALOG_TIMEOUT_MS);
       });
     });
   }
