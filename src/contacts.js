@@ -98,16 +98,45 @@
   }
 
   function setRecipientsAndBuild() {
-    const emails = selectedEmails(); if (!emails.length) { setStatus("Choose at least one active recipient before building the Dispatch."); return; }
+    const emails = selectedEmails();
+    if (!emails.length) { setStatus("Choose at least one active recipient before building the Dispatch."); return; }
     const item = Office.context && Office.context.mailbox && Office.context.mailbox.item;
     if (!item || !item.bcc) { setStatus("Recipient access is unavailable in this Outlook compose window."); return; }
-    setStatus("Adding " + emails.length + " recipients to BCC…");
-    item.bcc.setAsync(emails, function (result) {
-      if (!result || result.status !== Office.AsyncResultStatus.Succeeded) { setStatus("Recipient setup failed: " + ((result && result.error && result.error.message) || "Outlook could not set the BCC recipients.")); return; }
-      setStatus("✓ " + emails.length + " recipients added to BCC. Building Dispatch…");
-      if (typeof window.__pdOriginalBuildInOutlook === "function") window.__pdOriginalBuildInOutlook();
-    });
-  }
+
+    const BATCH_SIZE = 100;
+    const batches = [];
+    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+      batches.push(emails.slice(i, i + BATCH_SIZE));
+    }
+
+    setStatus("Adding " + emails.length + " recipients to BCC (batch 1 of " + batches.length + ")…");
+
+    function addBatch(index) {
+      if (index >= batches.length) {
+        setStatus("✓ " + emails.length + " recipients added to BCC. Building Dispatch…");
+        if (typeof window.__pdOriginalBuildInOutlook === "function") window.__pdOriginalBuildInOutlook();
+        return;
+      }
+
+      const method = index === 0 ? "setAsync" : "addAsync";
+
+      item.bcc[method](batches[index], function (result) {
+        if (!result || result.status !== Office.AsyncResultStatus.Succeeded) {
+          setStatus("Recipient setup failed on batch " + (index + 1) + " of " + batches.length + ": " +
+            ((result && result.error && result.error.message) || "Outlook could not set the BCC recipients."));
+          return;
+        }
+
+        if (index + 1 < batches.length) {
+          setStatus("Adding recipients to BCC (batch " + (index + 2) + " of " + batches.length + ")…");
+        }
+
+        addBatch(index + 1);
+      });
+    }
+
+    addBatch(0);
+}
 
   function wrapBuild() {
     if (window.__pdContactsWrapped || typeof window.buildInOutlook !== "function") return;
