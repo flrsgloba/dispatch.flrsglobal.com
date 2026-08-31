@@ -3,14 +3,8 @@
    publish.js
    Production publish bridge
 
-   Publishing and image upload now use the SAME authoritative
-   Google Apps Script deployment. The bridge is responsible for
-   both Drive storage and publishing the dispatch to GitHub.
-
-   Apps Script ContentService does not expose CORS headers, so
-   publishing is intentionally sent as a simple text/plain POST
-   with mode:no-cors. The request is delivered to Apps Script;
-   the public archive is updated server-side.
+   One authoritative Google Apps Script deployment handles
+   Drive storage and GitHub publishing.
 ========================================================= */
 (function () {
   "use strict";
@@ -117,6 +111,11 @@
     else console.log("[Pleasure Dispatch]", message);
   }
 
+  function inputValue(id) {
+    const element = document.getElementById(id);
+    return element ? String(element.value || "").trim() : "";
+  }
+
   function hasMeaningfulImage(element) {
     const images = element.querySelectorAll ? element.querySelectorAll("img") : [];
     for (let i = 0; i < images.length; i++) {
@@ -132,32 +131,99 @@
     return (clone.textContent || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim().length > 0;
   }
 
-  function looksLikeOptionalModule(element) {
-    const className = String(element.className || "").toLowerCase();
-    const id = String(element.id || "").toLowerCase();
-    return /module|section|block|figure|image|text|reflection|studio|invite|question|pleasure|hero/.test((className + " " + id).trim());
+  function removeSectionByHeading(doc, headingText) {
+    const elements = Array.from(doc.body.querySelectorAll("div,td"));
+    for (let i = 0; i < elements.length; i++) {
+      const element = elements[i];
+      if ((element.textContent || "").trim() !== headingText) continue;
+      if (!element.parentNode) continue;
+
+      const parent = element.parentNode;
+      const children = Array.from(parent.children);
+      const index = children.indexOf(element);
+      if (index < 0) continue;
+
+      element.remove();
+
+      if (children[index + 1] && !hasMeaningfulText(children[index + 1]) && !hasMeaningfulImage(children[index + 1])) {
+        children[index + 1].remove();
+      }
+      return;
+    }
+  }
+
+  function removeEmptyEditorialSections(html) {
+    if (!html || typeof DOMParser === "undefined") return html;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(String(html), "text/html");
+
+    if (!inputValue("reflection")) {
+      removeSectionByHeading(doc, "01 — A REFLECTION");
+    }
+
+    if (!inputValue("workText") && typeof collectImageBlocks === "function" && !collectImageBlocks().length) {
+      removeSectionByHeading(doc, "02 — THE WORK");
+    }
+
+    if (!inputValue("studioText")) {
+      removeSectionByHeading(doc, "03 — STUDIO NOTES");
+    }
+
+    const notes = typeof collectPleasureNotes === "function"
+      ? collectPleasureNotes()
+      : [];
+
+    if (!notes.length) {
+      removeSectionByHeading(doc, "04 — PLEASURE NOTES");
+      const intro = Array.from(doc.body.querySelectorAll("div")).find(function (element) {
+        return (element.textContent || "").trim() === "An offering of what has held my attention.";
+      });
+      if (intro) intro.remove();
+    }
+
+    if (!inputValue("inviteTitle") && !inputValue("inviteText") && !inputValue("ctaUrl")) {
+      removeSectionByHeading(doc, "05 — AN INVITATION");
+    }
+
+    return doc.body.innerHTML.trim();
   }
 
   function cleanPublishHtml(html) {
     if (!html || typeof DOMParser === "undefined") return html;
+
     const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
+    const doc = parser.parseFromString(String(html), "text/html");
 
     doc.querySelectorAll("img").forEach(function (image) {
       const src = (image.getAttribute("src") || "").trim();
       if (!src || src === "#") image.remove();
     });
 
-    Array.from(doc.body.querySelectorAll("div,section,article,figure,td")).reverse().forEach(function (element) {
-      if (!element.parentNode || !looksLikeOptionalModule(element)) return;
-      if (!hasMeaningfulText(element) && !hasMeaningfulImage(element)) element.remove();
-    });
-
     doc.querySelectorAll("p").forEach(function (paragraph) {
       if (!hasMeaningfulText(paragraph) && !hasMeaningfulImage(paragraph)) paragraph.remove();
     });
 
-    return doc.body.innerHTML.trim();
+    return removeEmptyEditorialSections(doc.body.innerHTML.trim());
+  }
+
+  function normalizeEdition() {
+    const raw = inputValue("edition");
+    if (!raw) throw new Error("Publish stopped — please enter an edition number.");
+
+    const match = raw.match(/(\d+(?:\.\d+)?)/);
+    if (!match) throw new Error("Publish stopped — edition must contain a number, such as No. 001.");
+
+    const number = match[1];
+    const numeric = Number(number);
+    if (!isFinite(numeric) || numeric < 0) {
+      throw new Error("Publish stopped — invalid edition number.");
+    }
+
+    return {
+      number: number,
+      label: "No. " + number
+    };
   }
 
   function collectPayload(secret) {
@@ -165,6 +231,7 @@
       throw new Error("The newsletter builder is not available. Reload the Dispatch add-in and try again.");
     }
 
+    const edition = normalizeEdition();
     const html = cleanPublishHtml(buildNewsletterHtml());
 
     if (typeof validateNewsletterHtml === "function") {
@@ -172,17 +239,8 @@
       if (problem) throw new Error(problem);
     }
 
-    const edition = typeof singleLineText === "function"
-      ? singleLineText(value("edition"))
-      : value("edition");
-
-    const safeEdition = edition || "No. 001";
-    const numberMatch = safeEdition.match(/(\d+(?:\.\d+)?)/);
-    const number = numberMatch ? numberMatch[1] : safeEdition;
-    const title = typeof singleLineText === "function"
-      ? singleLineText(value("title"))
-      : value("title");
-    const date = value("date") || new Date().toISOString().slice(0, 10);
+    const title = inputValue("title");
+    const date = inputValue("date") || new Date().toISOString().slice(0, 10);
 
     let pleasureText = "";
     if (typeof collectPleasureNotes === "function") {
@@ -191,33 +249,34 @@
       }).join(" ");
     }
 
-    let subject = "";
-    if (typeof buildSubject === "function") subject = buildSubject();
+    const subject = typeof buildSubject === "function"
+      ? buildSubject()
+      : "The Pleasure Dispatch — " + edition.label + ": " + (title || "A Note on Pleasure");
 
     return {
       action: "publish",
       publishKey: secret,
-      edition: number,
-      editionLabel: safeEdition,
+      edition: edition.number,
+      editionLabel: edition.label,
       date: date,
       title: title || "The Pleasure Dispatch",
-      subtitle: value("subtitle"),
+      subtitle: inputValue("subtitle"),
       subject: subject,
       html: html,
       searchText: [
-        number,
-        safeEdition,
+        edition.number,
+        edition.label,
         date,
         title,
-        value("subtitle"),
-        value("reflection"),
-        value("workText"),
-        value("studioText"),
-        value("inviteTitle"),
-        value("inviteText"),
-        value("question"),
+        inputValue("subtitle"),
+        inputValue("reflection"),
+        inputValue("workText"),
+        inputValue("studioText"),
+        inputValue("inviteTitle"),
+        inputValue("inviteText"),
+        inputValue("question"),
         pleasureText
-      ].join(" ")
+      ].filter(Boolean).join(" ")
     };
   }
 
@@ -252,6 +311,7 @@
       console.log("[Pleasure Dispatch] Publish payload prepared:", {
         action: payload.action,
         edition: payload.edition,
+        editionLabel: payload.editionLabel,
         title: payload.title,
         htmlLength: payload.html.length
       });
@@ -270,8 +330,8 @@
 
   function bindPublishButton() {
     const button = document.getElementById("publishBtn");
-    if (!button || button.dataset.bound === "true") return;
-    button.dataset.bound = "true";
+    if (!button || button.dataset.publishBound === "true") return;
+    button.dataset.publishBound = "true";
     button.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -291,17 +351,14 @@
       if (window.__pdPublishBuilderWrapped) return true;
 
       const original = window.buildNewsletterHtml;
-
       window.buildNewsletterHtml = function () {
         let html = original.apply(this, arguments);
         if (!html || typeof html !== "string") return html;
 
-        html = html.replace(
+        return html.replace(
           /https:\/\/flrsgloba\.github\.io\/dispatch\.flrsglobal\.com\/assets\/pleasure-loop\.(png|svg)/gi,
           "https://dispatch.flrsglobal.com/assets/pleasure-loop.png"
         );
-
-        return html;
       };
 
       window.__pdPublishBuilderWrapped = true;
