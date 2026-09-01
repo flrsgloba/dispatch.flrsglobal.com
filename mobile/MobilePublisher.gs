@@ -9,7 +9,6 @@
  *   PUBLISH_SECRET authenticates this bridge to the main Publisher.
  */
 
-// CURRENT MAIN DISPATCH PUBLISHER. This is NOT the Drive API.
 const MAIN_PUBLISHER_URL =
   'https://script.google.com/macros/s/AKfycbwpdElO35PiRlfhLvzISgpT3rtcxz8Iv5wewQoqvQJvC7yP02xN6UqrAjwPjfNHBv0T/exec';
 
@@ -22,7 +21,7 @@ function doGet() {
     success: true,
     service: 'Pleasure Dispatch Mobile Publisher',
     status: 'online',
-    version: '1.4.0'
+    version: '1.5.0'
   });
 }
 
@@ -41,7 +40,7 @@ function doPost(e) {
       return json_({ success: false, error: 'Invalid JSON payload.' });
     }
 
-    const action = String(request.action || '').toLowerCase();
+    const action = String(request.action || '').toLowerCase().trim();
 
     if (action === 'health') {
       return json_({
@@ -57,16 +56,13 @@ function doPost(e) {
       });
     }
 
-    if (action !== 'publish') {
-      return json_({ success: false, error: 'Unsupported action. Use action: publish.' });
+    if (action !== 'publish' && action !== 'delete') {
+      return json_({ success: false, error: 'Unsupported action. Use action: publish or delete.' });
     }
 
-    // Step 1: authenticate the mobile client with DRIVE_PUBLISH_KEY.
     authenticateMobile_(request.secret);
 
-    // Step 2: create a publisher payload using the server-side PUBLISH_SECRET.
-    // The mobile client never needs to know or send the main publisher secret.
-    const payload = buildPublisherPayload_(request);
+    const payload = buildPublisherPayload_(request, action);
     const response = forwardToMainPublisher_(payload);
 
     return json_({
@@ -98,7 +94,7 @@ function authenticateMobile_(provided) {
   }
 }
 
-function buildPublisherPayload_(request) {
+function buildPublisherPayload_(request, action) {
   const payload = {};
 
   Object.keys(request).forEach(function(key) {
@@ -113,12 +109,18 @@ function buildPublisherPayload_(request) {
     throw new Error('Mobile publisher is not configured. Set PUBLISH_SECRET in Script Properties.');
   }
 
-  payload.action = 'publish';
+  payload.action = action;
   payload.secret = publishSecret;
 
-  if (!payload.edition) throw new Error('Edition is required.');
-  if (!payload.title) throw new Error('Title is required.');
-  if (!payload.html) throw new Error('Dispatch HTML is required.');
+  if (action === 'publish') {
+    if (!payload.edition) throw new Error('Edition is required.');
+    if (!payload.title) throw new Error('Title is required.');
+    if (!payload.html) throw new Error('Dispatch HTML is required.');
+  }
+
+  if (action === 'delete') {
+    if (!payload.edition) throw new Error('Edition is required for deletion.');
+  }
 
   return payload;
 }
