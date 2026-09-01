@@ -21,7 +21,7 @@ function doGet() {
     success: true,
     service: 'Pleasure Dispatch Mobile Publisher',
     status: 'online',
-    version: '1.5.0'
+    version: '1.6.0'
   });
 }
 
