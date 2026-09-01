@@ -1,4 +1,4 @@
-const PUBLISHER_URL='https://script.google.com/macros/s/AKfycbwBE18EpvE6l5bd8GFD8ehW9bryrMYgSaCHbAR30jhWjU5GG2gmRPTHtbPcPyLfN5i8/exec';
+const PUBLISHER_URL='https://script.google.com/macros/s/AKfycbwpdElO35PiRlfhLvzISgpT3rtcxz8Iv5wewQoqvQJvC7yP02xN6UqrAjwPjfNHBv0T/exec';
 const DRIVE_API_URL='https://script.google.com/macros/s/AKfycbxY93Vr1Zuij1sIKM7X0sgmyT5ipFnufnYGUrw6DqSAQL8QQYM6juVkRszGf-QdRKMEWQ/exec';
 const SECRET_KEY='pd_publish_secret';
 let selectedImage=null;
@@ -32,55 +32,16 @@ function preview(){const html=buildHtml(selectedImage?$('imagePreview').src:'');
 async function uploadDrive(dataUrl,fileName,mimeType){const comma=dataUrl.indexOf(',');const body=JSON.stringify({action:'upload',fileName:fileName,mimeType:mimeType,fileContent:comma>=0?dataUrl.slice(comma+1):dataUrl});const r=await fetch(DRIVE_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body});if(!r.ok)throw Error('Google Drive returned HTTP '+r.status+'.');const j=await r.json();if(j.status!=='created')throw Error(j.message||'Google Drive did not create the file.');return j}
 
 function isSupportedImageType(type){return ['image/jpeg','image/jpg','image/png','image/webp'].includes(String(type||'').toLowerCase())}
-
 function isHeicOrHeif(file){const name=String(file.name||'').toLowerCase();const type=String(file.type||'').toLowerCase();return type==='image/heic'||type==='image/heif'||/\.(heic|heif)$/.test(name)}
+async function normalizeImage(file){if(!file)return null;if(isSupportedImageType(file.type))return file;if(isHeicOrHeif(file)){try{const bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;const ctx=canvas.getContext('2d');ctx.drawImage(bitmap,0,0);bitmap.close();const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not convert the iPhone image.')),'image/jpeg',0.92));return new File([blob],file.name.replace(/\.(heic|heif)$/i,'.jpg'),{type:'image/jpeg',lastModified:Date.now()});}catch(err){throw Error('This iPhone image is HEIC/HEIF and this browser could not convert it to JPG. In Photos, use Share → Options → Most Compatible, then select the photo again.');}}throw Error('Only JPG, PNG, WebP, or iPhone HEIC/HEIF images are supported.')}
+async function uploadImage(){if(!selectedImage)return '';status('Preparing image…');const normalized=await normalizeImage(selectedImage);status('Uploading image…');const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(normalized)});const safeExt=normalized.type==='image/png'?'.png':normalized.type==='image/webp'?'.webp':'.jpg';const baseName=normalized.name.replace(/\.[^.]+$/,'');const result=await uploadDrive(data,'PD_'+edition()+'_'+Date.now()+'_'+baseName+safeExt,normalized.type);return result.imageUrl||('https://drive.google.com/thumbnail?id='+encodeURIComponent(result.fileId)+'&sz=w1800')}
 
-async function normalizeImage(file){
-  if(!file) return null;
-  if(isSupportedImageType(file.type)) return file;
+async function savePdf(){if(!$('savePdf').checked)return null;if(!window.jspdf)return null;status('Creating archival PDF…');const doc=new jspdf.jsPDF({unit:'pt',format:'letter'});let y=60;const W=doc.internal.pageSize.getWidth(),M=52;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('THE PLEASURE DISPATCH · NO. '+edition(),M,y);y+=30;doc.setFont('times','normal');doc.setFontSize(30);const title=doc.splitTextToSize(val('title')||'The Pleasure Dispatch',W-M*2);doc.text(title,M,y);y+=title.length*34+12;doc.setFontSize(10);doc.setFont('helvetica','normal');doc.text(val('date'),M,y);y+=32;const sections=[['01 — A REFLECTION',val('reflection')],['02 — THE WORK',val('workText')],['03 — STUDIO NOTES',val('studioText')],['04 — PLEASURE NOTES',[['Coffee',val('coffee')],['Art',val('art')],['Object',val('object')],['Currently',val('currently')]].filter(x=>x[1]).map(x=>x[0]+': '+x[1]).join('\n')],['05 — AN INVITATION',[val('inviteTitle'),val('inviteText')].filter(Boolean).join('\n')],['06 — A QUESTION',val('question')]].filter(x=>x[1]);for(const [head,text] of sections){if(y>710){doc.addPage();y=55}doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(head,M,y);y+=18;doc.setFont('times','normal');doc.setFontSize(13);const lines=doc.splitTextToSize(String(text),W-M*2);for(const line of lines){if(y>735){doc.addPage();y=55}doc.text(line,M,y);y+=18}y+=20}doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('FLRSGLOBAL · The Pleasure Dispatch',M,760);const blob=doc.output('datauristring');return uploadDrive(blob,'The_Pleasure_Dispatch_No_'+edition()+'.pdf','application/pdf')}
 
-  // iPhones commonly return HEIC/HEIF. Browsers do not reliably expose a
-  // decoder for HEIC, so first try the browser's native image decoder.
-  // If the browser can decode it, canvas converts it to JPEG for Drive.
-  if(isHeicOrHeif(file)){
-    try{
-      const bitmap=await createImageBitmap(file);
-      const canvas=document.createElement('canvas');
-      canvas.width=bitmap.width;
-      canvas.height=bitmap.height;
-      const ctx=canvas.getContext('2d');
-      ctx.drawImage(bitmap,0,0);
-      bitmap.close();
-      const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not convert the iPhone image.')),'image/jpeg',0.92));
-      return new File([blob],file.name.replace(/\.(heic|heif)$/i,'.jpg'),{type:'image/jpeg',lastModified:Date.now()});
-    }catch(err){
-      throw Error('This iPhone image is HEIC/HEIF and this browser could not convert it to JPG. In Photos, use Share → Options → Most Compatible, then select the photo again.');
-    }
-  }
+async function publisherRequest(payload){const r=await fetch(PUBLISHER_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});if(!r.ok)throw Error('Publisher returned HTTP '+r.status+'.');const j=await r.json();if(j.success===false||j.status==='error')throw Error(j.error||j.message||'Publisher request failed.');return j}
 
-  // Unknown image formats are rejected rather than mislabeled.
-  throw Error('Only JPG, PNG, WebP, or iPhone HEIC/HEIF images are supported.');
-}
+async function publish(){const b=$('publishBtn');b.disabled=true;$('result').style.display='none';try{const key=secret();let imageUrl='';if(selectedImage)imageUrl=await uploadImage();const html=buildHtml(imageUrl);status('Publishing Dispatch…');const payload={action:'publish',secret:key,edition:edition(),editionLabel:'No. '+edition(),date:val('date')||new Date().toISOString().slice(0,10),title:val('title')||'The Pleasure Dispatch',subtitle:val('subtitle'),subject:'The Pleasure Dispatch — No. '+edition()+': '+(val('title')||'A Note on Pleasure'),reflection:val('reflection'),html:html,searchText:[val('title'),val('subtitle'),val('reflection'),val('workText'),val('studioText'),val('inviteTitle'),val('inviteText'),val('question')].filter(Boolean).join(' ')};const j=await publisherRequest(payload);let pdf=null;try{pdf=await savePdf()}catch(e){console.warn(e);status('Published; PDF archive failed.')}const u=j.upstream||j;const url=u.url||u.publicUrl||u.dispatchUrl||'';$('result').innerHTML='<strong>✓ Dispatch published.</strong>'+(url?'<br><a href="'+url+'" target="_blank" rel="noopener">Open published Dispatch →</a>':'')+(pdf?'<br><span>✓ Archival PDF saved to Drive.</span>':'');$('result').style.display='block';status('Published successfully')}catch(e){console.error(e);$('result').innerHTML='<span class="danger">Publishing failed: '+clean(e.message)+'</span>';$('result').style.display='block';status('Publish failed')}finally{b.disabled=false}}
 
-async function uploadImage(){
-  if(!selectedImage)return '';
-  status('Preparing image…');
-  const normalized=await normalizeImage(selectedImage);
-  status('Uploading image…');
-  const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(normalized)});
-  const safeExt=normalized.type==='image/png'?'.png':normalized.type==='image/webp'?'.webp':'.jpg';
-  const baseName=normalized.name.replace(/\.[^.]+$/,'');
-  const result=await uploadDrive(data,'PD_'+edition()+'_'+Date.now()+'_'+baseName+safeExt,normalized.type);
-  return result.imageUrl||('https://drive.google.com/thumbnail?id='+encodeURIComponent(result.fileId)+'&sz=w1800');
-}
+async function deleteDispatch(){const b=$('deleteBtn');b.disabled=true;$('result').style.display='none';try{const ed=edition();const confirmed=window.confirm('Delete Dispatch No. '+ed+' from the public site?\n\nThis removes the public Dispatch and its GitHub page.\nYour Drive archive will NOT be deleted.\n\nThis cannot be undone from the mobile app.');if(!confirmed)return;const key=secret();status('Deleting Dispatch No. '+ed+'…');const j=await publisherRequest({action:'delete',secret:key,edition:ed});const u=j.upstream||j;if(String(u.status||'').toLowerCase()!=='deleted')throw Error(u.message||'The publisher did not confirm deletion.');$('result').innerHTML='<strong>✓ Dispatch No. '+clean(ed)+' deleted from the public site.</strong><br><span>Drive archives were left untouched.</span>';$('result').style.display='block';status('Dispatch deleted')}catch(e){console.error(e);$('result').innerHTML='<span class="danger">Delete failed: '+clean(e.message)+'</span>';$('result').style.display='block';status('Delete failed')}finally{b.disabled=false}}
 
-async function savePdf(){if(!$('savePdf').checked)return null;if(!window.jspdf)return null;status('Creating archival PDF…');const doc=new jspdf.jsPDF({unit:'pt',format:'letter'});let y=60;const W=doc.internal.pageSize.getWidth(),M=52;
- doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('THE PLEASURE DISPATCH · NO. '+edition(),M,y);y+=30;doc.setFont('times','normal');doc.setFontSize(30);const title=doc.splitTextToSize(val('title')||'The Pleasure Dispatch',W-M*2);doc.text(title,M,y);y+=title.length*34+12;doc.setFontSize(10);doc.setFont('helvetica','normal');doc.text(val('date'),M,y);y+=32;
- const sections=[['01 — A REFLECTION',val('reflection')],['02 — THE WORK',val('workText')],['03 — STUDIO NOTES',val('studioText')],['04 — PLEASURE NOTES',[['Coffee',val('coffee')],['Art',val('art')],['Object',val('object')],['Currently',val('currently')]].filter(x=>x[1]).map(x=>x[0]+': '+x[1]).join('\n')],['05 — AN INVITATION',[val('inviteTitle'),val('inviteText')].filter(Boolean).join('\n')],['06 — A QUESTION',val('question')]].filter(x=>x[1]);
- for(const [head,text] of sections){if(y>710){doc.addPage();y=55}doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(head,M,y);y+=18;doc.setFont('times','normal');doc.setFontSize(13);const lines=doc.splitTextToSize(String(text),W-M*2);for(const line of lines){if(y>735){doc.addPage();y=55}doc.text(line,M,y);y+=18}y+=20}
- doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('FLRSGLOBAL · The Pleasure Dispatch',M,760);const blob=doc.output('datauristring');return uploadDrive(blob,'The_Pleasure_Dispatch_No_'+edition()+'.pdf','application/pdf')}
-
-async function publish(){const b=$('publishBtn');b.disabled=true;$('result').style.display='none';try{const key=secret();let imageUrl='';if(selectedImage)imageUrl=await uploadImage();const html=buildHtml(imageUrl);status('Publishing Dispatch…');const payload={action:'publish',secret:key,edition:edition(),editionLabel:'No. '+edition(),date:val('date')||new Date().toISOString().slice(0,10),title:val('title')||'The Pleasure Dispatch',subtitle:val('subtitle'),subject:'The Pleasure Dispatch — No. '+edition()+': '+(val('title')||'A Note on Pleasure'),reflection:val('reflection'),html:html,searchText:[val('title'),val('subtitle'),val('reflection'),val('workText'),val('studioText'),val('inviteTitle'),val('inviteText'),val('question')].filter(Boolean).join(' ')};
- const r=await fetch(PUBLISHER_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});if(!r.ok)throw Error('Publisher returned HTTP '+r.status+'.');const j=await r.json();if(j.success===false||j.status==='error')throw Error(j.error||j.message||'Publishing failed.');let pdf=null;try{pdf=await savePdf()}catch(e){console.warn(e);status('Published; PDF archive failed.')}const url=j.url||j.publicUrl||j.dispatchUrl||'';$('result').innerHTML='<strong>✓ Dispatch published.</strong>'+ (url?'<br><a href="'+url+'" target="_blank" rel="noopener">Open published Dispatch →</a>':'')+(pdf?'<br><span>✓ Archival PDF saved to Drive.</span>':'');$('result').style.display='block';status('Published successfully');}catch(e){console.error(e);$('result').innerHTML='<span class="danger">Publishing failed: '+clean(e.message)+'</span>';$('result').style.display='block';status('Publish failed')}finally{b.disabled=false}}
-
-$('previewBtn').addEventListener('click',preview);$('publishBtn').addEventListener('click',publish);
+$('previewBtn').addEventListener('click',preview);$('publishBtn').addEventListener('click',publish);$('deleteBtn').addEventListener('click',deleteDispatch);
