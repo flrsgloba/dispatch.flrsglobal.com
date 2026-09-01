@@ -9,7 +9,8 @@
 const MAIN_PUBLISHER_URL =
   'https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec';
 
-const MOBILE_PUBLISH_KEY_PROPERTY = 'MOBILE_PUBLISH_KEY';
+// Use the same publishing credential as the main Dispatch publisher.
+const MOBILE_PUBLISH_KEY_PROPERTY = 'DRIVE_PUBLISH_KEY';
 const MAX_BODY_BYTES = 9000000;
 
 function doGet() {
@@ -17,7 +18,7 @@ function doGet() {
     success: true,
     service: 'Pleasure Dispatch Mobile Publisher',
     status: 'online',
-    version: '1.1.0'
+    version: '1.2.0'
   });
 }
 
@@ -54,7 +55,8 @@ function doPost(e) {
     authenticate_(request.secret);
 
     // Pass the mobile payload through to the main publisher.
-    // The mobile key is retained because the main publisher may authenticate it.
+    // The same DRIVE_PUBLISH_KEY is forwarded because the main publisher
+    // uses it to authenticate publishing requests.
     const payload = buildPublisherPayload_(request);
     const response = forwardToMainPublisher_(payload);
 
@@ -79,11 +81,11 @@ function authenticate_(provided) {
     .getProperty(MOBILE_PUBLISH_KEY_PROPERTY);
 
   if (!expected) {
-    throw new Error('Mobile publisher is not configured. Set MOBILE_PUBLISH_KEY in Script Properties.');
+    throw new Error('Mobile publisher is not configured. Set DRIVE_PUBLISH_KEY in Script Properties.');
   }
 
   if (!provided || String(provided) !== String(expected)) {
-    throw new Error('Unauthorized publishing request.');
+    throw new Error('Publishing key rejected.');
   }
 }
 
