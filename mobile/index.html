@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#303030">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dispatch Publisher">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Dispatch Publisher</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#303030;color:#f2eee5;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}body{min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}button,input,textarea{font:inherit}button{cursor:pointer}.shell{max-width:760px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 18px 48px}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:28px}.eyebrow{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#c9c3b8}.brand{font-size:26px;letter-spacing:-.04em}.status{font-size:12px;color:#c9c3b8;text-align:right}.card{background:#404040;border:1px solid #666;border-radius:14px;padding:18px;margin:12px 0}.section-title{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#c9c3b8;margin-bottom:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:560px){.grid{grid-template-columns:1fr}}label{display:block;font-size:12px;color:#c9c3b8;margin:0 0 7px}input,textarea{width:100%;border:1px solid #6f6f6f;border-radius:9px;background:#303030;color:#f2eee5;padding:11px 12px;outline:none}input:focus,textarea:focus{border-color:#aaa}textarea{min-height:130px;resize:vertical;line-height:1.5}.small textarea{min-height:90px}.image-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}.image-preview{margin-top:10px;max-height:240px;max-width:100%;border-radius:9px;display:none}.actions{position:sticky;bottom:0;background:linear-gradient(transparent,#303030 18%);padding:24px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:1px solid #888;background:#595959;color:#f2eee5;border-radius:10px;padding:13px 14px;font-weight:600}.btn.primary{background:#f2eee5;color:#303030;border-color:#f2eee5}.btn:disabled{opacity:.45;cursor:default}.result{display:none;background:#242424;border:1px solid #777;border-radius:12px;padding:14px;margin-top:14px}.result a{color:#f2eee5}.notice{font-size:13px;line-height:1.5;color:#c9c3b8}.toggle{display:flex;align-items:center;gap:10px;margin-top:12px}.toggle input{width:auto}.hidden{display:none}.preview{background:#fff;color:#222;border-radius:10px;padding:28px;overflow:hidden}.preview h1{font:400 38px Georgia,serif;line-height:.95;margin:10px 0 20px}.preview p{font:18px/1.5 Georgia,serif}.preview .mono{font:10px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:#666}.preview img{max-width:100%;height:auto;margin:14px 0}.danger{color:#f0b5a9}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top"><div><div class="eyebrow">FLRSGLOBAL</div><div class="brand">The Pleasure Dispatch</div></div><div class="status" id="status">Ready</div></header>
+
+<section class="card">
+<div class="section-title">Dispatch</div>
+<div class="grid">
+<div><label for="edition">Edition</label><input id="edition" value="002" inputmode="decimal"></div>
+<div><label for="date">Date</label><input id="date" type="date"></div>
+</div>
+<div style="margin-top:12px"><label for="title">Title</label><input id="title" placeholder="Ritual as Pleasure"></div>
+<div style="margin-top:12px"><label for="subtitle">Subtitle</label><input id="subtitle" placeholder="A note on..." ></div>
+</section>
+
+<section class="card">
+<div class="section-title">01 — A Reflection</div>
+<textarea id="reflection" placeholder="Write the opening reflection..."></textarea>
+</section>
+
+<section class="card">
+<div class="section-title">02 — The Work</div>
+<textarea id="workText" placeholder="Write about the work, image, encounter, or idea..."></textarea>
+<div style="margin-top:14px"><label for="image">Optional image</label><input id="image" type="file" accept="image/*"><img id="imagePreview" class="image-preview"></div>
+</section>
+
+<section class="card">
+<div class="section-title">03 — Studio Notes</div>
+<textarea id="studioText" placeholder="Notes from the studio..."></textarea>
+</section>
+
+<section class="card small">
+<div class="section-title">04 — Pleasure Notes</div>
+<div class="grid">
+<div><label for="coffee">Coffee</label><textarea id="coffee" placeholder="What held your attention?"></textarea></div>
+<div><label for="art">Art</label><textarea id="art" placeholder="What are you looking at?"></textarea></div>
+<div><label for="object">Object</label><textarea id="object" placeholder="What object has pleasure in it?"></textarea></div>
+<div><label for="currently">Currently</label><textarea id="currently" placeholder="A current pleasure..."></textarea></div>
+</div>
+</section>
+
+<section class="card small">
+<div class="section-title">05 — An Invitation</div>
+<input id="inviteTitle" placeholder="Invitation title">
+<textarea id="inviteText" placeholder="Optional invitation or closing..." style="margin-top:10px"></textarea>
+<input id="ctaUrl" placeholder="Optional link (https://...)" style="margin-top:10px">
+</section>
+
+<section class="card">
+<div class="section-title">06 — A Question</div>
+<textarea id="question" placeholder="What question should stay with the reader?"></textarea>
+<div class="toggle"><input id="savePdf" type="checkbox" checked><label for="savePdf" style="margin:0">Save an archival PDF to Google Drive</label></div>
+</section>
+
+<section class="card hidden" id="previewCard"><div class="section-title">Preview</div><div id="preview" class="preview"></div></section>
+
+<div class="actions">
+<button class="btn" id="previewBtn">Preview</button>
+<button class="btn primary" id="publishBtn">Publish Dispatch</button>
+</div>
+<div class="result" id="result"></div>
+<p class="notice">This is the private publishing console. It does not manage subscribers or send email. Publishing writes to the existing Pleasure Dispatch infrastructure.</p>
+</main>
+
+<iframe id="publisherFrame" class="hidden" title="Publisher bridge" aria-hidden="true"></iframe>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
