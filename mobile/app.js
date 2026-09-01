@@ -1,4 +1,4 @@
-const PUBLISHER_URL='https://script.google.com/macros/s/AKfycbwBE18EpvE6l5bd8GFD8ehW9bryrMYgSaCHbAR30jhWjU5GG2gmRPTHtbPcPyLfN5i8/exec';
+const PUBLISHER_URL='https://script.google.com/macros/s/AKfycbwpdElO35PiRlfhLvzISgpT3rtcxz8Iv5wewQoqvQJvC7yP02xN6UqrAjwPjfNHBv0T/exec';
 const DRIVE_API_URL='https://script.google.com/macros/s/AKfycbxY93Vr1Zuij1sIKM7X0sgmyT5ipFnufnYGUrw6DqSAQL8QQYM6juVkRszGf-QdRKMEWQ/exec';
 const SECRET_KEY='pd_publish_secret';
 let selectedImage=null;
