@@ -30,7 +30,49 @@ ${val('question')?`<section style="border-top:1px solid #666;padding-top:24px"><
 function preview(){const html=buildHtml(selectedImage?$('imagePreview').src:'');$('preview').innerHTML=new DOMParser().parseFromString(html,'text/html').body.innerHTML;$('previewCard').style.display='block';$('previewCard').scrollIntoView({behavior:'smooth'});status('Preview ready')}
 
 async function uploadDrive(dataUrl,fileName,mimeType){const comma=dataUrl.indexOf(',');const body=JSON.stringify({action:'upload',fileName:fileName,mimeType:mimeType,fileContent:comma>=0?dataUrl.slice(comma+1):dataUrl});const r=await fetch(DRIVE_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body});if(!r.ok)throw Error('Google Drive returned HTTP '+r.status+'.');const j=await r.json();if(j.status!=='created')throw Error(j.message||'Google Drive did not create the file.');return j}
-async function uploadImage(){if(!selectedImage)return '';status('Uploading image…');const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(selectedImage)});const result=await uploadDrive(data,'PD_'+edition()+'_'+Date.now()+'_'+selectedImage.name,'image/jpeg');return result.imageUrl||('https://drive.google.com/thumbnail?id='+encodeURIComponent(result.fileId)+'&sz=w1800')}
+
+function isSupportedImageType(type){return ['image/jpeg','image/jpg','image/png','image/webp'].includes(String(type||'').toLowerCase())}
+
+function isHeicOrHeif(file){const name=String(file.name||'').toLowerCase();const type=String(file.type||'').toLowerCase();return type==='image/heic'||type==='image/heif'||/\.(heic|heif)$/.test(name)}
+
+async function normalizeImage(file){
+  if(!file) return null;
+  if(isSupportedImageType(file.type)) return file;
+
+  // iPhones commonly return HEIC/HEIF. Browsers do not reliably expose a
+  // decoder for HEIC, so first try the browser's native image decoder.
+  // If the browser can decode it, canvas converts it to JPEG for Drive.
+  if(isHeicOrHeif(file)){
+    try{
+      const bitmap=await createImageBitmap(file);
+      const canvas=document.createElement('canvas');
+      canvas.width=bitmap.width;
+      canvas.height=bitmap.height;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(bitmap,0,0);
+      bitmap.close();
+      const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not convert the iPhone image.')),'image/jpeg',0.92));
+      return new File([blob],file.name.replace(/\.(heic|heif)$/i,'.jpg'),{type:'image/jpeg',lastModified:Date.now()});
+    }catch(err){
+      throw Error('This iPhone image is HEIC/HEIF and this browser could not convert it to JPG. In Photos, use Share → Options → Most Compatible, then select the photo again.');
+    }
+  }
+
+  // Unknown image formats are rejected rather than mislabeled.
+  throw Error('Only JPG, PNG, WebP, or iPhone HEIC/HEIF images are supported.');
+}
+
+async function uploadImage(){
+  if(!selectedImage)return '';
+  status('Preparing image…');
+  const normalized=await normalizeImage(selectedImage);
+  status('Uploading image…');
+  const data=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(normalized)});
+  const safeExt=normalized.type==='image/png'?'.png':normalized.type==='image/webp'?'.webp':'.jpg';
+  const baseName=normalized.name.replace(/\.[^.]+$/,'');
+  const result=await uploadDrive(data,'PD_'+edition()+'_'+Date.now()+'_'+baseName+safeExt,normalized.type);
+  return result.imageUrl||('https://drive.google.com/thumbnail?id='+encodeURIComponent(result.fileId)+'&sz=w1800');
+}
 
 async function savePdf(){if(!$('savePdf').checked)return null;if(!window.jspdf)return null;status('Creating archival PDF…');const doc=new jspdf.jsPDF({unit:'pt',format:'letter'});let y=60;const W=doc.internal.pageSize.getWidth(),M=52;
  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('THE PLEASURE DISPATCH · NO. '+edition(),M,y);y+=30;doc.setFont('times','normal');doc.setFontSize(30);const title=doc.splitTextToSize(val('title')||'The Pleasure Dispatch',W-M*2);doc.text(title,M,y);y+=title.length*34+12;doc.setFontSize(10);doc.setFont('helvetica','normal');doc.text(val('date'),M,y);y+=32;
