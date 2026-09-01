@@ -1,27 +1,7 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-01T04:56:45.023Z",
+  "updatedAt": "2026-09-01T05:23:30.557Z",
   "dispatches": [
-    {
-      "edition": "001",
-      "editionLabel": "No. 001",
-      "date": "2026-09-01",
-      "title": "The Pleasure Dispatch",
-      "subtitle": "",
-      "subject": "The Pleasure Dispatch — No. 001: A Note on Pleasure",
-      "reflection": "",
-      "html": "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>The Pleasure Dispatch — No. 001</title></head><body style=\"margin:0;background:#303030;color:#f2eee5;font-family:Georgia,serif\"><main style=\"max-width:760px;margin:auto;padding:64px 24px 100px\"><div style=\"font:11px ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#c9c3b8\">THE PLEASURE DISPATCH · NO. 001</div><h1 style=\"font-size:clamp(44px,8vw,78px);font-weight:400;line-height:.92;letter-spacing:-.04em;margin:22px 0 10px\">The Pleasure Dispatch</h1><div style=\"font:11px ui-monospace,monospace;color:#aaa;margin-bottom:50px\">2026-09-01</div>\n\n\n\n\n\n\n<footer style=\"border-top:1px solid #666;margin-top:70px;padding-top:18px;font:10px ui-monospace,monospace;color:#999\">FLRSGLOBAL · THE PLEASURE DISPATCH</footer></main></body></html>",
-      "searchText": "",
-      "subscriberCount": 494,
-      "activeSubscriberCount": 494,
-      "unsubscribedCount": 0,
-      "subscriberCsv": {
-        "fileId": "1uBod8ydXSP-M6nVgylq3as7s-PoJ0TU6",
-        "fileName": "Newsletter Contacts 2026 Updated - Newsletter Contacts.csv",
-        "updatedAt": "2026-08-30T17:12:41.000Z"
-      },
-      "publishedAt": "2026-09-01T04:56:45.022Z"
-    },
     {
       "edition": "000",
       "editionLabel": "No. 000",
