@@ -1,0 +1,9 @@
+{
+  "name": "The Pleasure Dispatch Publisher",
+  "short_name": "Dispatch",
+  "start_url": "/mobile/",
+  "display": "standalone",
+  "background_color": "#303030",
+  "theme_color": "#303030",
+  "description": "Private publishing console for The Pleasure Dispatch."
+}
