@@ -2,19 +2,12 @@
  * THE PLEASURE DISPATCH
  * MobilePublisher.gs
  *
- * Thin Google Apps Script bridge for the mobile Dispatch Publisher.
- *
  * Mobile -> this web app -> Main Dispatch Publisher -> GitHub/site.
- *
- * IMPORTANT:
- * 1. Deploy this file as a separate Apps Script Web App.
- * 2. Set MAIN_PUBLISHER_URL to the deployed URL of the main Dispatch publisher.
- * 3. Set MOBILE_PUBLISH_KEY in Script Properties. Do not put the key in this file.
- * 4. The main publisher remains the system of record for publishing.
  */
 
+// MAIN DISPATCH PUBLISHER. This is NOT the Drive API.
 const MAIN_PUBLISHER_URL =
-  'https://script.google.com/macros/s/AKfycbxY93Vr1Zuij1sIKM7X0sgmyT5ipFnufnYGUrw6DqSAQL8QQYM6juVkRszGf-QdRKMEWQ/exec';
+  'https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec';
 
 const MOBILE_PUBLISH_KEY_PROPERTY = 'MOBILE_PUBLISH_KEY';
 const MAX_BODY_BYTES = 9000000;
@@ -24,7 +17,7 @@ function doGet() {
     success: true,
     service: 'Pleasure Dispatch Mobile Publisher',
     status: 'online',
-    version: '1.0.0'
+    version: '1.1.0'
   });
 }
 
@@ -55,21 +48,14 @@ function doPost(e) {
     }
 
     if (action !== 'publish') {
-      return json_({
-        success: false,
-        error: 'Unsupported action. Use action: publish.'
-      });
+      return json_({ success: false, error: 'Unsupported action. Use action: publish.' });
     }
 
     authenticate_(request.secret);
 
-    const payload = sanitizePublishPayload_(request);
-
-    // Never forward the mobile authentication secret to the main publisher
-    // unless the main publisher explicitly requires the same secret. The
-    // bridge authenticates the mobile client independently.
-    delete payload.secret;
-
+    // Pass the mobile payload through to the main publisher.
+    // The mobile key is retained because the main publisher may authenticate it.
+    const payload = buildPublisherPayload_(request);
     const response = forwardToMainPublisher_(payload);
 
     return json_({
@@ -93,9 +79,7 @@ function authenticate_(provided) {
     .getProperty(MOBILE_PUBLISH_KEY_PROPERTY);
 
   if (!expected) {
-    throw new Error(
-      'Mobile publisher is not configured. Set MOBILE_PUBLISH_KEY in Script Properties.'
-    );
+    throw new Error('Mobile publisher is not configured. Set MOBILE_PUBLISH_KEY in Script Properties.');
   }
 
   if (!provided || String(provided) !== String(expected)) {
@@ -103,29 +87,15 @@ function authenticate_(provided) {
   }
 }
 
-function sanitizePublishPayload_(request) {
-  const allowed = [
-    'action',
-    'edition',
-    'editionLabel',
-    'date',
-    'title',
-    'subtitle',
-    'subject',
-    'reflection',
-    'html',
-    'searchText',
-    'publicUrl',
-    'dispatchUrl'
-  ];
-
+function buildPublisherPayload_(request) {
   const payload = {};
 
-  allowed.forEach(function (key) {
-    if (Object.prototype.hasOwnProperty.call(request, key)) {
-      payload[key] = request[key];
-    }
+  Object.keys(request).forEach(function(key) {
+    payload[key] = request[key];
   });
+
+  payload.action = 'publish';
+  payload.secret = request.secret;
 
   if (!payload.edition) throw new Error('Edition is required.');
   if (!payload.title) throw new Error('Title is required.');
@@ -137,7 +107,7 @@ function sanitizePublishPayload_(request) {
 function forwardToMainPublisher_(payload) {
   const response = UrlFetchApp.fetch(MAIN_PUBLISHER_URL, {
     method: 'post',
-    contentType: 'text/plain;charset=utf-8',
+    contentType: 'application/json;charset=utf-8',
     payload: JSON.stringify(payload),
     followRedirects: true,
     muteHttpExceptions: true
@@ -149,7 +119,7 @@ function forwardToMainPublisher_(payload) {
   if (code < 200 || code >= 300) {
     throw new Error(
       'Main Dispatch publisher returned HTTP ' + code +
-      (text ? ': ' + text.slice(0, 500) : '.')
+      (text ? ': ' + text.slice(0, 800) : '.')
     );
   }
 
@@ -158,7 +128,7 @@ function forwardToMainPublisher_(payload) {
     parsed = JSON.parse(text);
   } catch (err) {
     throw new Error(
-      'Main Dispatch publisher returned a non-JSON response: ' + text.slice(0, 500)
+      'Main Dispatch publisher returned a non-JSON response: ' + text.slice(0, 800)
     );
   }
 
