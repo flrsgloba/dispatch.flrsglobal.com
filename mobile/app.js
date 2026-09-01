@@ -1,5 +1,5 @@
 const PUBLISHER_URL='https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec';
-const DRIVE_API_URL='https://script.google.com/macros/s/AKfycbxY93Vr1Zuij1sIKM7X0sgmyT5ipFnufnYGUrw6DqSAQL8QQYM6juVkRszGf-QdRKMEWQ/exec';
+const DRIVE_API_URL='https://script.google.com/macros/s/AKfycbwBE18EpvE6l5bd8GFD8ehW9bryrMYgSaCHbAR30jhWjU5GG2gmRPTHtbPcPyLfN5i8/exec';
 const SECRET_KEY='pd_publish_secret';
 let selectedImage=null;
 
