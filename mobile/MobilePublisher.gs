@@ -5,9 +5,9 @@
  * Mobile -> this web app -> Main Dispatch Publisher -> GitHub/site.
  */
 
-// MAIN DISPATCH PUBLISHER. This is NOT the Drive API.
+// CURRENT MAIN DISPATCH PUBLISHER. This is NOT the Drive API.
 const MAIN_PUBLISHER_URL =
-  'https://script.google.com/macros/s/AKfycbzavxknADmXnvAhRqcf9areGCRpfAJIZ62v84kqb_hpfgfAWIUbngcCH4B8M9TpkuA-uw/exec';
+  'https://script.google.com/macros/s/AKfycbwpdElO35PiRlfhLvzISgpT3rtcxz8Iv5wewQoqvQJvC7yP02xN6UqrAjwPjfNHBv0T/exec';
 
 // Use the same publishing credential as the main Dispatch publisher.
 const MOBILE_PUBLISH_KEY_PROPERTY = 'DRIVE_PUBLISH_KEY';
@@ -18,7 +18,7 @@ function doGet() {
     success: true,
     service: 'Pleasure Dispatch Mobile Publisher',
     status: 'online',
-    version: '1.2.0'
+    version: '1.3.0'
   });
 }
 
@@ -54,9 +54,6 @@ function doPost(e) {
 
     authenticate_(request.secret);
 
-    // Pass the mobile payload through to the main publisher.
-    // The same DRIVE_PUBLISH_KEY is forwarded because the main publisher
-    // uses it to authenticate publishing requests.
     const payload = buildPublisherPayload_(request);
     const response = forwardToMainPublisher_(payload);
 
