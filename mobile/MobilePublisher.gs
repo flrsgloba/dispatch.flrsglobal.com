@@ -4,9 +4,8 @@
  *
  * Mobile -> this web app -> Main Dispatch Publisher -> GitHub/site.
  *
- * Authentication is deliberately split:
- *   DRIVE_PUBLISH_KEY authenticates the mobile client to this bridge.
- *   PUBLISH_SECRET authenticates this bridge to the main Publisher.
+ * The SAME DRIVE_PUBLISH_KEY authenticates both publish and delete.
+ * PUBLISH_SECRET is used only between this bridge and the Main Publisher.
  */
 
 const MAIN_PUBLISHER_URL =
@@ -21,7 +20,7 @@ function doGet() {
     success: true,
     service: 'Pleasure Dispatch Mobile Publisher',
     status: 'online',
-    version: '1.6.0'
+    version: '1.7.0'
   });
 }
 
@@ -47,7 +46,7 @@ function doPost(e) {
         success: true,
         service: 'Pleasure Dispatch Mobile Publisher',
         status: 'online',
-        mainPublisherConfigured: Boolean(MAIN_PUBLISHER_URL),
+        version: '1.7.0',
         authenticationConfigured: Boolean(
           PropertiesService.getScriptProperties().getProperty(MOBILE_PUBLISH_KEY_PROPERTY)
         ) && Boolean(
@@ -57,9 +56,13 @@ function doPost(e) {
     }
 
     if (action !== 'publish' && action !== 'delete') {
-      return json_({ success: false, error: 'Unsupported action. Use action: publish or delete.' });
+      return json_({
+        success: false,
+        error: 'Unsupported action. Use action: publish or delete.'
+      });
     }
 
+    // EXACT SAME authentication used for both operations.
     authenticateMobile_(request.secret);
 
     const payload = buildPublisherPayload_(request, action);
@@ -86,7 +89,9 @@ function authenticateMobile_(provided) {
     .getProperty(MOBILE_PUBLISH_KEY_PROPERTY);
 
   if (!expected) {
-    throw new Error('Mobile publisher is not configured. Set DRIVE_PUBLISH_KEY in Script Properties.');
+    throw new Error(
+      'Mobile publisher is not configured. Set DRIVE_PUBLISH_KEY in Script Properties.'
+    );
   }
 
   if (!provided || String(provided) !== String(expected)) {
@@ -106,9 +111,13 @@ function buildPublisherPayload_(request, action) {
     .getProperty(UPSTREAM_PUBLISH_SECRET_PROPERTY);
 
   if (!publishSecret) {
-    throw new Error('Mobile publisher is not configured. Set PUBLISH_SECRET in Script Properties.');
+    throw new Error(
+      'Mobile publisher is not configured. Set PUBLISH_SECRET in Script Properties.'
+    );
   }
 
+  // Replace the mobile key with the Main Publisher's secret.
+  // The mobile key never gets forwarded upstream.
   payload.action = action;
   payload.secret = publishSecret;
 
@@ -119,7 +128,9 @@ function buildPublisherPayload_(request, action) {
   }
 
   if (action === 'delete') {
-    if (!payload.edition) throw new Error('Edition is required for deletion.');
+    if (!payload.edition) {
+      throw new Error('Edition is required for deletion.');
+    }
   }
 
   return payload;
@@ -154,7 +165,11 @@ function forwardToMainPublisher_(payload) {
   }
 
   if (parsed && (parsed.success === false || parsed.status === 'error')) {
-    throw new Error(parsed.error || parsed.message || 'Main Dispatch publisher rejected the request.');
+    throw new Error(
+      parsed.error ||
+      parsed.message ||
+      'Main Dispatch publisher rejected the request.'
+    );
   }
 
   return parsed;
