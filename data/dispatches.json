@@ -1,27 +1,7 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-02T03:05:47.399Z",
+  "updatedAt": "2026-09-02T21:53:50.002Z",
   "dispatches": [
-    {
-      "edition": "002",
-      "editionLabel": "No. 002",
-      "date": "2026-09-02",
-      "title": "The Pleasure Dispatch",
-      "subtitle": "",
-      "subject": "The Pleasure Dispatch — No. 002: A Note on Pleasure",
-      "reflection": "jkmjk",
-      "html": "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;background:#303030;color:#f2eee5;font-family:Georgia,serif\"><main style=\"max-width:760px;margin:auto;padding:64px 24px 100px\"><div style=\"font:11px ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#c9c3b8\">THE PLEASURE DISPATCH · NO. 002</div><h1 style=\"font-size:clamp(44px,8vw,78px);font-weight:400;line-height:.92;letter-spacing:-.04em;margin:22px 0 10px\">The Pleasure Dispatch</h1><div style=\"font:11px ui-monospace,monospace;color:#aaa;margin-bottom:50px\">2026-09-02</div><figure style=\"margin:0\"><div><img src=\"https://drive.google.com/thumbnail?id=1hyjuXJKSpyb6juA07rDtDYfbcNUL1j9v&amp;sz=w1800\" style=\"display:block;width:100%;height:auto\"></div></figure><section><div style=\"font:11px ui-monospace,monospace;letter-spacing:.12em;color:#aaa\">01 — A REFLECTION</div><div style=\"font-size:21px;line-height:1.55;margin:14px 0 50px\">jkmjk</div></section><section><div style=\"font:11px ui-monospace,monospace;letter-spacing:.12em;color:#aaa\">02 — THE WORK</div><div style=\"font-size:19px;line-height:1.55\">knmkj</div></section><section style=\"margin:28px 0\"><div style=\"display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:16px\"><div><figure style=\"margin:0\"><div><a href=\"https://drive.google.com/file/d/1F3nNFde5bn5uPJPaswJiVion0QPubfYb/view\"><img src=\"https://drive.google.com/thumbnail?id=1F3nNFde5bn5uPJPaswJiVion0QPubfYb&amp;sz=w1800\" style=\"display:block;width:100%;height:auto\"></a></div></figure></div></div></section><section><div style=\"font:11px ui-monospace,monospace;letter-spacing:.12em;color:#aaa\">03 — STUDIO NOTES</div><figure style=\"margin:0\"><div><img src=\"https://drive.google.com/thumbnail?id=1lHhWNykJolpyC8pmWEq8UojPE_fQVK-q&amp;sz=w1800\" style=\"display:block;width:100%;height:auto\"></div></figure></section><section><div style=\"font:11px ui-monospace,monospace;letter-spacing:.12em;color:#aaa\">04 — PLEASURE NOTES</div><p style=\"font-size:17px;line-height:1.5\"><strong>Coffee</strong><br></p><p style=\"font-size:17px;line-height:1.5\"><strong>Art</strong><br></p><p style=\"font-size:17px;line-height:1.5\"><strong>Object</strong><br></p></section><footer style=\"border-top:1px solid #666;margin-top:70px;padding-top:18px;font:10px ui-monospace,monospace;color:#999\">FLRSGLOBAL · THE PLEASURE DISPATCH</footer></main></body></html>",
-      "searchText": "jkmjk knmkj",
-      "subscriberCount": 494,
-      "activeSubscriberCount": 494,
-      "unsubscribedCount": 0,
-      "subscriberCsv": {
-        "fileId": "1uBod8ydXSP-M6nVgylq3as7s-PoJ0TU6",
-        "fileName": "Newsletter Contacts 2026 Updated - Newsletter Contacts.csv",
-        "updatedAt": "2026-08-30T17:12:41.000Z"
-      },
-      "publishedAt": "2026-09-02T03:05:47.395Z"
-    },
     {
       "edition": "001",
       "editionLabel": "No. 001",
