@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Pleasure Dispatch — No. 001</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     DESIGN TOKENS — change these to re-skin the whole template
+     ============================================================ */
+  :root{
+    --bg:        #1b1a17;
+    --bg-raised: #211f1c;
+    --ink:       #ede8de;
+    --ink-dim:   #9a9488;
+    --ink-faint: #6f6a5f;
+    --line:      #37342e;
+    --brass:     #c7ad82;
+
+    --serif: 'Fraunces', Georgia, serif;
+    --sans:  'Inter', -apple-system, sans-serif;
+
+    --measure: 640px;
+    --gutter: clamp(20px, 5vw, 56px);
+  }
+
+  *{ box-sizing:border-box; }
+  html{ background:var(--bg); }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--brass); color:#1b1a17; }
+
+  img{ max-width:100%; display:block; }
+
+  .page{
+    max-width: calc(var(--measure) + var(--gutter)*2);
+    margin: 0 auto;
+    padding: 0 var(--gutter) 96px;
+  }
+
+  /* ---------- ring mark ---------- */
+  .ring-mark{
+    display:flex;
+    justify-content:center;
+    margin: 56px 0 48px;
+  }
+  .ring-mark svg{ width:34px; height:34px; }
+  .ring-mark circle{ fill:none; stroke:var(--ink-faint); stroke-width:1; }
+
+  /* ---------- masthead ---------- */
+  .masthead{
+    text-align:left;
+    padding-top: 64px;
+  }
+  .masthead .publisher{
+    font-family:var(--sans);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    margin:0;
+  }
+  .masthead .studio-credit{
+    font-family:var(--sans);
+    font-size:11px;
+    letter-spacing:.06em;
+    color:var(--ink-faint);
+    margin:4px 0 0;
+  }
+  .masthead h1{
+    font-family:var(--serif);
+    font-weight:500;
+    font-style:normal;
+    font-size:clamp(38px, 6vw, 56px);
+    line-height:1.05;
+    letter-spacing:-0.01em;
+    margin: 22px 0 18px;
+  }
+  .masthead .issue-line{
+    font-family:var(--sans);
+    font-size:13px;
+    color:var(--ink-dim);
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .masthead .issue-line b{ color:var(--ink); font-weight:600; }
+
+  .deck{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:20px;
+    color:var(--ink);
+    margin: 40px 0 28px;
+  }
+
+  /* ---------- hero image ---------- */
+  figure{ margin:0; }
+  .hero{ margin: 28px 0 8px; }
+  .hero img{ width:100%; height:auto; }
+  figcaption{
+    font-family:var(--sans);
+    font-size:12px;
+    color:var(--ink-faint);
+    margin-top:8px;
+  }
+
+  /* ---------- numbered sections ---------- */
+  section.movement{
+    margin-top: 64px;
+  }
+  .movement-label{
+    font-family:var(--sans);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom: 20px;
+  }
+  .movement-label::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+  .movement h2{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:26px;
+    margin: 0 0 20px;
+  }
+  .movement p{
+    font-family:var(--serif);
+    font-size:18px;
+    line-height:1.75;
+    color: #ded8cc;
+    margin: 0 0 20px;
+    max-width: 58ch;
+  }
+  .movement p.tight{ margin-bottom: 10px; }
+
+  /* ---------- asymmetric photo mosaic ---------- */
+  .mosaic{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin: 28px 0;
+  }
+  .mosaic img{ width:100%; height:100%; object-fit:cover; }
+  .mosaic .w2{ grid-column: span 2; aspect-ratio: 1/1; }
+  .mosaic .w3{ grid-column: span 3; aspect-ratio: 1/1; }
+  .mosaic .w4{ grid-column: span 4; aspect-ratio: 4/3; }
+  .mosaic .w6{ grid-column: span 6; aspect-ratio: 16/9; }
+
+  /* ---------- work / triptych ---------- */
+  .triptych{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin: 28px 0 4px;
+  }
+  .triptych figure{ margin:0; }
+  .triptych img{ aspect-ratio: 3/4; object-fit:cover; }
+  .triptych figcaption{ font-size:11px; }
+
+  /* ---------- studio notes / mind-map image ---------- */
+  .notes-image{ margin: 28px 0; }
+  .notes-image img{ border:1px solid var(--line); }
+
+  /* ---------- pleasure-notes ledger ---------- */
+  .ledger{
+    margin-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .ledger-row{
+    display:grid;
+    grid-template-columns: 120px 1fr;
+    gap: 24px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .ledger-row dt{
+    font-family:var(--sans);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0;
+  }
+  .ledger-row dd{
+    font-family:var(--sans);
+    font-size:15px;
+    color:var(--ink);
+    margin:0;
+  }
+  .ledger-row dd .item-name{
+    font-family:var(--serif);
+    font-size:17px;
+    display:block;
+    margin-bottom:6px;
+  }
+  .ledger-row dd .item-detail{
+    color:var(--ink-dim);
+    font-size:13.5px;
+    line-height:1.7;
+    white-space:pre-line;
+  }
+
+  /* ---------- closing question ---------- */
+  .closing{
+    text-align:center;
+    padding-top: 72px;
+    margin-top: 72px;
+    border-top: 1px solid var(--line);
+  }
+  .closing .prompt-label{
+    font-family:var(--sans);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin-bottom:20px;
+  }
+  .closing h3{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size: clamp(24px, 4vw, 32px);
+    line-height:1.35;
+    max-width: 20ch;
+    margin: 0 auto;
+  }
+  .closing .tagline{
+    font-family:var(--serif);
+    font-style:italic;
+    color:var(--brass);
+    font-size:16px;
+    margin-top: 40px;
+  }
+
+  @media (max-width: 520px){
+    .mosaic{ grid-template-columns: repeat(4,1fr); }
+    .mosaic .w6, .mosaic .w4{ grid-column: span 4; }
+    .mosaic .w3{ grid-column: span 4; aspect-ratio:16/9; }
+    .mosaic .w2{ grid-column: span 2; }
+    .ledger-row{ grid-template-columns: 1fr; gap:6px; }
+    .triptych{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ============================================================
+       MASTHEAD — swap publisher / credit / title / issue meta per send
+       ============================================================ -->
+  <header class="masthead">
+    <p class="publisher">FLRS Global</p>
+    <p class="studio-credit">From the studio of Freddie L. Rankin II</p>
+    <h1>The Pleasure Dispatch</h1>
+    <p class="issue-line"><b>No. 001</b> · 2026-08-29 · Ritual as Pleasure</p>
+  </header>
+
+  <p class="deck">Notes on Rhythm, Rest, and Return</p>
+
+  <!-- HERO IMAGE — one wide studio/scene photo -->
+  <figure class="hero">
+    <img src="https://placehold.co/1200x800/2a2825/9a9488?text=Studio+at+The+Last+Resort" alt="In studio at The Last Resort, 2026">
+    <figcaption>In studio at The Last Resort, 2026</figcaption>
+  </figure>
+
+  <!-- ============================================================
+       MOVEMENT 01 — Reflection (long-form prose, letter voice)
+       ============================================================ -->
+  <section class="movement">
+    <p class="movement-label">01 — A Reflection</p>
+    <p>I've been thinking about the difference between ritual and routine.</p>
+    <p>It started in Miami. I went down to document Kennedy, in the studio, at rest, and ended up paying attention to the small stuff: the pauses, the habits, the way her days had a shape to them. What makes something sustain you, versus something you just do.</p>
+    <p>I carried that question to Baltimore.</p>
+    <p>The residency let me settle into my own rhythms. Breakfast and coffee. Gym. Lunch. Shower. Studio. Dinner. Libation.</p>
+    <p>In the studio I kept circling the same words. Discipline. Strength. Sensuality. Shame. Balance. Worship. Pleasure.</p>
+    <p>Maybe ritual isn't about repeating something. Maybe it's about which things you keep returning to, because they give something back.</p>
+  </section>
+
+  <!-- ============================================================
+       MOVEMENT 02 — The Work (project statement + triptych)
+       ============================================================ -->
+  <section class="movement">
+    <p class="movement-label">02 — The Work</p>
+    <h2>Surface Tension</h2>
+    <p>I keep thinking about what happens just beneath the surface — that space where something is being held, where there's pressure but nothing has quite given way yet. There's something sensual in the waiting, in not knowing when or if something will break.</p>
+
+    <div class="triptych">
+      <figure>
+        <img src="https://placehold.co/600x800/151413/6f6a5f?text=No.+01" alt="Surface Tension No. 01, 2026">
+        <figcaption>Surface Tension No. 01.2026</figcaption>
+      </figure>
+      <figure>
+        <img src="https://placehold.co/600x800/151413/6f6a5f?text=No.+03" alt="Surface Tension No. 03, 2026">
+        <figcaption>Surface Tension No. 03.2026</figcaption>
+      </figure>
+      <figure>
+        <img src="https://placehold.co/600x800/151413/6f6a5f?text=No.+06" alt="Surface Tension No. 06, 2026">
+        <figcaption>Surface Tension No. 06.2026</figcaption>
+      </figure>
+    </div>
+
+    <!-- Loose life/studio mosaic — sizes are mix-and-match: w2/w3/w4/w6 -->
+    <div class="mosaic">
+      <img class="w2" src="https://placehold.co/400x400/232019/8a8477?text=garden" alt="Garden">
+      <img class="w2" src="https://placehold.co/400x400/232019/8a8477?text=breakfast" alt="Breakfast">
+      <img class="w2" src="https://placehold.co/400x400/232019/8a8477?text=portrait" alt="Portrait">
+      <img class="w3" src="https://placehold.co/450x450/1c1a17/6f6a5f?text=studio+door" alt="Studio door">
+      <img class="w3" src="https://placehold.co/450x450/1c1a17/6f6a5f?text=palette" alt="Palette">
+      <img class="w6" src="https://placehold.co/900x500/1c1a17/6f6a5f?text=porch+stoop" alt="Group on stoop">
+    </div>
+  </section>
+
+  <!-- ============================================================
+       MOVEMENT 03 — Studio Notes (a single artifact photo, e.g. mind map)
+       ============================================================ -->
+  <section class="movement">
+    <p class="movement-label">03 — Studio Notes</p>
+    <p class="tight">A few of the thoughts, words, and contradictions that followed me through the residency.</p>
+    <figure class="notes-image">
+      <img src="https://placehold.co/1200x1400/e8e4da/3a3730?text=Studio+Mind+Map" alt="Studio mind map, Baltimore, 2026">
+      <figcaption>Studio Mind Map, Baltimore, 2026</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================
+       MOVEMENT 04 — Pleasure Notes (ledger: label / item / detail)
+       Add or remove .ledger-row blocks as needed — the grid holds.
+       ============================================================ -->
+  <section class="movement">
+    <p class="movement-label">04 — Pleasure Notes</p>
+    <p class="tight">An offering of what has held my attention.</p>
+
+    <dl class="ledger">
+      <div class="ledger-row">
+        <dt>Coffee</dt>
+        <dd>
+          <span class="item-name">Black Acres Roastery</span>
+          <span class="item-detail">Golden Acres Blend
+(Colombia Lomo de Buey + Organic Timor FTO)</span>
+        </dd>
+      </div>
+      <div class="ledger-row">
+        <dt>The Art</dt>
+        <dd>
+          <span class="item-name">Richard Serra</span>
+          <span class="item-detail">Four Rounds: Equal Weight, Unequal Measure, 2017
+Dimensions variable, forged steel</span>
+        </dd>
+      </div>
+      <div class="ledger-row">
+        <dt>The Meal</dt>
+        <dd>
+          <span class="item-name">Branzino Piccante</span>
+          <span class="item-detail">½–¾ lb branzino · 1½ tbsp olive oil · 2 garlic cloves
+½–1 serrano or Fresno chile · ¼–½ tsp red pepper flakes
+1 lime, zest + juice · salt + black pepper · cilantro</span>
+        </dd>
+      </div>
+      <div class="ledger-row">
+        <dt>The Libation</dt>
+        <dd>
+          <span class="item-name">400 Conejos — Reposado</span>
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <!-- ============================================================
+       CLOSING — a single question + one-line tagline (kept consistent
+       across issues; only the question copy changes)
+       ============================================================ -->
+  <section class="closing">
+    <p class="prompt-label">06 — A Question</p>
+    <h3>What have you made a ritual of, and what does that ritual reveal about what you actually desire?</h3>
+
+    <div class="ring-mark">
+      <svg viewBox="0 0 40 40"><circle cx="18" cy="18" r="12"/><circle cx="24" cy="24" r="12"/></svg>
+    </div>
+
+    <p class="tagline">Pleasure is the desire to return.</p>
+  </section>
+
+</div>
+
+</body>
+</html>
