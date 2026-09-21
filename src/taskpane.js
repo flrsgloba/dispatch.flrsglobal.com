@@ -1379,37 +1379,22 @@ function buildPleasureNotesHtml(notes) {
   if (!notes || !notes.length) return "";
 
   return (
-    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="' +
-      "border-collapse:collapse;" +
-      "width:100%;" +
-      "margin:4px 0 30px;" +
-    '">' +
+    '<section class="pleasure-notes">' +
+      '<div class="pleasure-notes-header">04 — PLEASURE NOTES</div>' +
+      '<div class="pleasure-notes-headline">An offering of what has held my attention</div>' +
       notes.map(function (note) {
         return (
-          "<tr>" +
-            '<td style="' +
-              "width:120px;" +
-              "vertical-align:top;" +
-              "padding:5px 18px 5px 0;" +
-              "font:10px Arial,Helvetica,sans-serif;" +
-              "letter-spacing:1px;" +
-              "text-transform:uppercase;" +
-              "color:" + COLORS.secondary + ";" +
-            '">' +
-              textWithLineBreaks(note.label) +
-            "</td>" +
-            '<td style="' +
-              "vertical-align:top;" +
-              "padding:5px 0;" +
-              "font:16px/1.5 Garamond,Georgia,Times New Roman,serif;" +
-              "color:" + COLORS.text + ";" +
-            '">' +
+          '<div class="pleasure-note">' +
+            '<div class="pleasure-note-label">' +
+              escapeHtml(note.label) +
+            '</div>' +
+            '<div class="pleasure-note-value">' +
               textWithLineBreaks(note.value) +
-            "</td>" +
-          "</tr>"
+            '</div>' +
+          '</div>'
         );
       }).join("") +
-    "</table>"
+    '</section>'
   );
 }
 
