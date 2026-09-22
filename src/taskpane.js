@@ -1379,16 +1379,16 @@ function buildPleasureNotesHtml(notes) {
   if (!notes || !notes.length) return "";
 
   return (
-    '<section class="pleasure-notes">' +
-      '<div class="pleasure-notes-header">04 — PLEASURE NOTES</div>' +
-      '<div class="pleasure-notes-headline">An offering of what has held my attention</div>' +
+    '<section class="pleasure-notes" style="margin:38px 0 0;padding:0;">' +
+      '<div class="pleasure-notes-header" style="font:500 11px/1.2 \'DM Mono\',monospace;letter-spacing:.09em;text-transform:uppercase;color:#8a8477;margin:0 0 24px;">04 — PLEASURE NOTES</div>' +
+      '<div class="pleasure-notes-headline" style="font:400 34px/1.05 \'EB Garamond\',Georgia,serif;letter-spacing:-.02em;color:' + COLORS.text + ';margin:0 0 48px;">An offering of what has held my attention</div>' +
       notes.map(function (note) {
         return (
-          '<div class="pleasure-note">' +
-            '<div class="pleasure-note-label">' +
+          '<div class="pleasure-note" style="display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:90px;align-items:start;margin:0 0 56px;padding:0;">' +
+            '<div class="pleasure-note-label" style="font:500 11px/1.2 \'DM Mono\',monospace;letter-spacing:.09em;text-transform:uppercase;color:#8a8477;padding-top:3px;">' +
               escapeHtml(note.label) +
             '</div>' +
-            '<div class="pleasure-note-value">' +
+            '<div class="pleasure-note-value" style="font:400 20px/1.55 \'EB Garamond\',Georgia,serif;color:' + COLORS.text + ';margin:0;">' +
               textWithLineBreaks(note.value) +
             '</div>' +
           '</div>'
@@ -1826,19 +1826,6 @@ function buildNewsletterHtml() {
                       '</div>'
                     : ""
                 ) +
-
-                '<div style="' +
-                  "font:10px Arial,Helvetica,sans-serif;" +
-                  "letter-spacing:1.5px;" +
-                  "color:" + COLORS.secondary + ";" +
-                  "margin:38px 0 11px;" +
-                '">04 — PLEASURE NOTES</div>' +
-
-                '<div style="' +
-                  "font:19px/1.4 Garamond,Georgia,Times New Roman,serif;" +
-                  "color:" + COLORS.text + ";" +
-                  "margin:0 0 8px;" +
-                '">An offering of what has held my attention.</div>' +
 
                 buildPleasureNotesHtml(notes) +
 
