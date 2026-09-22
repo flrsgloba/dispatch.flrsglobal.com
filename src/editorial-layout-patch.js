@@ -238,35 +238,148 @@
     /* -------------------------------------------------------
        PLEASURE NOTES
 
-       Preserve the Outlook table structure but give it the
-       same subtle editorial indentation used on the site.
+       Normalize legacy publisher output into the same definition-list
+       ledger used by the edition pages. New publisher output already
+       carries these classes and is left untouched.
     ------------------------------------------------------- */
 
     if (pleasureHeading) {
-      const tables = Array.from(
-        contentCell.querySelectorAll(
-          'table[role="presentation"]'
-        )
-      );
+      const existing = pleasureHeading.closest(".pleasure-notes");
 
-      tables.forEach(function (table) {
-        if (
-          isAfter(table, pleasureHeading) &&
-          (!findExactText(contentCell, "05 — AN INVITATION") ||
-            isBefore(
-              table,
-              findExactText(
-                contentCell,
-                "05 — AN INVITATION"
-              )
-            ))
+      if (!existing) {
+        const section = doc.createElement("section");
+        section.className = "pleasure-notes";
+        section.style.margin = "38px 0 0";
+        section.style.padding = "0";
+
+        pleasureHeading.className = "pleasure-notes-header";
+        pleasureHeading.setAttribute(
+          "style",
+          "font:500 11px/1.2 'DM Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#8a8477;margin:0 0 24px;"
+        );
+
+        const headline = doc.createElement("div");
+        headline.className = "pleasure-notes-headline";
+        headline.textContent =
+          "An offering of what has held my attention";
+        headline.setAttribute(
+          "style",
+          "font:400 34px/1.05 'EB Garamond',Georgia,serif;letter-spacing:-.02em;color:#F2EEE5;margin:0 0 48px;"
+        );
+
+        const parent = pleasureHeading.parentElement;
+        parent.insertBefore(section, pleasureHeading);
+        section.appendChild(pleasureHeading);
+        section.appendChild(headline);
+
+        const invitation = findExactText(
+          contentCell,
+          "05 — AN INVITATION"
+        );
+        const question = findExactText(
+          contentCell,
+          "06 — A QUESTION"
+        );
+
+        let current = section.nextElementSibling;
+
+        while (
+          current &&
+          current !== invitation &&
+          current !== question
         ) {
-          table.style.width =
-            "calc(100% - 40px)";
-          table.style.marginLeft = "40px";
-          table.style.marginRight = "0";
+          const next = current.nextElementSibling;
+
+          if (
+            current.tagName === "P" &&
+            current.querySelector("strong")
+          ) {
+            const label = current.querySelector("strong");
+            const note = doc.createElement("div");
+            note.className = "pleasure-note";
+            note.setAttribute(
+              "style",
+              "display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:90px;align-items:start;margin:0 0 56px;padding:0;"
+            );
+
+            const labelNode = doc.createElement("div");
+            labelNode.className = "pleasure-note-label";
+            labelNode.textContent =
+              String(label.textContent || "").trim();
+            labelNode.setAttribute(
+              "style",
+              "font:500 11px/1.2 'DM Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#8a8477;padding-top:3px;"
+            );
+
+            const valueNode = doc.createElement("div");
+            valueNode.className = "pleasure-note-value";
+            valueNode.setAttribute(
+              "style",
+              "font:400 20px/1.55 'EB Garamond',Georgia,serif;color:#F2EEE5;margin:0;"
+            );
+
+            let started = false;
+            Array.from(current.childNodes).forEach(function (node) {
+              if (node === label) {
+                started = true;
+                return;
+              }
+
+              if (!started) return;
+
+              valueNode.appendChild(node.cloneNode(true));
+            });
+
+            note.appendChild(labelNode);
+            note.appendChild(valueNode);
+            section.appendChild(note);
+            current.remove();
+          } else if (
+            current.tagName === "TABLE" &&
+            current.getAttribute("role") === "presentation"
+          ) {
+            Array.from(current.querySelectorAll("tr")).forEach(function (row) {
+              const cells = row.querySelectorAll("td");
+              if (cells.length < 2) return;
+
+              const note = doc.createElement("div");
+              note.className = "pleasure-note";
+              note.setAttribute(
+                "style",
+                "display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:90px;align-items:start;margin:0 0 56px;padding:0;"
+              );
+
+              const labelNode = doc.createElement("div");
+              labelNode.className = "pleasure-note-label";
+              labelNode.textContent =
+                String(cells[0].textContent || "").trim();
+              labelNode.setAttribute(
+                "style",
+                "font:500 11px/1.2 'DM Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#8a8477;padding-top:3px;"
+              );
+
+              const valueNode = doc.createElement("div");
+              valueNode.className = "pleasure-note-value";
+              valueNode.setAttribute(
+                "style",
+                "font:400 20px/1.55 'EB Garamond',Georgia,serif;color:#F2EEE5;margin:0;"
+              );
+
+              Array.from(cells[1].childNodes).forEach(function (node) {
+                valueNode.appendChild(node.cloneNode(true));
+              });
+
+              note.appendChild(labelNode);
+              note.appendChild(valueNode);
+              section.appendChild(note);
+            });
+
+            current.remove();
+          }
+
+          current = next;
         }
-      });
+      }
     }
 
     return doc.body.innerHTML.trim();
